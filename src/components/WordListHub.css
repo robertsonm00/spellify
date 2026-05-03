@@ -1,0 +1,204 @@
+.hub {
+  max-width: 860px;
+  margin: 2rem auto;
+  padding: 0 1rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* ── Section header ── */
+
+.hub-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.hub-section-header h2,
+.hub-activities h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #555;
+}
+
+/* ── Word chips ── */
+
+.hub-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.hub-chip {
+  padding: 0.3rem 0.75rem;
+  background: #e8f0fe;
+  color: #1a56db;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.hub-change-btn {
+  padding: 0.35rem 0.9rem;
+  font-size: 0.85rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+  color: #555;
+}
+
+.hub-change-btn:hover {
+  background: #f5f5f5;
+}
+
+/* ── Progress ── */
+
+.hub-progress-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: #555;
+  margin-bottom: 0.4rem;
+}
+
+.hub-progress-track {
+  height: 10px;
+  background: #e0e0e0;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.hub-progress-fill {
+  height: 100%;
+  background: #4caf50;
+  border-radius: 5px;
+  transition: width 0.4s ease;
+}
+
+/* ── Activity grid ── */
+
+.hub-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+/* ── Card base ── */
+
+.hub-card {
+  background: white;
+  border-radius: 12px;
+  border: 2px solid #e0e0e0;
+  padding: 1.25rem 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  cursor: pointer;
+  transition: box-shadow 0.15s, border-color 0.15s, transform 0.1s;
+  user-select: none;
+}
+
+.hub-card:not(.hub-card--locked):hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  border-color: #4a90e2;
+  transform: translateY(-2px);
+}
+
+.hub-card:not(.hub-card--locked):active {
+  transform: translateY(0);
+}
+
+.hub-card--locked {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* Status-based left border accent */
+.hub-card--not-started { border-left: 4px solid #bdbdbd; }
+.hub-card--in-progress  { border-left: 4px solid #fb8c00; }
+.hub-card--completed    { border-left: 4px solid #43a047; }
+
+.hub-card-icon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.hub-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.hub-card-name {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #222;
+}
+
+.hub-card-time {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #777;
+}
+
+.hub-card-soon {
+  margin: 0.2rem 0 0;
+  font-size: 0.78rem;
+  color: #aaa;
+  font-style: italic;
+}
+
+/* ── Status badge ── */
+
+.hub-badge {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  width: fit-content;
+}
+
+.hub-badge--not-started { background: #f0f0f0; color: #777; }
+.hub-badge--in-progress  { background: #fff3e0; color: #e65100; }
+.hub-badge--completed    { background: #e8f5e9; color: #2e7d32; }
+
+/* ── Difficulty buttons inside card ── */
+
+.hub-difficulty {
+  display: flex;
+  gap: 0.3rem;
+  margin-top: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.hub-diff-btn {
+  padding: 0.2rem 0.55rem;
+  font-size: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  color: #555;
+  transition: background 0.1s, border-color 0.1s;
+}
+
+.hub-diff-btn.active {
+  background: #4a90e2;
+  border-color: #4a90e2;
+  color: white;
+}
+
+.hub-diff-btn:hover:not(.active) {
+  background: #f0f0f0;
+}

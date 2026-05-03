@@ -1,0 +1,193 @@
+.hm-wrap {
+  max-width: 720px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  position: relative;
+}
+
+.hm-back {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 0.35rem 0.8rem;
+  font-size: 0.85rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+  color: #555;
+}
+
+.hm-back:hover { background: #f5f5f5; }
+
+.hm-progress {
+  text-align: center;
+  font-size: 0.9rem;
+  color: #888;
+  margin-bottom: 1.5rem;
+}
+
+.hm-main {
+  display: flex;
+  gap: 2.5rem;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+/* ── Gallows + SVG ── */
+
+.hm-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.hangman-svg {
+  width: 160px;
+  height: 200px;
+}
+
+.hangman-svg line,
+.hangman-svg circle {
+  stroke: #333;
+  stroke-width: 4;
+  stroke-linecap: round;
+  fill: none;
+}
+
+.hm-wrong-count {
+  font-size: 0.85rem;
+  color: #888;
+  margin: 0;
+}
+
+/* ── Right side ── */
+
+.hm-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding-top: 1rem;
+}
+
+/* ── Word blanks ── */
+
+.hm-blanks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.hm-letter {
+  display: inline-flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 36px;
+  height: 44px;
+  border-bottom: 3px solid #555;
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-family: monospace;
+  text-transform: uppercase;
+  color: #1a1a1a;
+}
+
+.hm-letter.revealed {
+  color: #4a90e2;
+}
+
+/* ── Word result banner ── */
+
+.hm-word-result {
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+}
+
+.hm-word-result.won  { background: #e8f5e9; color: #2e7d32; }
+.hm-word-result.lost { background: #fce4ec; color: #c62828; }
+
+/* ── Keyboard ── */
+
+.hm-keyboard {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: center;
+}
+
+.hm-key {
+  width: 36px;
+  height: 36px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border: 2px solid #ccc;
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+  transition: background 0.1s, opacity 0.1s;
+}
+
+.hm-key:hover:not(:disabled) { background: #e8f0fe; border-color: #4a90e2; }
+.hm-key.right { background: #a5d6a7; border-color: #43a047; color: #1b5e20; }
+.hm-key.wrong { background: #ef9a9a; border-color: #e53935; color: #b71c1c; }
+.hm-key:disabled { opacity: 0.4; cursor: default; }
+
+/* ── Complete screen ── */
+
+.hm-complete {
+  text-align: center;
+}
+
+.hm-score-big {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #4a90e2;
+  margin: 0.5rem 0 1.5rem;
+}
+
+.hm-result-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.5rem;
+  display: inline-block;
+  text-align: left;
+}
+
+.hm-result-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.3rem 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.hm-result-list li.won  { color: #2e7d32; }
+.hm-result-list li.lost { color: #c62828; }
+.hm-result-icon { margin-left: auto; }
+
+.hm-done-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.hm-done-actions button {
+  padding: 0.6rem 1.5rem;
+  font-size: 1rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  background: #4a90e2;
+  color: white;
+}

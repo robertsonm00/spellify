@@ -1,0 +1,168 @@
+.quiz-wrap {
+  max-width: 560px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  position: relative;
+}
+
+.quiz-back {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 0.35rem 0.8rem;
+  font-size: 0.85rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+  color: #555;
+}
+
+.quiz-back:hover { background: #f5f5f5; }
+
+.quiz-progress {
+  text-align: center;
+  font-size: 0.9rem;
+  color: #888;
+  margin-bottom: 1.5rem;
+}
+
+.quiz-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  min-height: 220px;
+  justify-content: center;
+}
+
+.quiz-instruction {
+  font-size: 1rem;
+  color: #555;
+  margin: 0;
+}
+
+/* Memorise phase */
+.quiz-word-display {
+  font-size: 2.8rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #1a1a1a;
+  text-transform: uppercase;
+}
+
+.quiz-countdown {
+  font-size: 3rem;
+  font-weight: 700;
+  color: #4a90e2;
+  line-height: 1;
+}
+
+/* Type phase */
+.quiz-type form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+}
+
+.quiz-type input {
+  font-size: 1.6rem;
+  text-align: center;
+  padding: 0.5rem 1rem;
+  border: 2px solid #ccc;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 320px;
+  outline: none;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.quiz-type input:focus {
+  border-color: #4a90e2;
+}
+
+.quiz-type button {
+  padding: 0.6rem 2rem;
+  font-size: 1rem;
+  background: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* Feedback phase */
+.quiz-feedback {
+  border-radius: 12px;
+  padding: 2rem;
+}
+
+.quiz-feedback.correct { background: #e8f5e9; }
+.quiz-feedback.wrong   { background: #fce4ec; }
+
+.feedback-icon {
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.quiz-feedback p {
+  font-size: 1.2rem;
+  margin: 0.5rem 0 0;
+}
+
+.quiz-feedback.correct p { color: #2e7d32; }
+.quiz-feedback.wrong   p { color: #c62828; }
+
+/* Complete screen */
+.quiz-complete {
+  text-align: center;
+}
+
+.quiz-score-big {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #4a90e2;
+  margin: 0.5rem 0 1.5rem;
+}
+
+.quiz-result-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.5rem;
+  text-align: left;
+}
+
+.quiz-result-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 0.95rem;
+}
+
+.quiz-result-list li.correct { color: #2e7d32; }
+.quiz-result-list li.wrong   { color: #c62828; }
+
+.ql-word   { font-weight: 700; text-transform: uppercase; }
+.ql-answer { font-size: 0.85rem; color: #888; }
+.ql-icon   { margin-left: auto; font-weight: 700; }
+
+.quiz-done-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.quiz-done-actions button {
+  padding: 0.6rem 1.5rem;
+  font-size: 1rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  background: #4a90e2;
+  color: white;
+}
