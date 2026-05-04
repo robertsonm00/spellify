@@ -57,6 +57,38 @@ const DEFINITIONS = {
   only:     'Just one; no others',
   who:      'Asking which person',
 
+  // ── Common short/ambiguous words (local definitions prevent unsafe API hits) ──
+  // "ow" sound words
+  blow:     'To push air out of your mouth; a gust of wind',
+  crow:     'A large, clever black bird that makes a loud cawing sound',
+  grow:     'To get bigger over time',
+  glow:     'To give out a soft, steady light',
+  low:      'Not high up; close to the ground',
+  know:     'To have information in your mind',
+  row:      'A line of things side by side; to move a boat with oars',
+  show:     'To let someone see something',
+  snow:     'Frozen water that falls from the sky in white flakes',
+  slow:     'Not moving fast; taking a long time',
+  throw:    'To send something through the air with your hand',
+  mow:      'To cut grass with a lawnmower',
+  // Other short words with multiple API meanings
+  pot:      'A round container used for cooking or growing plants',
+  joint:    'The place where two bones meet in your body',
+  weed:     'A wild plant that grows where it is not wanted',
+  rock:     'A hard, solid piece of stone',
+  crack:    'A thin break or split in something',
+  high:     'A long way up; far above the ground',
+  trip:     'A journey to a place and back',
+  grass:    'Green plants that cover lawns and fields',
+  pipe:     'A hollow tube that carries water or gas',
+  roll:     'To move by turning over and over',
+  speed:    'How fast something moves',
+  charge:   'To rush at something; the amount of electricity stored',
+  score:    'The number of points in a game',
+  fix:      'To repair something that is broken',
+  shoot:    'To kick or throw a ball towards a goal',
+  smack:    'To hit something with a flat hand; to make a loud slapping sound',
+
   // ── Year 2 ──────────────────────────────────────────────────────
   floor:    'The flat surface you walk on inside',
   poor:     'Having very little money',

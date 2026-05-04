@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { generateCrossword, wordCells } from '../utils/crosswordEngine';
 import DEFINITIONS from '../data/definitions';
+import { isSafeDefinition } from '../utils/definitionSafety';
 import './Crossword.css';
 
 // ── Config ───────────────────────────────────────────────────────────────────
@@ -27,11 +28,23 @@ async function fetchFromApi(word) {
     );
     if (!res.ok) return null;
     const data = await res.json();
-    const defs = data[0]?.meanings?.flatMap(m => m.definitions.map(d => d.definition)) ?? [];
-    const clean = defs
-      .filter(d => d && !d.startsWith('(') && d.length > 8)
+
+    // Flatten all definitions across all meanings, then:
+    // 1. Strip definitions that start with bracketed labels like "(archaic)"
+    // 2. Require a minimum length (avoids single-word "definitions" like "Cannabis.")
+    // 3. Run every candidate through the content-safety filter — rejects drug
+    //    references, slurs, explicit content and editorially-marked offensive defs
+    // 4. Return the shortest remaining safe definition (most likely to be primary)
+    const defs = data[0]?.meanings?.flatMap(m =>
+      m.definitions.map(d => d.definition)
+    ) ?? [];
+
+    const safe = defs
+      .filter(d => d && !d.startsWith('(') && d.length > 12)
+      .filter(isSafeDefinition)
       .sort((a, b) => a.length - b.length);
-    return clean[0] ?? null;
+
+    return safe[0] ?? null;
   } catch {
     return null;
   }
