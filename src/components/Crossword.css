@@ -1,55 +1,155 @@
+/* ── Wrap ── */
+
 .cw-wrap {
-  max-width: 980px;
-  margin: 1.5rem auto;
-  padding: 0 1rem 3rem;
-  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 56px);
+  background: linear-gradient(160deg, #f0f4ff 0%, #fdf4ff 100%);
+  font-family: 'Nunito', sans-serif;
   outline: none;
-  font-family: 'Segoe UI', Arial, sans-serif;
+}
+
+/* ── Header ── */
+
+.cw-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  background: #fff;
+  border-bottom: 3px solid #1a1a2e;
+  box-shadow: 0 3px 0 #1a1a2e;
 }
 
 .cw-back {
-  position: absolute;
-  top: 0;
-  left: 0;
-  padding: 0.35rem 0.8rem;
-  font-size: 0.85rem;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  background: white;
-  cursor: pointer;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.35rem 0.75rem;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
   color: #555;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
-.cw-back:hover { background: #f0f0f0; }
+.cw-back:hover { background: #f5f5f5; }
 
-.cw-header {
+.cw-header-center {
+  flex: 1;
   text-align: center;
-  margin-bottom: 1.25rem;
 }
-.cw-header h2 {
-  margin: 0 0 0.2rem;
-  font-size: 1.5rem;
-  color: #1a1a1a;
+
+.cw-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.85rem;
+  color: #1a1a2e;
+  margin: 0;
+  line-height: 1.6;
 }
+
 .cw-progress {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: #888;
+  font-weight: 700;
 }
 
-/* ── Main two-column layout ── */
-
-.cw-main {
-  display: flex;
-  gap: 2rem;
-  align-items: flex-start;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-/* ── Grid ── */
-
-.cw-grid-wrap {
+.cw-toggle-btn {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.35rem 0.75rem;
+  border: 2px solid #c77dff;
+  border-radius: 8px;
+  background: #f5f0ff;
+  color: #6b21a8;
+  cursor: pointer;
+  white-space: nowrap;
   flex-shrink: 0;
+  transition: background 0.1s;
+}
+.cw-toggle-btn:hover { background: #ede9fe; }
+
+/* ── Body ── */
+
+.cw-body {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  flex: 1;
+  align-items: flex-start;
+  overflow: auto;
+}
+
+/* ── Word list sidebar ── */
+
+.cw-wordlist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  width: 130px;
+}
+
+.cw-wordlist-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.5rem;
+  color: #aaa;
+  letter-spacing: 0.08em;
+  margin: 0 0 0.25rem;
+  text-transform: uppercase;
+}
+
+.cw-word-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.3rem;
+  padding: 0.4rem 0.6rem;
+  border: 2.5px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-align: left;
+  transition: transform 0.08s, box-shadow 0.08s;
+  width: 100%;
+}
+.cw-word-chip:hover { transform: translateX(2px); }
+
+.cw-word-chip--done {
+  opacity: 0.55;
+  text-decoration: line-through;
+}
+.cw-word-chip--done.cw-word-chip--active {
+  opacity: 1;
+  text-decoration: none;
+}
+
+.cw-word-chip-text {
+  text-transform: capitalize;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: 0.03em;
+}
+
+.cw-word-chip-check {
+  font-size: 0.75rem;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+
+/* ── Grid area ── */
+
+.cw-grid-area {
+  flex: 1;
+  display: flex;
+  justify-content: center;
   overflow: auto;
 }
 
@@ -57,18 +157,20 @@
   display: grid;
   grid-template-columns: repeat(var(--cols), 40px);
   grid-auto-rows: 40px;
-  gap: 2px;
-  background: #111;           /* true black dividers, like a real crossword */
-  border: 3px solid #111;
-  border-radius: 3px;
+  gap: 3px;
+  background: #93c5fd;     /* light-blue dividers — no more black */
+  border: 4px solid #1a1a2e;
+  border-radius: 6px;
+  box-shadow: 6px 6px 0 #1a1a2e;
   user-select: none;
+  align-self: flex-start;
 }
 
 /* ── Cells ── */
 
 .cw-cell {
   position: relative;
-  background: #fff;
+  background: #fffef5;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -77,211 +179,248 @@
 }
 
 .cw-cell--black {
-  background: #111;
+  background: #4a6fa5;    /* blue-grey instead of black */
   cursor: default;
 }
 
-/* Highlight states – order matters (more specific wins) */
-.cw-cell--in-word  { background: #dbeafe; }   /* light blue — word highlight */
-.cw-cell--selected { background: #60a5fa; }   /* stronger blue — active cell */
+/* Highlight states */
+.cw-cell--in-word  { background: #fef9c3; }   /* pale yellow */
+.cw-cell--selected { background: #ffd93d; }   /* bright yellow */
 
 /* Feedback */
-.cw-cell--correct  { background: #86efac; }   /* green */
-.cw-cell--wrong    { background: #fca5a5; }   /* red */
-.cw-cell--hint     { background: #fde68a; }   /* amber */
+.cw-cell--correct  { background: #bbf7d0; }   /* pale green */
+.cw-cell--wrong    { background: #fecaca; }   /* pale red */
+.cw-cell--hint     { background: #fed7aa; }   /* pale orange */
 
 /* Correct beats hint */
-.cw-cell--hint.cw-cell--correct { background: #86efac; }
+.cw-cell--hint.cw-cell--correct { background: #bbf7d0; }
 
-/* Clue number — top-left corner, small */
+/* Number — top-left */
 .cw-num {
   position: absolute;
   top: 2px;
   left: 3px;
-  font-size: 0.6rem;
-  font-weight: 700;
-  color: #222;
+  font-size: 0.58rem;
+  font-weight: 800;
+  color: #444;
   line-height: 1;
   pointer-events: none;
+  font-family: 'Nunito', sans-serif;
 }
 
-/* Letter — centred, large, bold */
+/* Letter */
 .cw-letter {
   font-size: 1.1rem;
-  font-weight: 800;
-  font-family: Arial, sans-serif;
+  font-weight: 900;
+  font-family: 'Nunito', sans-serif;
   text-transform: uppercase;
-  color: #111;
+  color: #1a1a2e;
   line-height: 1;
-  padding-top: 5px;   /* nudge below the number */
+  padding-top: 4px;
   pointer-events: none;
 }
 
-/* ── Clue panel ── */
+/* ── Clue bar (bottom overlay) ── */
 
-.cw-clues {
-  min-width: 240px;
-  max-width: 320px;
-  max-height: 75vh;
-  overflow-y: auto;
+.cw-clue-bar {
+  position: sticky;
+  bottom: 0;
+  background: #fff;
+  border-top: 3px solid #e0e0e0;
+  padding: 0.75rem 1.25rem;
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 0.3rem;
+  min-height: 72px;
+  z-index: 10;
+  transition: border-color 0.15s;
+  font-family: 'Nunito', sans-serif;
 }
 
-.cw-clue-section h3 {
-  margin: 0 0 0.6rem;
-  font-size: 1rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  padding: 0.3rem 0.6rem;
-  border-radius: 4px;
-  color: #fff;
+.cw-clue-bar--active {
+  border-top-color: #4d96ff;
+  box-shadow: 0 -4px 16px rgba(77, 150, 255, 0.12);
 }
 
-/* Across = blue header, Down = green header — matches reference image style */
-.cw-clue-section:nth-child(1) h3 { background: #2563eb; }
-.cw-clue-section:nth-child(2) h3 { background: #16a34a; }
-
-.cw-clue-section ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+.cw-clue-bar-empty {
+  margin: auto 0;
+  font-size: 0.9rem;
+  color: #bbb;
+  font-weight: 600;
+  text-align: center;
 }
 
-.cw-clue {
-  padding: 0.45rem 0.55rem;
-  border-radius: 5px;
-  cursor: pointer;
-  border: 1px solid transparent;
-  transition: background 0.1s;
-}
-
-.cw-clue:hover     { background: #f3f4f6; }
-.cw-clue--active   { background: #dbeafe; border-color: #93c5fd; }
-.cw-clue--done     { opacity: 0.5; }
-.cw-clue--done.cw-clue--active { opacity: 1; }
-
-.cw-clue-top {
-  display: flex;
-  gap: 0.4rem;
-  align-items: flex-start;
-}
-
-.cw-clue-num {
-  font-size: 0.8rem;
-  font-weight: 800;
-  color: #111;
-  flex-shrink: 0;
-  min-width: 1.4rem;
-}
-
-.cw-clue-def {
-  font-size: 0.82rem;
-  color: #333;
-  line-height: 1.4;
-  flex: 1;
-}
-
-.cw-clue-check {
-  color: #16a34a;
-  font-weight: 800;
-  font-size: 0.85rem;
-  flex-shrink: 0;
-}
-
-.cw-clue-meta {
+.cw-clue-bar-meta {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
-  margin-top: 0.25rem;
-  padding-left: 1.8rem;   /* align with def text */
-  flex-wrap: wrap;
+  gap: 0.6rem;
 }
 
-.cw-clue-length {
-  font-size: 0.7rem;
+.cw-clue-bar-num {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.55rem;
+  color: #4d96ff;
+  line-height: 1.6;
+}
+
+.cw-clue-bar-letters {
+  font-size: 0.75rem;
   color: #aaa;
-  font-style: italic;
+  font-weight: 700;
+}
+
+.cw-clue-bar-done {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #16a34a;
+  background: #dcfce7;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+}
+
+.cw-clue-bar-text {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  line-height: 1.4;
+}
+
+.cw-clue-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
 }
 
 .cw-hint-btn {
-  font-size: 0.7rem;
-  font-weight: 600;
-  padding: 0.12rem 0.45rem;
-  border: 1px solid #d97706;
-  border-radius: 4px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 0.25rem 0.7rem;
+  border: 2px solid #f59e0b;
+  border-radius: 6px;
   background: #fef3c7;
   color: #92400e;
   cursor: pointer;
+  transition: background 0.1s;
 }
 .cw-hint-btn:hover { background: #fde68a; }
 
 .cw-hint-used {
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   color: #b45309;
+  font-weight: 700;
   font-style: italic;
 }
 
 /* ── Completion screen ── */
 
-.cw-complete {
-  max-width: 440px;
-  margin: 3rem auto 0;
-  text-align: center;
+.cw-wrap--complete {
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
-.cw-complete h2 { margin-bottom: 1.5rem; font-size: 1.8rem; }
+
+.cw-complete {
+  background: #fff;
+  border: 4px solid #1a1a2e;
+  border-radius: 12px;
+  box-shadow: 8px 8px 0 #1a1a2e;
+  padding: 2.5rem 2rem;
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+}
+
+.cw-complete-emoji {
+  font-size: 3.5rem;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+  animation: bounce 0.6s ease;
+}
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  40%       { transform: translateY(-16px); }
+  60%       { transform: translateY(-8px); }
+}
+
+.cw-complete-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.85rem;
+  color: #1a1a2e;
+  margin: 0 0 1.5rem;
+  line-height: 1.8;
+}
 
 .cw-stats {
   display: flex;
   justify-content: center;
-  gap: 2.5rem;
-  margin-bottom: 2rem;
+  gap: 2rem;
+  margin-bottom: 1.75rem;
 }
 
 .cw-stat {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.2rem;
+  gap: 0.25rem;
 }
 
 .cw-stat-val {
-  font-size: 2.2rem;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 1.1rem;
   font-weight: 800;
-  color: #2563eb;
+  color: #4d96ff;
+  line-height: 1.4;
 }
 
 .cw-stat-label {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: #888;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
 }
 
 .cw-done-actions {
   display: flex;
-  gap: 0.75rem;
-  justify-content: center;
+  flex-direction: column;
+  gap: 0.6rem;
 }
 
-.cw-done-actions button {
-  padding: 0.65rem 1.6rem;
-  font-size: 1rem;
-  font-weight: 600;
-  border: none;
-  border-radius: 8px;
+.cw-done-btn {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.6rem;
+  padding: 0.85rem 1rem;
+  border: 3px solid #1a1a2e;
+  border-radius: 4px;
   cursor: pointer;
-  background: #2563eb;
-  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  transition: transform 0.06s, box-shadow 0.06s;
 }
+.cw-done-btn--primary {
+  background: #6bcb77;
+  color: #1a1a2e;
+  box-shadow: 4px 4px 0 #1a1a2e;
+}
+.cw-done-btn--primary:hover  { transform: translate(2px,2px); box-shadow: 2px 2px 0 #1a1a2e; }
+.cw-done-btn--primary:active { transform: translate(4px,4px); box-shadow: none; }
+
+.cw-done-btn--secondary {
+  background: #fff;
+  color: #555;
+  border-color: #ccc;
+  box-shadow: 3px 3px 0 #ccc;
+}
+.cw-done-btn--secondary:hover  { transform: translate(2px,2px); box-shadow: 1px 1px 0 #ccc; }
+.cw-done-btn--secondary:active { transform: translate(3px,3px); box-shadow: none; }
+
+/* ── Error ── */
 
 .cw-error {
   text-align: center;
-  color: #aaa;
-  margin-top: 3rem;
+  color: #888;
+  margin: 3rem auto;
+  font-weight: 700;
 }

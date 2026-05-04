@@ -3,7 +3,7 @@ import { generateCrossword, wordCells } from '../utils/crosswordEngine';
 import DEFINITIONS from '../data/definitions';
 import './Crossword.css';
 
-// ── Config ──────────────────────────────────────────────────────────────────
+// ── Config ───────────────────────────────────────────────────────────────────
 
 function getMaxWords(userAge, difficulty) {
   const base = userAge < 7 ? 6 : userAge < 10 ? 10 : 15;
@@ -20,8 +20,6 @@ function getMaxHints(userAge) {
 
 // ── Definition lookup ────────────────────────────────────────────────────────
 
-// For custom words not in the local dictionary, try the API and pick the
-// shortest definition that reads like plain English (no parenthetical jargon).
 async function fetchFromApi(word) {
   try {
     const res = await fetch(
@@ -29,9 +27,7 @@ async function fetchFromApi(word) {
     );
     if (!res.ok) return null;
     const data = await res.json();
-    // Collect all definitions across all meanings
     const defs = data[0]?.meanings?.flatMap(m => m.definitions.map(d => d.definition)) ?? [];
-    // Pick shortest that doesn't start with technical markers like "(" or abbreviations
     const clean = defs
       .filter(d => d && !d.startsWith('(') && d.length > 8)
       .sort((a, b) => a.length - b.length);
@@ -43,14 +39,11 @@ async function fetchFromApi(word) {
 
 async function fetchDefinition(word) {
   const key = word.toLowerCase();
-  // 1. Check local kid-friendly definitions first
   if (DEFINITIONS[key]) return DEFINITIONS[key];
-  // 2. Fall back to API for custom words
   const api = await fetchFromApi(key);
   return api ?? 'Can you spell this word?';
 }
 
-// Cap length for very young users
 function ageAwareDefinition(def, userAge) {
   if (userAge < 7  && def.length > 70)  return def.slice(0, 67) + '…';
   if (userAge < 10 && def.length > 130) return def.slice(0, 127) + '…';
@@ -59,16 +52,18 @@ function ageAwareDefinition(def, userAge) {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function cellKey(row, col) { return `${row},${col}`; }
+const CHIP_COLORS = [
+  { bg: '#fff0f0', border: '#ff6b6b' },
+  { bg: '#fff8e1', border: '#ffd93d' },
+  { bg: '#f0fff4', border: '#6bcb77' },
+  { bg: '#e8f4ff', border: '#4d96ff' },
+  { bg: '#f5f0ff', border: '#c77dff' },
+  { bg: '#fff4ec', border: '#ff9f43' },
+  { bg: '#f0ffff', border: '#00d2d3' },
+  { bg: '#fff0f8', border: '#ff6b9d' },
+];
 
-function getExpectedLetter(layout, row, col) {
-  for (const pw of layout.placedWords) {
-    const cells = wordCells(pw.word, pw.row, pw.col, pw.direction);
-    const idx = cells.findIndex(c => c.row === row && c.col === col);
-    if (idx >= 0) return pw.word[idx];
-  }
-  return null;
-}
+function cellKey(row, col) { return `${row},${col}`; }
 
 function getWordsAtCell(layout, row, col) {
   return layout.placedWords.filter(pw => {
@@ -91,25 +86,24 @@ function isWordComplete(pw, filled) {
   );
 }
 
-// ── Component ────────────────────────────────────────────────────────────────
+// ── Component ─────────────────────────────────────────────────────────────────
 
 function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onExit }) {
-  const maxWords  = getMaxWords(userAge, difficulty);
-  const maxHints  = getMaxHints(userAge);
+  const maxWords = getMaxWords(userAge, difficulty);
+  const maxHints = getMaxHints(userAge);
 
-  // Layout is computed once on mount
-  const [layout]       = useState(() => generateCrossword(words, maxWords));
-  const [definitions,  setDefinitions]  = useState(new Map()); // word → definition string
-  const [filled,       setFilled]       = useState(new Map()); // key → { letter, isHint }
-  const [selectedCell, setSelectedCell] = useState(null);      // { row, col }
-  const [selDir,       setSelDir]       = useState('across');  // selected direction
-  const [hints,        setHints]        = useState(new Map()); // wordId → hintLevel (0-3)
-  const [hintsUsed,    setHintsUsed]    = useState(0);
-  const [startTime]    = useState(Date.now);
-  const [endTime,      setEndTime]      = useState(null);
-  const containerRef   = useRef(null);
+  const [layout]         = useState(() => generateCrossword(words, maxWords));
+  const [definitions,    setDefinitions]    = useState(new Map());
+  const [filled,         setFilled]         = useState(new Map());
+  const [selectedCell,   setSelectedCell]   = useState(null);
+  const [selDir,         setSelDir]         = useState('across');
+  const [hints,          setHints]          = useState(new Map());
+  const [hintsUsed,      setHintsUsed]      = useState(0);
+  const [startTime]      = useState(Date.now);
+  const [endTime,        setEndTime]        = useState(null);
+  const [wordsVisible,   setWordsVisible]   = useState(true);
+  const containerRef     = useRef(null);
 
-  // Fetch definitions for all placed words
   useEffect(() => {
     if (!layout) return;
     layout.placedWords.forEach(async (pw) => {
@@ -118,10 +112,9 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
     });
   }, [layout, userAge]);
 
-  // Focus container for keyboard events
   useEffect(() => { containerRef.current?.focus(); }, [layout]);
 
-  // ── Derived state ──────────────────────────────────────────────────────────
+  // ── Derived ────────────────────────────────────────────────────────────────
 
   const selectedWord = layout
     ? findWordContaining(layout, selectedCell?.row, selectedCell?.col, selDir) ||
@@ -138,7 +131,6 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
 
   const isGameComplete = layout && completedWords === layout.placedWords.length;
 
-  // Detect completion
   useEffect(() => {
     if (isGameComplete && !endTime) setEndTime(Date.now());
   }, [isGameComplete, endTime]);
@@ -149,14 +141,11 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
     if (!layout) return;
     const wordsHere = getWordsAtCell(layout, row, col);
     if (!wordsHere.length) return;
-
     if (selectedCell?.row === row && selectedCell?.col === col) {
-      // Toggle direction on second click
       const other = selDir === 'across' ? 'down' : 'across';
       if (wordsHere.some(pw => pw.direction === other)) setSelDir(other);
     } else {
       setSelectedCell({ row, col });
-      // Prefer the current direction if a word exists in it
       const hasCurrentDir = wordsHere.some(pw => pw.direction === selDir);
       if (!hasCurrentDir) setSelDir(wordsHere[0].direction);
     }
@@ -165,14 +154,12 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
   const advanceCell = useCallback((word, currentRow, currentCol) => {
     const cells = wordCells(word.word, word.row, word.col, word.direction);
     const idx = cells.findIndex(c => c.row === currentRow && c.col === currentCol);
-    // Move to next empty cell, or just the next cell if no empty ones remain
     for (let i = idx + 1; i < cells.length; i++) {
       if (!filled.has(cellKey(cells[i].row, cells[i].col))) {
         setSelectedCell(cells[i]);
         return;
       }
     }
-    // All remaining cells filled — move to next if possible
     if (idx + 1 < cells.length) setSelectedCell(cells[idx + 1]);
   }, [filled]);
 
@@ -184,13 +171,11 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
 
   const handleKeyDown = useCallback((e) => {
     if (!selectedCell || !layout) return;
-
     const word = selectedWord;
 
     if (e.key === 'Tab') {
       e.preventDefault();
-      // Cycle to next word
-      const allWords = layout.placedWords;
+      const allWords  = layout.placedWords;
       const currentIdx = selectedWord ? allWords.indexOf(selectedWord) : -1;
       const next = allWords[(currentIdx + 1) % allWords.length];
       const firstCell = wordCells(next.word, next.row, next.col, next.direction)[0];
@@ -209,8 +194,8 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
         const cells = wordCells(word.word, word.row, word.col, word.direction);
         const idx = cells.findIndex(c => c.row === selectedCell.row && c.col === selectedCell.col);
         if (idx > 0) {
-          const prev = cells[idx - 1];
-          const prevKey = cellKey(prev.row, prev.col);
+          const prevCell = cells[idx - 1];
+          const prevKey  = cellKey(prevCell.row, prevCell.col);
           if (!filled.get(prevKey)?.isHint) {
             setFilled(m => { const n = new Map(m); n.delete(prevKey); return n; });
           }
@@ -227,39 +212,33 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
     if (/^[a-zA-Z]$/.test(e.key)) {
       e.preventDefault();
       const letter = e.key.toUpperCase();
-      const key = cellKey(selectedCell.row, selectedCell.col);
-      if (filled.get(key)?.isHint) return; // don't overwrite hints
+      const key    = cellKey(selectedCell.row, selectedCell.col);
+      if (filled.get(key)?.isHint) return;
       setFilled(prev => new Map(prev).set(key, { letter, isHint: false }));
       if (word) advanceCell(word, selectedCell.row, selectedCell.col);
     }
   }, [selectedCell, selectedWord, layout, filled, advanceCell, retreatCell]);
 
-  // ── Hint system ────────────────────────────────────────────────────────────
+  // ── Hints ──────────────────────────────────────────────────────────────────
 
   const applyHint = (wordId) => {
     const pw = layout?.placedWords.find(p => p.id === wordId);
     if (!pw) return;
     const level = (hints.get(wordId) || 0) + 1;
     if (level > maxHints) return;
-
     const cells = wordCells(pw.word, pw.row, pw.col, pw.direction);
-
     setHints(prev => new Map(prev).set(wordId, level));
     setHintsUsed(n => n + 1);
-
     if (level === 1) {
-      // Reveal first letter
       const { row, col } = cells[0];
       setFilled(prev => new Map(prev).set(cellKey(row, col), { letter: pw.word[0], isHint: true }));
     } else if (level === 2) {
-      // Reveal first + last letter
       const last = cells[cells.length - 1];
       setFilled(prev => new Map(prev)
         .set(cellKey(cells[0].row, cells[0].col), { letter: pw.word[0], isHint: true })
         .set(cellKey(last.row, last.col),          { letter: pw.word[pw.word.length - 1], isHint: true })
       );
     } else {
-      // Reveal entire word
       setFilled(prev => {
         const m = new Map(prev);
         cells.forEach((c, i) => m.set(cellKey(c.row, c.col), { letter: pw.word[i], isHint: true }));
@@ -268,65 +247,61 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
     }
   };
 
-  // ── Render helpers ─────────────────────────────────────────────────────────
+  // ── No layout ─────────────────────────────────────────────────────────────
 
   if (!layout) {
     return (
       <div className="cw-wrap">
-        {onExit && <button className="cw-back" onClick={onExit}>← Hub</button>}
-        <p className="cw-error">Not enough words to build a crossword (need at least 2).</p>
+        <button className="cw-back" onClick={onExit}>← Hub</button>
+        <p className="cw-error">Need at least 2 words to build a crossword.</p>
       </div>
     );
   }
 
+  // ── Completion screen ─────────────────────────────────────────────────────
+
   if (isGameComplete) {
     const elapsed = Math.round((endTime - startTime) / 1000);
-    const mins = Math.floor(elapsed / 60);
-    const secs = elapsed % 60;
-    const accuracy = layout
-      ? Math.round(((layout.placedWords.length * 1) / Math.max(1, layout.placedWords.length)) * 100)
-      : 100;
-
+    const mins    = Math.floor(elapsed / 60);
+    const secs    = elapsed % 60;
     return (
-      <div className="cw-wrap">
-        {onExit && <button className="cw-back" onClick={onExit}>← Hub</button>}
+      <div className="cw-wrap cw-wrap--complete">
         <div className="cw-complete">
-          <h2>🎉 Crossword Complete!</h2>
+          <div className="cw-complete-emoji">🎉</div>
+          <h2 className="cw-complete-title">Crossword Complete!</h2>
           <div className="cw-stats">
             <div className="cw-stat">
               <span className="cw-stat-val">{mins > 0 ? `${mins}m ${secs}s` : `${secs}s`}</span>
               <span className="cw-stat-label">Time</span>
             </div>
             <div className="cw-stat">
-              <span className="cw-stat-val">{hintsUsed}</span>
-              <span className="cw-stat-label">Hints used</span>
+              <span className="cw-stat-val">{layout.placedWords.length}</span>
+              <span className="cw-stat-label">Words</span>
             </div>
             <div className="cw-stat">
-              <span className="cw-stat-val">{layout.placedWords.length}</span>
-              <span className="cw-stat-label">Words solved</span>
+              <span className="cw-stat-val">{hintsUsed}</span>
+              <span className="cw-stat-label">Hints</span>
             </div>
           </div>
           <div className="cw-done-actions">
-            <button onClick={() => {
-              setFilled(new Map());
-              setHints(new Map());
-              setHintsUsed(0);
-              setSelectedCell(null);
-              setEndTime(null);
+            <button className="cw-done-btn cw-done-btn--secondary" onClick={() => {
+              setFilled(new Map()); setHints(new Map());
+              setHintsUsed(0); setSelectedCell(null); setEndTime(null);
             }}>
               Try Again
             </button>
-            <button onClick={onComplete}>Back to Hub</button>
+            <button className="cw-done-btn cw-done-btn--primary" onClick={onComplete}>
+              Back to Hub ▶
+            </button>
           </div>
         </div>
       </div>
     );
   }
 
-  // ── Grid ───────────────────────────────────────────────────────────────────
+  // ── Grid info ─────────────────────────────────────────────────────────────
 
-  // Build a 2-D cell-info lookup
-  const gridInfo = new Map(); // key → { expected, number }
+  const gridInfo = new Map();
   for (const pw of layout.placedWords) {
     const cells = wordCells(pw.word, pw.row, pw.col, pw.direction);
     cells.forEach((c, i) => {
@@ -336,11 +311,14 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
     gridInfo.get(cellKey(pw.row, pw.col)).number = pw.number;
   }
 
-  const selectedWordIds = new Set(selectedWordCells.map(c => cellKey(c.row, c.col)));
+  const selectedWordKeys = new Set(selectedWordCells.map(c => cellKey(c.row, c.col)));
 
-  // Clues split by direction
-  const across = layout.placedWords.filter(pw => pw.direction === 'across').sort((a,b) => a.number - b.number);
-  const down   = layout.placedWords.filter(pw => pw.direction === 'down').sort((a,b) => a.number - b.number);
+  // Word list (unique, sorted by position)
+  const cwWords = [...layout.placedWords].sort((a, b) => a.number - b.number);
+
+  const hintLevel    = selectedWord ? (hints.get(selectedWord.id) || 0) : 0;
+  const wordDone     = selectedWord ? isWordComplete(selectedWord, filled) : false;
+  const canHint      = selectedWord && !wordDone && hintLevel < maxHints;
 
   return (
     <div
@@ -349,21 +327,65 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
       tabIndex={-1}
       onKeyDown={handleKeyDown}
     >
-      {onExit && <button className="cw-back" onClick={onExit}>← Hub</button>}
-
-      {/* Progress */}
+      {/* ── Header ── */}
       <div className="cw-header">
-        <h2>Crossword</h2>
-        <p className="cw-progress">{completedWords} / {layout.placedWords.length} words</p>
+        <button className="cw-back" onClick={onExit}>← Hub</button>
+        <div className="cw-header-center">
+          <h2 className="cw-title">Crossword</h2>
+          <p className="cw-progress">{completedWords} / {layout.placedWords.length} words</p>
+        </div>
+        <button
+          className="cw-toggle-btn"
+          onClick={() => setWordsVisible(v => !v)}
+          title={wordsVisible ? 'Hide word list' : 'Show word list'}
+        >
+          {wordsVisible ? '🙈 Hide' : '👁 Words'}
+        </button>
       </div>
 
-      <div className="cw-main">
+      {/* ── Body ── */}
+      <div className="cw-body">
+        {/* Word list sidebar */}
+        {wordsVisible && (
+          <aside className="cw-wordlist">
+            <p className="cw-wordlist-title">Words</p>
+            {cwWords.map((pw, i) => {
+              const done   = isWordComplete(pw, filled);
+              const active = selectedWord?.id === pw.id;
+              const { bg, border } = CHIP_COLORS[i % CHIP_COLORS.length];
+              const display = wordsVisible
+                ? pw.word.toLowerCase()
+                : '• '.repeat(pw.word.length).trim();
+              return (
+                <button
+                  key={pw.id}
+                  className={`cw-word-chip${done ? ' cw-word-chip--done' : ''}${active ? ' cw-word-chip--active' : ''}`}
+                  style={{
+                    background:  active ? border : bg,
+                    borderColor: border,
+                    color:       active ? '#fff' : '#1a1a2e',
+                  }}
+                  onClick={() => {
+                    const first = wordCells(pw.word, pw.row, pw.col, pw.direction)[0];
+                    setSelectedCell(first);
+                    setSelDir(pw.direction);
+                    containerRef.current?.focus();
+                  }}
+                >
+                  <span className="cw-word-chip-text">{display}</span>
+                  {done && <span className="cw-word-chip-check">✓</span>}
+                </button>
+              );
+            })}
+          </aside>
+        )}
+
         {/* Grid */}
-        <div className="cw-grid-wrap">
+        <div className="cw-grid-area">
           <div className="cw-grid" style={{ '--cols': layout.cols }}>
             {Array.from({ length: layout.rows }, (_, r) =>
               Array.from({ length: layout.cols }, (_, c) => {
-                const k = cellKey(r, c);
+                const k    = cellKey(r, c);
                 const info = gridInfo.get(k);
                 if (!info) return <div key={k} className="cw-cell cw-cell--black" />;
 
@@ -373,7 +395,7 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
                 const isCorrect   = letter && letter === info.expected;
                 const isWrong     = letter && letter !== info.expected;
                 const isSelected  = selectedCell?.row === r && selectedCell?.col === c;
-                const isInWord    = selectedWordIds.has(k);
+                const isInWord    = selectedWordKeys.has(k);
 
                 return (
                   <div
@@ -383,8 +405,8 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
                       isSelected ? 'cw-cell--selected' : '',
                       isInWord && !isSelected ? 'cw-cell--in-word' : '',
                       isCorrect ? 'cw-cell--correct' : '',
-                      isWrong ? 'cw-cell--wrong' : '',
-                      isHintCell ? 'cw-cell--hint' : '',
+                      isWrong   ? 'cw-cell--wrong'   : '',
+                      isHintCell ? 'cw-cell--hint'   : '',
                     ].filter(Boolean).join(' ')}
                     onClick={() => handleCellClick(r, c)}
                   >
@@ -396,61 +418,43 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
             )}
           </div>
         </div>
+      </div>
 
-        {/* Clue panel */}
-        <div className="cw-clues">
-          {[['Across', across], ['Down', down]].map(([label, clues]) => (
-            <div key={label} className="cw-clue-section">
-              <h3>{label}</h3>
-              <ul>
-                {clues.map(pw => {
-                  const hintLevel = hints.get(pw.id) || 0;
-                  const done      = isWordComplete(pw, filled);
-                  const active    = selectedWord?.id === pw.id;
-
-                  return (
-                    <li
-                      key={pw.id}
-                      className={[
-                        'cw-clue',
-                        active ? 'cw-clue--active' : '',
-                        done   ? 'cw-clue--done'   : '',
-                      ].filter(Boolean).join(' ')}
-                      onClick={() => {
-                        const first = wordCells(pw.word, pw.row, pw.col, pw.direction)[0];
-                        setSelectedCell(first);
-                        setSelDir(pw.direction);
-                      }}
-                    >
-                      <div className="cw-clue-top">
-                        <span className="cw-clue-num">{pw.number}.</span>
-                        <span className="cw-clue-def">
-                          {definitions.get(pw.word) ?? '…'}
-                        </span>
-                        {done && <span className="cw-clue-check">✓</span>}
-                      </div>
-
-                      <div className="cw-clue-meta">
-                        <span className="cw-clue-length">{pw.word.length} letters</span>
-                        {!done && hintLevel < maxHints && (
-                          <button
-                            className="cw-hint-btn"
-                            onClick={e => { e.stopPropagation(); applyHint(pw.id); }}
-                          >
-                            Hint {hintLevel + 1}
-                          </button>
-                        )}
-                        {hintLevel > 0 && (
-                          <span className="cw-hint-used">{hintLevel} hint{hintLevel > 1 ? 's' : ''} used</span>
-                        )}
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
+      {/* ── Clue bar ── */}
+      <div className={`cw-clue-bar${selectedWord ? ' cw-clue-bar--active' : ''}`}>
+        {selectedWord ? (
+          <>
+            <div className="cw-clue-bar-meta">
+              <span className="cw-clue-bar-num">
+                {selectedWord.number} {selectedWord.direction === 'across' ? '→' : '↓'}
+              </span>
+              <span className="cw-clue-bar-letters">{selectedWord.word.length} letters</span>
+              {wordDone && <span className="cw-clue-bar-done">✓ Done!</span>}
             </div>
-          ))}
-        </div>
+            <p className="cw-clue-bar-text">
+              {definitions.get(selectedWord.word) ?? '…'}
+            </p>
+            <div className="cw-clue-bar-actions">
+              {canHint && (
+                <button
+                  className="cw-hint-btn"
+                  onClick={() => applyHint(selectedWord.id)}
+                >
+                  💡 Hint {hintLevel + 1}
+                </button>
+              )}
+              {hintLevel > 0 && (
+                <span className="cw-hint-used">
+                  {hintLevel} hint{hintLevel > 1 ? 's' : ''} used
+                </span>
+              )}
+            </div>
+          </>
+        ) : (
+          <p className="cw-clue-bar-empty">
+            👆 Tap a square to start — or pick a word from the list!
+          </p>
+        )}
       </div>
     </div>
   );
