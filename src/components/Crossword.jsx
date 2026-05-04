@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { generateCrossword, wordCells } from '../utils/crosswordEngine';
+import DEFINITIONS from '../data/definitions';
 import './Crossword.css';
 
 // ── Config ──────────────────────────────────────────────────────────────────
@@ -17,26 +18,42 @@ function getMaxHints(userAge) {
   return 1;
 }
 
-// ── Dictionary API ───────────────────────────────────────────────────────────
+// ── Definition lookup ────────────────────────────────────────────────────────
 
-async function fetchDefinition(word) {
+// For custom words not in the local dictionary, try the API and pick the
+// shortest definition that reads like plain English (no parenthetical jargon).
+async function fetchFromApi(word) {
   try {
     const res = await fetch(
       `https://api.dictionaryapi.dev/api/v2/entries/en/${word.toLowerCase()}`
     );
-    if (!res.ok) return 'Learn this word!';
+    if (!res.ok) return null;
     const data = await res.json();
-    const def = data[0]?.meanings[0]?.definitions[0]?.definition;
-    return def || 'Learn this word!';
+    // Collect all definitions across all meanings
+    const defs = data[0]?.meanings?.flatMap(m => m.definitions.map(d => d.definition)) ?? [];
+    // Pick shortest that doesn't start with technical markers like "(" or abbreviations
+    const clean = defs
+      .filter(d => d && !d.startsWith('(') && d.length > 8)
+      .sort((a, b) => a.length - b.length);
+    return clean[0] ?? null;
   } catch {
-    return 'Learn this word!';
+    return null;
   }
 }
 
-// Trim long definitions for younger kids
+async function fetchDefinition(word) {
+  const key = word.toLowerCase();
+  // 1. Check local kid-friendly definitions first
+  if (DEFINITIONS[key]) return DEFINITIONS[key];
+  // 2. Fall back to API for custom words
+  const api = await fetchFromApi(key);
+  return api ?? 'Can you spell this word?';
+}
+
+// Cap length for very young users
 function ageAwareDefinition(def, userAge) {
-  if (userAge < 7 && def.length > 60) return def.slice(0, 57) + '…';
-  if (userAge < 10 && def.length > 120) return def.slice(0, 117) + '…';
+  if (userAge < 7  && def.length > 70)  return def.slice(0, 67) + '…';
+  if (userAge < 10 && def.length > 130) return def.slice(0, 127) + '…';
   return def;
 }
 
