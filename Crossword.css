@@ -1,0 +1,10 @@
+.cw-grid {
+  display: grid;
+  grid-template-columns: repeat(15, 40px);
+  grid-auto-rows: 40px;
+}
+
+.cw-grid .cell {
+  width: 40px;
+  height: 40px;
+}
