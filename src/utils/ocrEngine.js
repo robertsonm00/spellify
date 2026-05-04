@@ -4,18 +4,19 @@
  * Accepts an image File and returns an array of extracted words.
  */
 
-import { createWorker } from 'tesseract.js';
+import { createWorker, PSM } from 'tesseract.js';
 
 /**
  * Parse words out of raw OCR text.
- * Keeps sequences of 2–20 letters only; strips punctuation and numbers.
+ * Keeps sequences of 3–20 letters; strips punctuation, numbers and noise.
+ * minLen=3 avoids header fragments like "ow" from "ow Spelling List".
  */
-export function parseWordsFromText(rawText) {
+export function parseWordsFromText(rawText, minLen = 3) {
   const tokens = rawText
-    .replace(/[^a-zA-Z\s'-]/g, ' ')  // keep letters, hyphens, apostrophes
+    .replace(/[^a-zA-Z\s]/g, ' ')   // strip everything except letters & whitespace
     .split(/\s+/)
-    .map((t) => t.replace(/[^a-zA-Z]/g, '').toLowerCase())
-    .filter((t) => t.length >= 2 && t.length <= 20);
+    .map((t) => t.toLowerCase())
+    .filter((t) => t.length >= minLen && t.length <= 20);
 
   // Deduplicate while preserving order
   const seen = new Set();
@@ -42,7 +43,16 @@ export async function ocrImageFile(file, onProgress = () => {}) {
   });
 
   try {
-    // Convert file to object URL for Tesseract
+    // SPARSE_TEXT (PSM 11): treats text as scattered — perfect for word-grid images
+    // where words sit inside bordered boxes with no clear reading order.
+    // AUTO mode tries to find columns/paragraphs and fails badly on grids.
+    await worker.setParameters({
+      tessedit_pageseg_mode: PSM.SPARSE_TEXT,
+      // Only recognise letters — prevents box borders being misread as |, [, ] etc.
+      // which then corrupt adjacent letter clusters.
+      tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz ',
+    });
+
     const url = URL.createObjectURL(file);
     const { data } = await worker.recognize(url);
     URL.revokeObjectURL(url);
