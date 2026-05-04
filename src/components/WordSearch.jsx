@@ -1,214 +1,239 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { generateWordSearch, checkWord } from '../utils/wordSearchEngine';
 import './WordSearch.css';
 
-function getGridSize(userAge, difficulty) {
-  if (userAge < 7) return 10;
-  if (userAge < 10) return difficulty === 'easy' ? 12 : 15;
-  return difficulty === 'easy' ? 15 : 20;
-}
+// Fixed 10×10 max
+const GRID_SIZE = 10;
 
 function getCellsBetween(start, end) {
   const rowDiff = end.row - start.row;
   const colDiff = end.col - start.col;
-
   if (rowDiff !== 0 && colDiff !== 0 && Math.abs(rowDiff) !== Math.abs(colDiff)) {
     return [start];
   }
-
   const steps   = Math.max(Math.abs(rowDiff), Math.abs(colDiff));
   const rowStep = rowDiff === 0 ? 0 : rowDiff / Math.abs(rowDiff);
   const colStep = colDiff === 0 ? 0 : colDiff / Math.abs(colDiff);
-
   return Array.from({ length: steps + 1 }, (_, i) => ({
     row: start.row + i * rowStep,
     col: start.col + i * colStep,
   }));
 }
 
-function WordSearch({ words, userAge = 8, childName = '', childCharacter = null, initialDifficulty, onComplete, onExit }) {
-  const [difficulty, setDifficulty] = useState(initialDifficulty || 'medium');
+export default function WordSearch({ words, onComplete, onExit }) {
+  const [gameState,      setGameState]      = useState(() => generateWordSearch(words, GRID_SIZE));
+  const [selectionAnchor, setSelectionAnchor] = useState(null); // click-mode anchor
+  const [selectionCells,  setSelectionCells]  = useState([]);
+  const [foundWords,      setFoundWords]      = useState([]);
+  const [foundCells,      setFoundCells]      = useState([]);
+  const [toast,           setToast]           = useState(null);
 
-  // When launched from the hub with a difficulty, skip setup and start immediately
-  const [gameState, setGameState] = useState(() =>
-    initialDifficulty
-      ? generateWordSearch(words, getGridSize(userAge, initialDifficulty))
-      : null
-  );
-  const [gameStarted, setGameStarted] = useState(!!initialDifficulty);
+  // Drag state in refs to avoid stale closures inside event handlers
+  const isDraggingRef = useRef(false);
+  const dragStartRef  = useRef(null);
 
-  const [selectionAnchor, setSelectionAnchor] = useState(null);
-  const [selectionCells, setSelectionCells] = useState([]);
-  const [foundWords, setFoundWords]   = useState([]);
-  const [foundCells, setFoundCells]   = useState([]);
-  const [toast, setToast]             = useState(null);
+  // ── Game actions ────────────────────────────────────────────────────────────
 
-  const startGame = () => {
-    setGameState(generateWordSearch(words, getGridSize(userAge, difficulty)));
+  const startGame = useCallback(() => {
+    setGameState(generateWordSearch(words, GRID_SIZE));
     setFoundWords([]);
     setFoundCells([]);
     setSelectionAnchor(null);
     setSelectionCells([]);
     setToast(null);
-    setGameStarted(true);
-  };
+    isDraggingRef.current = false;
+    dragStartRef.current  = null;
+  }, [words]);
 
-  const showToast = (message) => {
-    setToast(message);
+  const showToast = (msg) => {
+    setToast(msg);
     setTimeout(() => setToast(null), 1400);
   };
 
-  const handleCellClick = (row, col) => {
-    if (!gameStarted || !gameState) return;
+  // Evaluate a start→end pair against the grid; returns true if matched
+  const tryMatch = useCallback((startCell, endCell) => {
+    if (!gameState) return false;
+    const cells   = getCellsBetween(startCell, endCell);
+    const s       = cells[0];
+    const e       = cells[cells.length - 1];
+    const matched = checkWord(gameState.grid, s.row, s.col, e.row, e.col, gameState.placedWords);
+    if (matched && !foundWords.includes(matched.word)) {
+      setFoundWords(prev => [...prev, matched.word]);
+      setFoundCells(prev => [...prev, ...cells]);
+      showToast(`✓ ${matched.word.toLowerCase()}`);
+      return true;
+    }
+    return false;
+  }, [gameState, foundWords]);
 
-    if (!selectionAnchor) {
-      setSelectionAnchor({ row, col });
-      setSelectionCells([{ row, col }]);
-    } else {
-      const cells = getCellsBetween(selectionAnchor, { row, col });
-      const start = cells[0];
-      const end   = cells[cells.length - 1];
+  // ── Global mouseup — cancels drag if pointer released outside grid ──────────
 
-      const matched = checkWord(
-        gameState.grid,
-        start.row, start.col,
-        end.row,   end.col,
-        gameState.placedWords
-      );
-
-      if (matched && !foundWords.includes(matched.word)) {
-        setFoundWords((prev) => [...prev, matched.word]);
-        setFoundCells((prev) => [...prev, ...cells]);
-        showToast(`✓ ${matched.word}`);
+  useEffect(() => {
+    const onUp = () => {
+      if (isDraggingRef.current) {
+        isDraggingRef.current = false;
+        dragStartRef.current  = null;
+        setSelectionCells([]);
       }
+    };
+    window.addEventListener('mouseup', onUp);
+    return () => window.removeEventListener('mouseup', onUp);
+  }, []);
 
-      setSelectionAnchor(null);
-      setSelectionCells([]);
+  // ── Cell pointer handlers ───────────────────────────────────────────────────
+
+  const handleMouseDown = (row, col, e) => {
+    e.preventDefault(); // prevent text highlight during drag
+    isDraggingRef.current = true;
+    dragStartRef.current  = { row, col };
+    setSelectionCells([{ row, col }]);
+  };
+
+  const handleMouseEnter = (row, col) => {
+    if (isDraggingRef.current && dragStartRef.current) {
+      // Live drag preview
+      setSelectionCells(getCellsBetween(dragStartRef.current, { row, col }));
+      return;
+    }
+    // Click-mode hover preview
+    if (selectionAnchor) {
+      setSelectionCells(getCellsBetween(selectionAnchor, { row, col }));
     }
   };
 
-  const handleCellHover = (row, col) => {
-    if (!selectionAnchor) return;
-    setSelectionCells(getCellsBetween(selectionAnchor, { row, col }));
+  const handleMouseUp = (row, col) => {
+    if (!isDraggingRef.current) return;
+    const start = dragStartRef.current;
+    isDraggingRef.current = false;
+    dragStartRef.current  = null;
+    if (!start) return;
+
+    const sameCell = start.row === row && start.col === col;
+
+    if (!sameCell) {
+      // ── Drag completed across multiple cells ──
+      tryMatch(start, { row, col });
+      setSelectionAnchor(null);
+      setSelectionCells([]);
+    } else {
+      // ── Single-cell click ──
+      if (!selectionAnchor) {
+        // First click: set anchor
+        setSelectionAnchor({ row, col });
+        setSelectionCells([{ row, col }]);
+      } else if (selectionAnchor.row === row && selectionAnchor.col === col) {
+        // Clicked same anchor again: cancel
+        setSelectionAnchor(null);
+        setSelectionCells([]);
+      } else {
+        // Second click: evaluate click-mode selection
+        tryMatch(selectionAnchor, { row, col });
+        setSelectionAnchor(null);
+        setSelectionCells([]);
+      }
+    }
   };
 
-  const handleCancel = (e) => {
+  const cancelSelection = (e) => {
     e.preventDefault();
     setSelectionAnchor(null);
     setSelectionCells([]);
+    isDraggingRef.current = false;
+    dragStartRef.current  = null;
   };
 
-  // ── Setup screen (shown only when launched standalone, not from hub) ──
-  if (!gameStarted) {
+  // ── Render ──────────────────────────────────────────────────────────────────
+
+  if (!gameState) return null;
+
+  const placedWords = gameState.placedWords;
+  const progress    = placedWords.length > 0
+    ? Math.round((foundWords.length / placedWords.length) * 100)
+    : 0;
+
+  // Completion screen
+  if (foundWords.length > 0 && foundWords.length === placedWords.length) {
     return (
-      <div className="word-search-setup">
-        <h2>Word Search</h2>
-        <p>Find all {words.length} words hidden in the grid!</p>
-
-        {userAge >= 7 && (
-          <div className="difficulty-selector">
-            <label>Choose Difficulty:</label>
-            <div className="difficulty-buttons">
-              {['easy', 'medium', 'hard'].map((level) => (
-                <button
-                  key={level}
-                  className={`difficulty-btn ${difficulty === level ? 'active' : ''}`}
-                  onClick={() => setDifficulty(level)}
-                >
-                  {level.charAt(0).toUpperCase() + level.slice(1)}
-                </button>
-              ))}
-            </div>
+      <div className="ws-wrap ws-wrap--complete">
+        <div className="ws-complete-card">
+          <div className="ws-complete-emoji">🎉</div>
+          <h2 className="ws-complete-title">All words found!</h2>
+          <div className="ws-complete-actions">
+            <button className="ws-done-btn ws-done-btn--primary"   onClick={startGame}>Play Again</button>
+            <button className="ws-done-btn ws-done-btn--secondary" onClick={onComplete}>Back to Hub</button>
           </div>
-        )}
-
-        <button className="start-btn" onClick={startGame}>
-          Start Game
-        </button>
+        </div>
       </div>
     );
   }
 
-  if (!gameState) return <div>Loading...</div>;
-
-  const progress = Math.round((foundWords.length / words.length) * 100);
+  const gridSize = gameState.grid.length;
 
   return (
-    <div className="word-search-container">
-      <div className="word-search-header">
-        {onExit && (
-          <button className="ws-back-btn" onClick={onExit}>
-            ← Hub
-          </button>
-        )}
-        <h2>Word Search</h2>
-        <div className="progress">
-          <div className="progress-bar">
-            <div className="progress-fill" style={{ width: `${progress}%` }} />
-          </div>
-          <p>{foundWords.length} of {words.length} words found</p>
+    <div className="ws-wrap" onContextMenu={cancelSelection}>
+
+      {/* ── Header ── */}
+      <div className="ws-header">
+        <button className="ws-back-btn" onClick={onExit}>← Hub</button>
+        <div className="ws-header-center">
+          <h1 className="ws-title">Word Search</h1>
         </div>
       </div>
 
-      {toast && <div className="word-toast">{toast}</div>}
+      {/* ── Progress strip — full width, touches header border ── */}
+      <div className="ws-progress-strip">
+        <div className="ws-bar-fill" style={{ width: `${progress}%` }} />
+        <span className="ws-count">
+          {foundWords.length} of {placedWords.length} words found
+        </span>
+      </div>
 
-      <div className="word-search-main">
-        <div
-          className={`grid-container${selectionAnchor ? ' selecting' : ''}`}
-          onContextMenu={handleCancel}
-        >
-          {gameState.grid.map((row, rowIndex) => (
-            <div key={rowIndex} className="grid-row">
-              {row.map((letter, colIndex) => {
-                const isSelected = selectionCells.some(
-                  (c) => c.row === rowIndex && c.col === colIndex
-                );
-                const isFound = foundCells.some(
-                  (c) => c.row === rowIndex && c.col === colIndex
-                );
+      {/* ── Body: grid + word list ── */}
+      <div className="ws-body">
 
-                return (
-                  <div
-                    key={`${rowIndex}-${colIndex}`}
-                    className={`grid-cell${isFound ? ' found' : isSelected ? ' selected' : ''}`}
-                    onClick={() => handleCellClick(rowIndex, colIndex)}
-                    onMouseEnter={() => handleCellHover(rowIndex, colIndex)}
-                  >
-                    {letter}
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-        </div>
-
-        <div className="word-list">
-          <h3>Words to Find:</h3>
-          <ul>
-            {words.map((word) => (
-              <li
-                key={word}
-                className={foundWords.includes(word.toUpperCase()) ? 'found' : ''}
-              >
-                {word}
-                {foundWords.includes(word.toUpperCase()) && ' ✓'}
-              </li>
+        {/* Grid area */}
+        <div className="ws-grid-wrap">
+          {toast && <div className="ws-toast">{toast}</div>}
+          <div
+            className="ws-grid"
+            style={{ '--gs': gridSize }}
+          >
+            {gameState.grid.map((row, ri) => (
+              <div key={ri} className="ws-row">
+                {row.map((letter, ci) => {
+                  const sel   = selectionCells.some(c => c.row === ri && c.col === ci);
+                  const found = foundCells.some(c => c.row === ri && c.col === ci);
+                  return (
+                    <div
+                      key={`${ri}-${ci}`}
+                      className={`ws-cell${found ? ' ws-cell--found' : sel ? ' ws-cell--sel' : ''}`}
+                      onMouseDown={e  => handleMouseDown(ri, ci, e)}
+                      onMouseEnter={() => handleMouseEnter(ri, ci)}
+                      onMouseUp={()   => handleMouseUp(ri, ci)}
+                    >
+                      {letter}
+                    </div>
+                  );
+                })}
+              </div>
             ))}
-          </ul>
+          </div>
         </div>
-      </div>
 
-      {foundWords.length === words.length && (
-        <div className="completion-screen">
-          {childCharacter && <div className="completion-emoji">{childCharacter.emoji}</div>}
-          <h2>🎉 You found all the words!</h2>
-          {childName && <p className="completion-child-name">{childName}, amazing work!</p>}
-          <button onClick={startGame}>Play Again</button>
-          <button onClick={onComplete}>Back to Hub</button>
-        </div>
-      )}
+        {/* Word list */}
+        <ul className="ws-word-list">
+          {placedWords.map(({ word }) => {
+            const done = foundWords.includes(word);
+            return (
+              <li key={word} className={`ws-word${done ? ' ws-word--done' : ''}`}>
+                {done && <span className="ws-word-check">✓</span>}
+                {word.toLowerCase()}
+              </li>
+            );
+          })}
+        </ul>
+
+      </div>
     </div>
   );
 }
-
-export default WordSearch;

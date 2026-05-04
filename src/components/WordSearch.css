@@ -1,214 +1,296 @@
-.word-search-setup {
-  max-width: 600px;
-  margin: 2rem auto;
-  text-align: center;
-}
+/* ── Outer shell — fills full viewport below the app header ── */
 
-.difficulty-selector {
-  margin: 1.5rem 0;
-}
-
-.difficulty-buttons {
+.ws-wrap {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  height: calc(100vh - 56px);   /* 56 px = app-shell header */
+  overflow: hidden;
+  font-family: 'Nunito', sans-serif;
+  background: linear-gradient(160deg, #f0f4ff 0%, #fdf4ff 100%);
+  outline: none;
+}
+
+/* ── Sub-header ── */
+
+.ws-header {
+  display: flex;
+  align-items: center;
   gap: 0.75rem;
-  margin-top: 0.5rem;
-}
-
-.difficulty-btn {
-  padding: 0.5rem 1.25rem;
-  border: 2px solid #ccc;
-  border-radius: 6px;
-  background: white;
-  cursor: pointer;
-  font-size: 1rem;
-}
-
-.difficulty-btn.active {
-  border-color: #4a90e2;
-  background: #4a90e2;
-  color: white;
-}
-
-.start-btn {
-  margin-top: 1rem;
-  padding: 0.75rem 2rem;
-  font-size: 1.1rem;
-  background: #4a90e2;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-/* ── Active game layout ── */
-
-.word-search-container {
-  max-width: 900px;
-  margin: 1.5rem auto;
-  padding: 0 1rem;
-}
-
-.word-search-header {
-  text-align: center;
-  margin-bottom: 1rem;
-  position: relative;
+  padding: 0.55rem 1.25rem;
+  background: #fff;
+  border-bottom: 3px solid #1a1a2e;
+  box-shadow: 0 3px 0 #1a1a2e;
+  flex-shrink: 0;
 }
 
 .ws-back-btn {
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  padding: 0.35rem 0.8rem;
-  font-size: 0.85rem;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  background: white;
-  cursor: pointer;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.3rem 0.75rem;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
   color: #555;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.ws-back-btn:hover { background: #f5f5f5; }
+
+.ws-header-center { flex: 1; text-align: center; }
+
+.ws-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.85rem;
+  color: #1a1a2e;
+  margin: 0;
+  line-height: 1.6;
 }
 
-.ws-back-btn:hover {
-  background: #f5f5f5;
-}
+/* ── Progress strip — full width, directly below header border ── */
 
-.progress-bar {
-  height: 12px;
-  background: #e0e0e0;
-  border-radius: 6px;
-  overflow: hidden;
-  margin: 0.5rem auto;
-  max-width: 400px;
-}
-
-.progress-fill {
-  height: 100%;
-  background: #4caf50;
-  transition: width 0.3s ease;
-}
-
-.word-search-main {
+.ws-progress-strip {
+  position: relative;
+  width: 100%;
+  height: 26px;
+  background: #e9d5ff;   /* light purple track */
+  flex-shrink: 0;
   display: flex;
-  gap: 2rem;
+  align-items: center;
+  overflow: hidden;
+}
+
+.ws-bar-fill {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  background: linear-gradient(90deg, #6bcb77, #4ade80);
+  transition: width 0.35s ease;
+}
+
+.ws-count {
+  position: relative;          /* sit above the fill */
+  z-index: 1;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #1a1a2e;
+  padding: 0 1rem;
+  white-space: nowrap;
+  text-shadow: 0 0 6px rgba(255,255,255,0.8);
+}
+
+/* ── Body ── */
+
+.ws-body {
+  flex: 1;
+  display: flex;
+  gap: 1rem;
+  padding: 0.75rem 1rem 0.75rem;
+  overflow: hidden;
+  min-height: 0;
   align-items: flex-start;
-  justify-content: center;
+}
+
+/* ── Grid wrapper — centres the grid and absorbs remaining space ── */
+
+.ws-grid-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 0;
+  position: relative;
 }
 
 /* ── Grid ── */
 
-.grid-container {
-  display: inline-flex;
+.ws-grid {
+  display: flex;
   flex-direction: column;
   user-select: none;
-  border: 2px solid #ccc;
-  border-radius: 4px;
+  cursor: crosshair;
+  border: 3px solid #1a1a2e;
+  border-radius: 6px;
+  box-shadow: 5px 5px 0 #1a1a2e;
   overflow: hidden;
-  cursor: crosshair;
+  flex-shrink: 0;
 }
 
-.grid-container.selecting {
-  cursor: crosshair;
-}
-
-.word-toast {
-  text-align: center;
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: #2e7d32;
-  background: #c8e6c9;
-  border-radius: 8px;
-  padding: 0.4rem 1.2rem;
-  margin: 0 auto 1rem;
-  width: fit-content;
-  animation: toast-pop 0.15s ease-out;
-}
-
-@keyframes toast-pop {
-  from { transform: scale(0.85); opacity: 0; }
-  to   { transform: scale(1);    opacity: 1; }
-}
-
-.grid-row {
+.ws-row {
   display: flex;
-  flex-direction: row;
 }
 
-.grid-cell {
-  width: 32px;
-  height: 32px;
-  display: flex;
+/* Cell size: fill the available height divided by grid size,
+   but never wider than the available width.
+   --gs is set as a CSS custom property on .ws-grid              */
+.ws-cell {
+  /* height available = 100vh - 56(app) - ~48(ws-header) - 26(strip) - ~24(body-padding) = 100vh - 154px */
+  --by-h:   calc((100vh - 154px) / var(--gs, 10));
+  /* width available = 100vw minus word-list sidebar (~160px) minus gaps/padding (~32px) */
+  --by-w:   calc((100vw - 192px) / var(--gs, 10));
+  --cell:   min(var(--by-h), var(--by-w));
+
+  width:    var(--cell);
+  height:   var(--cell);
+  display:  flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.9rem;
-  font-weight: 600;
-  font-family: monospace;
-  border: 1px solid #e0e0e0;
-  cursor: pointer;
-  background: white;
-  transition: background 0.1s;
+
+  font-family: 'Nunito', monospace;
+  font-weight: 800;
+  font-size:   calc(var(--cell) * 0.44);
+  color:       #1a1a2e;
+  text-transform: uppercase;
+
+  background:  #fffef5;
+  border:      1px solid #c7d2fe;
+  cursor:      crosshair;
+  transition:  background 0.07s;
 }
 
-.grid-cell:hover {
-  background: #f0f0f0;
+.ws-cell:hover               { background: #f0f4ff; }
+.ws-cell--sel                { background: #ffd93d; color: #1a1a2e; }
+.ws-cell--found              { background: #bbf7d0; color: #14532d; }
+/* found always beats selected */
+.ws-cell--found.ws-cell--sel { background: #bbf7d0; color: #14532d; }
+
+/* ── Toast ── */
+
+.ws-toast {
+  position: absolute;
+  top: 0.4rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #dcfce7;
+  border: 2px solid #16a34a;
+  border-radius: 999px;
+  padding: 0.2rem 1rem;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #14532d;
+  white-space: nowrap;
+  z-index: 10;
+  animation: ws-pop 0.15s ease-out;
+  pointer-events: none;
 }
 
-.grid-cell.selected {
-  background: #ffd54f;
-  color: #333;
-}
-
-.grid-cell.found {
-  background: #a5d6a7;
-  color: #1b5e20;
+@keyframes ws-pop {
+  from { transform: translateX(-50%) scale(0.8); opacity: 0; }
+  to   { transform: translateX(-50%) scale(1);   opacity: 1; }
 }
 
 /* ── Word list sidebar ── */
 
-.word-list {
-  min-width: 140px;
-}
-
-.word-list h3 {
-  margin-top: 0;
-}
-
-.word-list ul {
+.ws-word-list {
   list-style: none;
   padding: 0;
   margin: 0;
+  flex-shrink: 0;
+  width: 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
 }
 
-.word-list li {
-  padding: 0.3rem 0;
-  font-size: 1rem;
-  color: #333;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+.ws-word {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #1a1a2e;
+  text-transform: capitalize;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: 6px;
+  background: #fff;
+  border: 2px solid #e0e0e0;
+  transition: opacity 0.2s;
 }
 
-.word-list li.found {
-  color: #4caf50;
+.ws-word--done {
+  opacity: 0.45;
   text-decoration: line-through;
+  background: #f0fdf4;
+  border-color: #86efac;
+  color: #166534;
 }
 
-/* ── Completion ── */
+.ws-word-check {
+  font-size: 0.7rem;
+  color: #16a34a;
+  font-weight: 900;
+}
 
-.completion-screen {
-  text-align: center;
-  margin-top: 2rem;
-  padding: 2rem;
-  background: #f1f8e9;
+/* ── Completion screen ── */
+
+.ws-wrap--complete {
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.ws-complete-card {
+  background: #fff;
+  border: 4px solid #1a1a2e;
   border-radius: 12px;
+  box-shadow: 8px 8px 0 #1a1a2e;
+  padding: 2.5rem 2rem;
+  text-align: center;
+  max-width: 360px;
+  width: 90%;
 }
 
-.completion-screen button {
-  margin: 0.5rem;
-  padding: 0.6rem 1.5rem;
-  font-size: 1rem;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  background: #4a90e2;
-  color: white;
+.ws-complete-emoji {
+  font-size: 3.5rem;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+  animation: ws-bounce 0.6s ease;
 }
+
+@keyframes ws-bounce {
+  0%, 100% { transform: translateY(0); }
+  40%       { transform: translateY(-16px); }
+  60%       { transform: translateY(-8px); }
+}
+
+.ws-complete-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.85rem;
+  color: #1a1a2e;
+  margin: 0 0 1.75rem;
+  line-height: 1.8;
+}
+
+.ws-complete-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.ws-done-btn {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.6rem;
+  padding: 0.85rem 1rem;
+  border: 3px solid #1a1a2e;
+  border-radius: 4px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  transition: transform 0.06s, box-shadow 0.06s;
+}
+.ws-done-btn--primary {
+  background: #6bcb77;
+  color: #1a1a2e;
+  box-shadow: 4px 4px 0 #1a1a2e;
+}
+.ws-done-btn--primary:hover  { transform: translate(2px,2px); box-shadow: 2px 2px 0 #1a1a2e; }
+.ws-done-btn--primary:active { transform: translate(4px,4px); box-shadow: none; }
+
+.ws-done-btn--secondary {
+  background: #fff;
+  color: #555;
+  border-color: #ccc;
+  box-shadow: 3px 3px 0 #ccc;
+}
+.ws-done-btn--secondary:hover  { transform: translate(2px,2px); box-shadow: 1px 1px 0 #ccc; }
+.ws-done-btn--secondary:active { transform: translate(3px,3px); box-shadow: none; }
