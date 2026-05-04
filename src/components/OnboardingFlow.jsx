@@ -219,7 +219,7 @@ function WordSourcePicker({ onGenerate, onManual }) {
         <button className="ob-source-card ob-source-card--generate" onClick={onGenerate}>
           <span className="ob-source-icon">✨</span>
           <strong>Random spellings</strong>
-          <span className="ob-source-desc">UK curriculum words for your year group</span>
+          <span className="ob-source-desc">We'll surprise you</span>
         </button>
         <button className="ob-source-card ob-source-card--manual" onClick={onManual}>
           <span className="ob-source-icon">✏️</span>
@@ -234,7 +234,7 @@ function WordSourcePicker({ onGenerate, onManual }) {
 // ── Step 5a: Generated word preview ───────────────────────────────────────
 
 function GeneratedWords({ year, onConfirm }) {
-  const [count,    setCount]    = useState(20);
+  const [count,    setCount]    = useState(10);
   const [allWords, setAllWords] = useState(() => getWordsForYear(year, 20));
 
   const words = allWords.slice(0, count);
