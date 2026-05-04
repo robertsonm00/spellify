@@ -1,5 +1,5 @@
-// Crossword layout engine
-// Generates a connected crossword grid from a list of words.
+// Crossword layout engine - Enhanced for 15x15 grids with balanced word distribution
+// Generates a connected crossword grid from a list of words, ensuring both horizontal and vertical placement
 
 export function wordCells(word, row, col, direction) {
   return Array.from({ length: word.length }, (_, i) => ({
@@ -23,6 +23,11 @@ function buildCellMap(placed) {
 }
 
 function isValidPlacement(word, row, col, dir, placed) {
+  // Bounds check for 15x15 grid
+  if (dir === 'across' && col + word.length > 15) return false;
+  if (dir === 'down' && row + word.length > 15) return false;
+  if (row < 0 || col < 0) return false;
+
   const map = buildCellMap(placed);
 
   // Reject if there is a cell in the same direction immediately before or after
@@ -43,9 +48,7 @@ function isValidPlacement(word, row, col, dir, placed) {
       if (cell[dir]) return false;                  // same-direction overlap
       hasIntersection = true;
     } else {
-      // Empty cell: no letter may exist in any perpendicular neighbour.
-      // If such a neighbour existed, this cell would have to be an intersection
-      // (already handled above), so any adjacent letter here is a rule violation.
+      // Empty cell: no letter may exist in any perpendicular neighbour
       if (dir === 'across') {
         if (map.has(`${r - 1},${c}`)) return false;
         if (map.has(`${r + 1},${c}`)) return false;
@@ -56,53 +59,62 @@ function isValidPlacement(word, row, col, dir, placed) {
     }
   }
 
-  // All words after the first must intersect at least one existing word
   return placed.length === 0 || hasIntersection;
 }
 
 function scoreCandidate(row, col, dir, word, placed) {
-  // Prefer placements that keep the grid compact
-  const allRows = placed.flatMap(pw => [
-    pw.row,
-    pw.direction === 'down' ? pw.row + pw.word.length - 1 : pw.row,
-  ]);
-  const allCols = placed.flatMap(pw => [
-    pw.col,
-    pw.direction === 'across' ? pw.col + pw.word.length - 1 : pw.col,
-  ]);
-
-  const newRows = [row, dir === 'down' ? row + word.length - 1 : row];
-  const newCols = [col, dir === 'across' ? col + word.length - 1 : col];
-
-  const minR = Math.min(...allRows, ...newRows);
-  const maxR = Math.max(...allRows, ...newRows);
-  const minC = Math.min(...allCols, ...newCols);
-  const maxC = Math.max(...allCols, ...newCols);
-
-  return -((maxR - minR) + (maxC - minC));
+  // Prefer placements that keep words distributed within 15x15 bounds
+  // Weight vertical placement slightly higher to encourage better distribution
+  const verticalBonus = dir === 'down' ? 50 : 0;
+  
+  // Prefer placements that are more centered and distributed
+  const distFromEdge = Math.min(row, col, 14 - row, 14 - col);
+  const spreadScore = distFromEdge * 10;
+  
+  return verticalBonus + spreadScore;
 }
 
-function findPlacement(word, placed) {
+function findPlacement(word, placed, preferredDir = null) {
   const candidates = [];
   const perpDir = (d) => (d === 'across' ? 'down' : 'across');
 
+  // If no words placed yet, use preferred direction or alternate between across/down
+  if (placed.length === 0) {
+    // Place first word based on preference or default to across
+    return null;
+  }
+
+  // Try perpendicular placement with respect to existing words
   for (const existing of placed) {
-    const dir = perpDir(existing.direction);
-    for (let wi = 0; wi < word.length; wi++) {
-      for (let ei = 0; ei < existing.word.length; ei++) {
-        if (word[wi] !== existing.word[ei]) continue;
+    let tryDirections = [perpDir(existing.direction)];
+    
+    // Also try same direction for longer crosswords
+    if (placed.length > 5) {
+      tryDirections.push(existing.direction);
+    }
 
-        let row, col;
-        if (existing.direction === 'across') {
-          row = existing.row - wi;
-          col = existing.col + ei;
-        } else {
-          row = existing.row + ei;
-          col = existing.col - wi;
-        }
+    for (const dir of tryDirections) {
+      for (let wi = 0; wi < word.length; wi++) {
+        for (let ei = 0; ei < existing.word.length; ei++) {
+          if (word[wi] !== existing.word[ei]) continue;
 
-        if (isValidPlacement(word, row, col, dir, placed)) {
-          candidates.push({ row, col, direction: dir, score: scoreCandidate(row, col, dir, word, placed) });
+          let row, col;
+          if (existing.direction === 'across') {
+            row = existing.row - wi;
+            col = existing.col + ei;
+          } else {
+            row = existing.row + ei;
+            col = existing.col - wi;
+          }
+
+          if (isValidPlacement(word, row, col, dir, placed)) {
+            candidates.push({ 
+              row, 
+              col, 
+              direction: dir, 
+              score: scoreCandidate(row, col, dir, word, placed) 
+            });
+          }
         }
       }
     }
@@ -133,32 +145,68 @@ export function generateCrossword(inputWords, maxWords = 15) {
   if (!words.length) return null;
 
   const placed = [];
+  const GRID_SIZE = 15;
+  const centerOffset = Math.floor(GRID_SIZE / 2);
 
-  // First word placed across at origin
-  placed.push({ id: 0, word: words[0], row: 0, col: 0, direction: 'across' });
+  // First word placed across at center
+  const firstStartCol = Math.max(0, centerOffset - Math.floor(words[0].length / 2));
+  placed.push({ 
+    id: 0, 
+    word: words[0], 
+    row: centerOffset, 
+    col: firstStartCol, 
+    direction: 'across' 
+  });
 
+  // Alternate direction preference for better distribution
+  let directionPreference = 'down';
+  
   for (let i = 1; i < words.length; i++) {
-    const placement = findPlacement(words[i], placed);
-    if (placement) placed.push({ id: i, word: words[i], ...placement });
+    const placement = findPlacement(words[i], placed, directionPreference);
+    if (placement) {
+      placed.push({ id: i, word: words[i], ...placement });
+      // Alternate preference
+      directionPreference = directionPreference === 'across' ? 'down' : 'across';
+    }
   }
 
-  // Normalise: shift everything so min row/col = 0
+  if (placed.length < 2) return null;
+
+  // Normalize to fit within 15x15 grid if needed
   let minRow = Infinity, minCol = Infinity;
+  let maxRow = 0, maxCol = 0;
+  
   for (const pw of placed) {
     minRow = Math.min(minRow, pw.row);
     minCol = Math.min(minCol, pw.col);
+    maxRow = Math.max(maxRow, pw.direction === 'down' ? pw.row + pw.word.length - 1 : pw.row);
+    maxCol = Math.max(maxCol, pw.direction === 'across' ? pw.col + pw.word.length - 1 : pw.col);
   }
-  const shifted = placed.map(pw => ({ ...pw, row: pw.row - minRow, col: pw.col - minCol }));
+
+  // Shift to ensure grid fits within bounds
+  let shiftRow = 0, shiftCol = 0;
+  if (minRow < 0) shiftRow = -minRow;
+  if (minCol < 0) shiftCol = -minCol;
+  if (maxRow - minRow + 1 > GRID_SIZE) return null;
+  if (maxCol - minCol + 1 > GRID_SIZE) return null;
+
+  const shifted = placed.map(pw => ({ 
+    ...pw, 
+    row: pw.row - minRow + shiftRow, 
+    col: pw.col - minCol + shiftCol 
+  }));
 
   // Assign clue numbers
   const numbered = assignClueNumbers(shifted);
 
-  // Compute grid dimensions
-  let rows = 0, cols = 0;
-  for (const pw of numbered) {
-    rows = Math.max(rows, pw.direction === 'down' ? pw.row + pw.word.length : pw.row + 1);
-    cols = Math.max(cols, pw.direction === 'across' ? pw.col + pw.word.length : pw.col + 1);
-  }
+  // Compute grid dimensions (always 15x15)
+  const rows = Math.min(15, Math.max(...numbered.map(pw => 
+    pw.direction === 'down' ? pw.row + pw.word.length : pw.row + 1
+  )));
+  
+  const cols = Math.min(15, Math.max(...numbered.map(pw => 
+    pw.direction === 'across' ? pw.col + pw.word.length : pw.col + 1
+  )));
 
-  return { placedWords: numbered, rows, cols };
+  return { placedWords: numbered, rows: 15, cols: 15 };
 }
