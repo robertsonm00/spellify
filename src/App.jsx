@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
-import WordUpload   from './components/WordUpload';
-import WordListHub  from './components/WordListHub';
-import WordSearch   from './components/WordSearch';
-import SpellingQuiz from './components/SpellingQuiz';
-import Hangman      from './components/Hangman';
+import Welcome       from './components/Welcome';
+import OnboardingFlow from './components/OnboardingFlow';
+import WordListHub   from './components/WordListHub';
+import WordSearch    from './components/WordSearch';
+import SpellingQuiz  from './components/SpellingQuiz';
+import Hangman       from './components/Hangman';
+import Crossword     from './components/Crossword';
 
+const STORAGE_KEY = 'spellify_session_v1';
 const INITIAL_STATUSES = {
   wordsearch: 'not-started',
   quiz:       'not-started',
@@ -13,43 +16,80 @@ const INITIAL_STATUSES = {
   crossword:  'not-started',
 };
 
-function App() {
-  const [words,            setWords]            = useState([]);
-  const [activeActivity,   setActiveActivity]   = useState(null); // { id, difficulty } | null
-  const [activityStatuses, setActivityStatuses] = useState(INITIAL_STATUSES);
+function loadSession() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); }
+  catch { return null; }
+}
 
-  const handleLaunch = (id, difficulty) => {
-    setActivityStatuses((prev) => ({
+function App() {
+  const [session, setSession] = useState(() => loadSession());
+  const [screen,  setScreen]  = useState(() => {
+    const s = loadSession();
+    return s && s.words && s.words.length > 0 ? 'hub' : 'welcome';
+  });
+  const [activeActivity, setActiveActivity] = useState(null);
+
+  useEffect(() => {
+    if (session) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+    } else {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }, [session]);
+
+  const handleWelcomeStart = () => setScreen('onboarding');
+
+  const handleOnboardingComplete = ({ age, year, words, difficulty }) => {
+    const newSession = {
+      age,
+      year,
+      difficulty: difficulty || 'medium',
+      words,
+      activityStatuses: INITIAL_STATUSES,
+    };
+    setSession(newSession);
+    setScreen('hub');
+  };
+
+  const handleLaunch = (id) => {
+    setSession((prev) => ({
       ...prev,
-      [id]: prev[id] === 'not-started' ? 'in-progress' : prev[id],
+      activityStatuses: {
+        ...prev.activityStatuses,
+        [id]: prev.activityStatuses[id] === 'not-started' ? 'in-progress' : prev.activityStatuses[id],
+      },
     }));
-    setActiveActivity({ id, difficulty });
+    setActiveActivity({ id });
   };
 
   const handleComplete = (id) => {
-    setActivityStatuses((prev) => ({ ...prev, [id]: 'completed' }));
+    setSession((prev) => ({
+      ...prev,
+      activityStatuses: { ...prev.activityStatuses, [id]: 'completed' },
+    }));
     setActiveActivity(null);
   };
 
   const handleExit = () => setActiveActivity(null);
 
   const handleChangeWords = () => {
-    setWords([]);
+    setSession((prev) => prev ? { ...prev, words: [], activityStatuses: INITIAL_STATUSES } : null);
     setActiveActivity(null);
-    setActivityStatuses(INITIAL_STATUSES);
+    setScreen('onboarding');
   };
 
-  // ── Routing ──
-  if (words.length === 0) {
-    return (
-      <AppShell>
-        <WordUpload onWordsUploaded={setWords} />
-      </AppShell>
-    );
-  }
+  const handleSettingsUpdate = (updates) => {
+    setSession((prev) => ({ ...prev, ...updates }));
+  };
 
-  if (activeActivity) {
-    const { id, difficulty } = activeActivity;
+  const handleClearProgress = () => {
+    setSession((prev) => ({ ...prev, activityStatuses: INITIAL_STATUSES }));
+  };
+
+  // Activity screen
+  if (activeActivity && session) {
+    const { id }                  = activeActivity;
+    const { words, difficulty, age } = session;
     let Activity = null;
 
     if (id === 'wordsearch') {
@@ -79,18 +119,39 @@ function App() {
           onExit={handleExit}
         />
       );
+    } else if (id === 'crossword') {
+      Activity = (
+        <Crossword
+          words={words}
+          userAge={age || 8}
+          difficulty={difficulty}
+          onComplete={() => handleComplete('crossword')}
+          onExit={handleExit}
+        />
+      );
     }
 
     if (Activity) return <AppShell>{Activity}</AppShell>;
   }
 
+  if (screen === 'welcome')    return <Welcome onStart={handleWelcomeStart} />;
+  if (screen === 'onboarding') return <OnboardingFlow onComplete={handleOnboardingComplete} />;
+
+  if (!session || !session.words || session.words.length === 0) {
+    return <OnboardingFlow onComplete={handleOnboardingComplete} />;
+  }
+
   return (
     <AppShell>
       <WordListHub
-        words={words}
-        activityStatuses={activityStatuses}
+        words={session.words}
+        userAge={session.age || 8}
+        difficulty={session.difficulty || 'medium'}
+        activityStatuses={session.activityStatuses}
         onLaunch={handleLaunch}
         onChangeWords={handleChangeWords}
+        onSettingsUpdate={handleSettingsUpdate}
+        onClearProgress={handleClearProgress}
       />
     </AppShell>
   );
@@ -98,12 +159,12 @@ function App() {
 
 function AppShell({ children }) {
   return (
-    <div className="App">
-      <header className="App-header">
-        <h1>🎯 Spellify</h1>
-        <p>Learn to spell with fun interactive modes</p>
+    <div className="app-shell">
+      <header className="app-header">
+        <span className="app-header-logo">🎯</span>
+        <span className="app-header-title">Spellify</span>
       </header>
-      <main>{children}</main>
+      <main className="app-main">{children}</main>
     </div>
   );
 }

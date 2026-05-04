@@ -1,38 +1,42 @@
-.App {
-  text-align: center;
+*, *::before, *::after {
+  box-sizing: border-box;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+body {
+  margin: 0;
+  font-family: 'Nunito', 'Segoe UI', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+.app-shell {
   display: flex;
   flex-direction: column;
+  min-height: 100vh;
+  background: #f7f8fc;
+}
+
+.app-header {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+  gap: 0.6rem;
+  padding: 0.75rem 1.5rem;
+  background: #fff;
+  border-bottom: 1.5px solid #eee;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
 
-.App-link {
-  color: #61dafb;
+.app-header-logo {
+  font-size: 1.3rem;
+  line-height: 1;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.app-header-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.9rem;
+  color: #1a1a2e;
+  letter-spacing: 0.02em;
+}
+
+.app-main {
+  flex: 1;
 }

@@ -1,0 +1,287 @@
+.cw-wrap {
+  max-width: 980px;
+  margin: 1.5rem auto;
+  padding: 0 1rem 3rem;
+  position: relative;
+  outline: none;
+  font-family: 'Segoe UI', Arial, sans-serif;
+}
+
+.cw-back {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 0.35rem 0.8rem;
+  font-size: 0.85rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+  color: #555;
+}
+.cw-back:hover { background: #f0f0f0; }
+
+.cw-header {
+  text-align: center;
+  margin-bottom: 1.25rem;
+}
+.cw-header h2 {
+  margin: 0 0 0.2rem;
+  font-size: 1.5rem;
+  color: #1a1a1a;
+}
+.cw-progress {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #888;
+}
+
+/* ── Main two-column layout ── */
+
+.cw-main {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* ── Grid ── */
+
+.cw-grid-wrap {
+  flex-shrink: 0;
+  overflow: auto;
+}
+
+.cw-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), 40px);
+  grid-auto-rows: 40px;
+  gap: 2px;
+  background: #111;           /* true black dividers, like a real crossword */
+  border: 3px solid #111;
+  border-radius: 3px;
+  user-select: none;
+}
+
+/* ── Cells ── */
+
+.cw-cell {
+  position: relative;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.08s;
+}
+
+.cw-cell--black {
+  background: #111;
+  cursor: default;
+}
+
+/* Highlight states – order matters (more specific wins) */
+.cw-cell--in-word  { background: #dbeafe; }   /* light blue — word highlight */
+.cw-cell--selected { background: #60a5fa; }   /* stronger blue — active cell */
+
+/* Feedback */
+.cw-cell--correct  { background: #86efac; }   /* green */
+.cw-cell--wrong    { background: #fca5a5; }   /* red */
+.cw-cell--hint     { background: #fde68a; }   /* amber */
+
+/* Correct beats hint */
+.cw-cell--hint.cw-cell--correct { background: #86efac; }
+
+/* Clue number — top-left corner, small */
+.cw-num {
+  position: absolute;
+  top: 2px;
+  left: 3px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #222;
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* Letter — centred, large, bold */
+.cw-letter {
+  font-size: 1.1rem;
+  font-weight: 800;
+  font-family: Arial, sans-serif;
+  text-transform: uppercase;
+  color: #111;
+  line-height: 1;
+  padding-top: 5px;   /* nudge below the number */
+  pointer-events: none;
+}
+
+/* ── Clue panel ── */
+
+.cw-clues {
+  min-width: 240px;
+  max-width: 320px;
+  max-height: 75vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.cw-clue-section h3 {
+  margin: 0 0 0.6rem;
+  font-size: 1rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  color: #fff;
+}
+
+/* Across = blue header, Down = green header — matches reference image style */
+.cw-clue-section:nth-child(1) h3 { background: #2563eb; }
+.cw-clue-section:nth-child(2) h3 { background: #16a34a; }
+
+.cw-clue-section ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.cw-clue {
+  padding: 0.45rem 0.55rem;
+  border-radius: 5px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.1s;
+}
+
+.cw-clue:hover     { background: #f3f4f6; }
+.cw-clue--active   { background: #dbeafe; border-color: #93c5fd; }
+.cw-clue--done     { opacity: 0.5; }
+.cw-clue--done.cw-clue--active { opacity: 1; }
+
+.cw-clue-top {
+  display: flex;
+  gap: 0.4rem;
+  align-items: flex-start;
+}
+
+.cw-clue-num {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #111;
+  flex-shrink: 0;
+  min-width: 1.4rem;
+}
+
+.cw-clue-def {
+  font-size: 0.82rem;
+  color: #333;
+  line-height: 1.4;
+  flex: 1;
+}
+
+.cw-clue-check {
+  color: #16a34a;
+  font-weight: 800;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.cw-clue-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 0.25rem;
+  padding-left: 1.8rem;   /* align with def text */
+  flex-wrap: wrap;
+}
+
+.cw-clue-length {
+  font-size: 0.7rem;
+  color: #aaa;
+  font-style: italic;
+}
+
+.cw-hint-btn {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.12rem 0.45rem;
+  border: 1px solid #d97706;
+  border-radius: 4px;
+  background: #fef3c7;
+  color: #92400e;
+  cursor: pointer;
+}
+.cw-hint-btn:hover { background: #fde68a; }
+
+.cw-hint-used {
+  font-size: 0.68rem;
+  color: #b45309;
+  font-style: italic;
+}
+
+/* ── Completion screen ── */
+
+.cw-complete {
+  max-width: 440px;
+  margin: 3rem auto 0;
+  text-align: center;
+}
+.cw-complete h2 { margin-bottom: 1.5rem; font-size: 1.8rem; }
+
+.cw-stats {
+  display: flex;
+  justify-content: center;
+  gap: 2.5rem;
+  margin-bottom: 2rem;
+}
+
+.cw-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.cw-stat-val {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #2563eb;
+}
+
+.cw-stat-label {
+  font-size: 0.75rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.cw-done-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.cw-done-actions button {
+  padding: 0.65rem 1.6rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  background: #2563eb;
+  color: white;
+}
+
+.cw-error {
+  text-align: center;
+  color: #aaa;
+  margin-top: 3rem;
+}
