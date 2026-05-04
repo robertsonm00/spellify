@@ -7,7 +7,7 @@ const CHARACTERS = [
   { id: 'lion',      emoji: '🦁', name: 'Lion' },
   { id: 'tiger',     emoji: '🐯', name: 'Tiger' },
   { id: 'elephant',  emoji: '🐘', name: 'Elephant' },
-  { id: 'monkey',    emoji: '🐵', name: 'Monkey' },
+  { id: 'raccoon',   emoji: '🦝', name: 'Raccoon' },
   { id: 'penguin',   emoji: '🐧', name: 'Penguin' },
   { id: 'octopus',   emoji: '🐙', name: 'Octopus' },
   { id: 'unicorn',   emoji: '🦄', name: 'Unicorn' },
@@ -98,7 +98,6 @@ function NameInput({ onSubmit }) {
       <div className="ob-step-header">
         <div className="ob-step-icon">👋</div>
         <h2 className="ob-step-title">What's your name?</h2>
-        <p className="ob-step-sub">Let's get to know each other!</p>
       </div>
 
       <form onSubmit={handleSubmit} className="ob-name-form">
@@ -174,53 +173,35 @@ function CharacterPicker({ name, onSelect }) {
 // ── Step 3: Year group picker ──────────────────────────────────────────────
 
 function YearPicker({ name, onSelect }) {
-  const [selected, setSelected] = useState(null);
-
   return (
     <div className="ob-step ob-year">
       <div className="ob-step-header">
-        <div className="ob-step-icon">👋</div>
-        <h2 className="ob-step-title">What year are you in, {name}?</h2>
-        <p className="ob-step-sub">We'll pick the right words for you</p>
+        <h2 className="ob-step-title">What's your age, {name}?</h2>
       </div>
 
       <div className="ob-year-grid">
         {Object.values(YEAR_DATA).map(({ year, label }) => {
-          const colors    = YEAR_COLORS[year];
-          const isSelected = selected === year;
+          const colors = YEAR_COLORS[year];
           return (
             <button
               key={year}
-              className={`ob-year-card${isSelected ? ' ob-year-card--selected' : ''}`}
+              className="ob-year-card"
               style={{
-                background:   isSelected ? colors.accent : colors.bg,
-                borderColor:  isSelected ? colors.dark   : colors.border,
-                boxShadow:    isSelected
-                  ? `3px 3px 0 ${colors.dark}`
-                  : `3px 3px 0 ${colors.border}`,
-                color: isSelected ? '#fff' : '#1a1a2e',
+                background:  colors.bg,
+                borderColor: colors.border,
+                boxShadow:   `3px 3px 0 ${colors.border}`,
+                color:       '#1a1a2e',
               }}
-              onClick={() => setSelected(year)}
+              onClick={() => onSelect(year)}
             >
-              <span className="ob-year-label">{label}</span>
-              <span
-                className="ob-year-ages"
-                style={{ color: isSelected ? 'rgba(255,255,255,0.85)' : colors.dark }}
-              >
+              <span className="ob-year-ages" style={{ color: colors.dark }}>
                 {getAgeRangeLabel(year)}
               </span>
+              <span className="ob-year-label">{label}</span>
             </button>
           );
         })}
       </div>
-
-      <button
-        className={`ob-next-btn${selected !== null ? ' ob-next-btn--ready' : ''}`}
-        onClick={() => selected !== null && onSelect(selected)}
-        disabled={selected === null}
-      >
-        Next →
-      </button>
     </div>
   );
 }

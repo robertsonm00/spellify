@@ -85,17 +85,21 @@
 .ob-year-card:hover { transform: translateY(-3px); }
 .ob-year-card--selected { transform: translateY(-3px) scale(1.04); }
 
-.ob-year-label {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 0.6rem;
-  line-height: 1.5;
-  letter-spacing: 0.03em;
+/* Age range — primary, shown big */
+.ob-year-ages {
+  font-family: 'Nunito', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 900;
+  line-height: 1.2;
 }
 
-.ob-year-ages {
-  font-size: 0.68rem;
-  font-weight: 700;
-  line-height: 1;
+/* Year label — secondary, shown small below the age */
+.ob-year-label {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.48rem;
+  line-height: 1.5;
+  letter-spacing: 0.03em;
+  opacity: 0.75;
 }
 
 /* ── Next button ── */
