@@ -3,7 +3,7 @@
 .ws-wrap {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 56px);   /* 56 px = app-shell header */
+  height: calc(100vh - 44px);   /* 44px = measured app-shell header */
   overflow: hidden;
   font-family: 'Nunito', sans-serif;
   background: linear-gradient(160deg, #f0f4ff 0%, #fdf4ff 100%);
