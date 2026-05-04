@@ -33,7 +33,7 @@ function HangmanSVG({ stage }) {
   );
 }
 
-function Hangman({ words, difficulty = 'medium', onComplete, onExit }) {
+function Hangman({ words, difficulty = 'medium', childName = '', childCharacter = null, onComplete, onExit }) {
   const maxWrong = MAX_WRONG[difficulty] ?? 6;
 
   const [queue]          = useState(() => [...words].sort(() => Math.random() - 0.5));
@@ -100,11 +100,23 @@ function Hangman({ words, difficulty = 'medium', onComplete, onExit }) {
   // ── Complete screen ──
   if (phase === 'complete') {
     const wins = wordResults.filter((r) => r.won).length;
+    const encouragements = [
+      "Fantastic!",
+      "Great work!",
+      "You're amazing!",
+      "Brilliant playing!",
+      "Well done!",
+      "Awesome job!",
+    ];
+    const encouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
+    
     return (
       <div className="hm-wrap">
         {onExit && <button className="hm-back" onClick={onExit}>← Hub</button>}
         <div className="hm-complete">
+          {childCharacter && <div className="hm-complete-emoji">{childCharacter.emoji}</div>}
           <h2>Game Over!</h2>
+          {childName && <p className="hm-child-name">{childName}, {encouragement}</p>}
           <p className="hm-score-big">{wins} / {wordResults.length} words guessed</p>
           <ul className="hm-result-list">
             {wordResults.map((r, i) => (

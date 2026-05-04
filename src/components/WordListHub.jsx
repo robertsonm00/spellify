@@ -37,6 +37,8 @@ function WordListHub({
   userAge = 8,
   difficulty = 'medium',
   activityStatuses,
+  childName = '',
+  childCharacter = null,
   onLaunch,
   onChangeWords,
   onSettingsUpdate,
@@ -84,6 +86,19 @@ function WordListHub({
           ⚙️
         </button>
       </div>
+
+      {/* ── Welcome section ── */}
+      {childName && (
+        <section className="hub-welcome">
+          <div className="hub-welcome-content">
+            <span className="hub-welcome-character">{childCharacter?.emoji || '⭐'}</span>
+            <div className="hub-welcome-text">
+              <p className="hub-welcome-greeting">Welcome, <strong>{childName}</strong>!</p>
+              <p className="hub-welcome-subtext">Ready to master some spellings?</p>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ── Word list ── */}
       <section className="hub-words">

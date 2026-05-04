@@ -26,7 +26,7 @@ function getCellsBetween(start, end) {
   }));
 }
 
-function WordSearch({ words, userAge = 8, initialDifficulty, onComplete, onExit }) {
+function WordSearch({ words, userAge = 8, childName = '', childCharacter = null, initialDifficulty, onComplete, onExit }) {
   const [difficulty, setDifficulty] = useState(initialDifficulty || 'medium');
 
   // When launched from the hub with a difficulty, skip setup and start immediately
@@ -200,7 +200,9 @@ function WordSearch({ words, userAge = 8, initialDifficulty, onComplete, onExit 
 
       {foundWords.length === words.length && (
         <div className="completion-screen">
+          {childCharacter && <div className="completion-emoji">{childCharacter.emoji}</div>}
           <h2>🎉 You found all the words!</h2>
+          {childName && <p className="completion-child-name">{childName}, amazing work!</p>}
           <button onClick={startGame}>Play Again</button>
           <button onClick={onComplete}>Back to Hub</button>
         </div>

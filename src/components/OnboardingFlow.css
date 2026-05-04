@@ -278,3 +278,125 @@
   color: #666;
 }
 .ob-back-btn:hover { background: #f5f5f5; }
+
+/* ── Name input ── */
+
+.ob-name-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.2rem;
+  width: 100%;
+}
+
+.ob-name-input {
+  width: 100%;
+  font-family: 'Nunito', sans-serif;
+  font-size: 1.35rem;
+  font-weight: 600;
+  padding: 1.2rem 1.5rem;
+  border: 3px solid #e0e0e0;
+  border-radius: 12px;
+  text-align: center;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.ob-name-input::placeholder {
+  color: #ccc;
+  font-weight: 500;
+}
+.ob-name-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* ── Character picker ── */
+
+.ob-character-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  width: 100%;
+  margin: 1rem 0;
+}
+
+.ob-character-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1.2rem 0.75rem;
+  border: 3px solid #e0e0e0;
+  border-radius: 12px;
+  background: #f9f9f9;
+  cursor: pointer;
+  font-family: 'Nunito', sans-serif;
+  transition: transform 0.1s, border-color 0.1s, background 0.1s;
+}
+.ob-character-card:hover {
+  transform: translateY(-4px);
+  border-color: #667eea;
+  background: #fff;
+}
+.ob-character-card--selected {
+  border-color: #667eea;
+  background: #667eea;
+  box-shadow: 0 6px 12px rgba(102, 126, 234, 0.3);
+  transform: scale(1.05);
+}
+.ob-character-card--selected .ob-character-name {
+  color: #fff;
+}
+
+.ob-character-emoji {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.ob-character-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #555;
+  transition: color 0.1s;
+}
+
+.ob-character-grid--expanded {
+  scrollbar-width: thin;
+  scrollbar-color: #d0d0d0 transparent;
+}
+
+.ob-character-grid--expanded::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ob-character-grid--expanded::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ob-character-grid--expanded::-webkit-scrollbar-thumb {
+  background: #d0d0d0;
+  border-radius: 3px;
+}
+
+.ob-character-card--show-more {
+  opacity: 0.7;
+  border-style: dashed;
+}
+
+.ob-character-card--show-more:hover {
+  opacity: 1;
+  border-style: solid;
+  border-color: #667eea;
+}
+
+@media (max-width: 480px) {
+  .ob-character-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .ob-name-input {
+    font-size: 1.1rem;
+    padding: 1rem 1.2rem;
+  }
+}

@@ -71,6 +71,67 @@
 }
 .hub-settings-btn:hover { transform: rotate(40deg); }
 
+/* ── Welcome section ── */
+
+.hub-welcome {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  padding: 1.2rem;
+  margin-bottom: 0.5rem;
+  animation: slideIn 0.4s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hub-welcome-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.hub-welcome-character {
+  font-size: 2.5rem;
+  line-height: 1;
+  animation: characterBounce 0.6s ease 0.2s both;
+}
+
+@keyframes characterBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.hub-welcome-text {
+  color: #fff;
+}
+
+.hub-welcome-greeting {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.hub-welcome-greeting strong {
+  font-weight: 900;
+  font-style: italic;
+}
+
+.hub-welcome-subtext {
+  margin: 0.25rem 0 0 0;
+  font-size: 0.85rem;
+  opacity: 0.95;
+  font-weight: 600;
+}
+
 /* ── Section header ── */
 
 .hub-section-header {

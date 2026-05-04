@@ -4,7 +4,17 @@ import './SpellingQuiz.css';
 // Seconds to memorise the word per difficulty
 const MEMORISE_TIME = { easy: 4, medium: 3, hard: 2 };
 
-function SpellingQuiz({ words, difficulty = 'medium', onComplete, onExit }) {
+const ENCOURAGEMENTS = [
+  "Amazing work!",
+  "You're a spelling star!",
+  "Fantastic job!",
+  "Brilliant effort!",
+  "Fantastic spelling!",
+  "You nailed it!",
+  "Outstanding!",
+];
+
+function SpellingQuiz({ words, difficulty = 'medium', childName = '', childCharacter = null, onComplete, onExit }) {
   const memoriseTime = MEMORISE_TIME[difficulty] ?? 3;
 
   const [queue]     = useState(() => [...words].sort(() => Math.random() - 0.5));
@@ -56,11 +66,15 @@ function SpellingQuiz({ words, difficulty = 'medium', onComplete, onExit }) {
 
   if (phase === 'complete') {
     const score = results.filter((r) => r.correct).length;
+    const encouragement = ENCOURAGEMENTS[Math.floor(Math.random() * ENCOURAGEMENTS.length)];
+    
     return (
       <div className="quiz-wrap">
         {onExit && <button className="quiz-back" onClick={onExit}>← Hub</button>}
         <div className="quiz-complete">
+          {childCharacter && <div className="quiz-complete-emoji">{childCharacter.emoji}</div>}
           <h2>Quiz complete!</h2>
+          {childName && <p className="quiz-child-name">{childName}, {encouragement}</p>}
           <p className="quiz-score-big">{score} / {results.length} correct</p>
           <ul className="quiz-result-list">
             {results.map((r, i) => (
