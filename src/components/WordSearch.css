@@ -148,11 +148,18 @@
   transition:  background 0.07s;
 }
 
-.ws-cell:hover               { background: #f0f4ff; }
-.ws-cell--sel                { background: #ffd93d; color: #1a1a2e; }
-.ws-cell--found              { background: #bbf7d0; color: #14532d; }
+.ws-cell:hover                        { background: #f0f4ff; }
+/* :hover has higher specificity than a single class, so we must also
+   declare the :hover variant for selected/found states to prevent the
+   hover colour overriding the highlight on whichever cell the cursor
+   is sitting on at the end of a drag.                                  */
+.ws-cell--sel,
+.ws-cell--sel:hover                   { background: #ffd93d; color: #1a1a2e; }
+.ws-cell--found,
+.ws-cell--found:hover                 { background: #bbf7d0; color: #14532d; }
 /* found always beats selected */
-.ws-cell--found.ws-cell--sel { background: #bbf7d0; color: #14532d; }
+.ws-cell--found.ws-cell--sel,
+.ws-cell--found.ws-cell--sel:hover    { background: #bbf7d0; color: #14532d; }
 
 /* ── Toast ── */
 
