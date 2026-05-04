@@ -1,59 +1,66 @@
 import React, { useState } from 'react';
 import './OnboardingFlow.css';
-import { ageToYear, getWordsForYear, YEAR_LABELS } from '../data/ukCurriculum';
-import WordUpload from './WordUpload';
+import { YEAR_DATA, getWordsForYear, getAgeRangeLabel } from '../data/ukCurriculum';
+import AddWordsManual from './AddWordsManual';
 
-const AGES = [5, 6, 7, 8, 9, 10, 11, 12];
+const YEAR_COLORS = {
+  1: { bg: '#fff0f0', border: '#ff6b6b', accent: '#ff6b6b', dark: '#c0392b' },
+  2: { bg: '#fff4ec', border: '#ff9f43', accent: '#ff9f43', dark: '#c05700' },
+  3: { bg: '#fffbe6', border: '#ffd93d', accent: '#ffd93d', dark: '#8a6f00' },
+  4: { bg: '#f0fff4', border: '#6bcb77', accent: '#6bcb77', dark: '#1e7e34' },
+  5: { bg: '#e8f4ff', border: '#4d96ff', accent: '#4d96ff', dark: '#1a5cbf' },
+  6: { bg: '#f5f0ff', border: '#c77dff', accent: '#c77dff', dark: '#6b21a8' },
+};
 
-const BUBBLE_COLORS = [
-  '#ff6b6b', '#ff9f43', '#ffd93d', '#6bcb77',
-  '#4d96ff', '#c77dff', '#ff6b9d', '#00d2d3',
+const WORD_CARD_COLORS = [
+  { bg: '#fff0f0', border: '#ff6b6b' },
+  { bg: '#fff8e1', border: '#ffd93d' },
+  { bg: '#f0fff4', border: '#6bcb77' },
+  { bg: '#e8f4ff', border: '#4d96ff' },
+  { bg: '#f5f0ff', border: '#c77dff' },
+  { bg: '#fff4ec', border: '#ff9f43' },
+  { bg: '#f0ffff', border: '#00d2d3' },
+  { bg: '#fff0f8', border: '#ff6b9d' },
 ];
 
-const CARD_COLORS = [
-  '#fff0f0', '#fff8e1', '#f0fff4', '#e8f4ff',
-  '#f5f0ff', '#fff0f8', '#f0ffff', '#fffaf0',
-];
+// ── Step 1: Year group picker ──────────────────────────────────────────────
 
-const CARD_BORDERS = [
-  '#ff6b6b', '#ffd93d', '#6bcb77', '#4d96ff',
-  '#c77dff', '#ff9f43', '#00d2d3', '#ff6b9d',
-];
-
-// Step 1: age picker
-function AgePicker({ onSelect }) {
+function YearPicker({ onSelect }) {
   const [selected, setSelected] = useState(null);
 
-  const handleNext = () => {
-    if (selected !== null) onSelect(selected);
-  };
-
   return (
-    <div className="ob-step ob-age">
+    <div className="ob-step ob-year">
       <div className="ob-step-header">
         <div className="ob-step-icon">👋</div>
-        <h2 className="ob-step-title">How old are you?</h2>
+        <h2 className="ob-step-title">What year are you in?</h2>
         <p className="ob-step-sub">We'll pick the right words for you</p>
       </div>
 
-      <div className="ob-age-grid">
-        {AGES.map((age, i) => {
-          const year = ageToYear(age);
-          const isSelected = selected === age;
+      <div className="ob-year-grid">
+        {Object.values(YEAR_DATA).map(({ year, label }) => {
+          const colors    = YEAR_COLORS[year];
+          const isSelected = selected === year;
           return (
             <button
-              key={age}
-              className={`ob-age-bubble${isSelected ? ' ob-age-bubble--selected' : ''}`}
+              key={year}
+              className={`ob-year-card${isSelected ? ' ob-year-card--selected' : ''}`}
               style={{
-                '--bubble-color': BUBBLE_COLORS[i],
-                borderColor: isSelected ? BUBBLE_COLORS[i] : '#e0e0e0',
-                background:  isSelected ? BUBBLE_COLORS[i] : '#fff',
-                color:       isSelected ? '#fff' : '#333',
+                background:   isSelected ? colors.accent : colors.bg,
+                borderColor:  isSelected ? colors.dark   : colors.border,
+                boxShadow:    isSelected
+                  ? `3px 3px 0 ${colors.dark}`
+                  : `3px 3px 0 ${colors.border}`,
+                color: isSelected ? '#fff' : '#1a1a2e',
               }}
-              onClick={() => setSelected(age)}
+              onClick={() => setSelected(year)}
             >
-              <span className="ob-age-num">{age}</span>
-              <span className="ob-age-year">{YEAR_LABELS[year]}</span>
+              <span className="ob-year-label">{label}</span>
+              <span
+                className="ob-year-ages"
+                style={{ color: isSelected ? 'rgba(255,255,255,0.85)' : colors.dark }}
+              >
+                {getAgeRangeLabel(year)}
+              </span>
             </button>
           );
         })}
@@ -61,7 +68,7 @@ function AgePicker({ onSelect }) {
 
       <button
         className={`ob-next-btn${selected !== null ? ' ob-next-btn--ready' : ''}`}
-        onClick={handleNext}
+        onClick={() => selected !== null && onSelect(selected)}
         disabled={selected === null}
       >
         Next →
@@ -70,8 +77,9 @@ function AgePicker({ onSelect }) {
   );
 }
 
-// Step 2: word source choice
-function WordSourcePicker({ onGenerate, onUpload }) {
+// ── Step 2: Word source choice ─────────────────────────────────────────────
+
+function WordSourcePicker({ onGenerate, onManual }) {
   return (
     <div className="ob-step ob-source">
       <div className="ob-step-header">
@@ -86,44 +94,63 @@ function WordSourcePicker({ onGenerate, onUpload }) {
           <strong>Generate for me</strong>
           <span className="ob-source-desc">UK curriculum words for your year group</span>
         </button>
-        <button className="ob-source-card ob-source-card--upload" onClick={onUpload}>
-          <span className="ob-source-icon">📝</span>
-          <strong>My own words</strong>
-          <span className="ob-source-desc">Type or paste your spelling list</span>
+        <button className="ob-source-card ob-source-card--manual" onClick={onManual}>
+          <span className="ob-source-icon">✏️</span>
+          <strong>Add my own</strong>
+          <span className="ob-source-desc">Type, upload a file, or take a photo</span>
         </button>
       </div>
     </div>
   );
 }
 
-// Step 3a: generated word preview
-function GeneratedWords({ year, onConfirm }) {
-  const [words, setWords] = useState(() => getWordsForYear(year, 20));
+// ── Step 3a: Generated word preview ───────────────────────────────────────
 
-  const reshuffle = () => setWords(getWordsForYear(year, 20));
+function GeneratedWords({ year, onConfirm }) {
+  const [count,    setCount]    = useState(20);
+  const [allWords, setAllWords] = useState(() => getWordsForYear(year, 20));
+
+  const words = allWords.slice(0, count);
+
+  const reshuffle = () => setAllWords(getWordsForYear(year, 20));
 
   return (
     <div className="ob-step ob-words">
       <div className="ob-step-header">
         <div className="ob-step-icon">🎉</div>
         <h2 className="ob-step-title">Your words!</h2>
-        <p className="ob-step-sub">{YEAR_LABELS[year]} · {words.length} words ready</p>
+        <p className="ob-step-sub">{YEAR_DATA[year]?.label} · {words.length} words ready</p>
       </div>
 
-      <div className="ob-word-chips">
-        {words.map((w, i) => (
-          <span
-            key={w}
-            className="ob-word-chip"
-            style={{
-              background:   CARD_COLORS[i % CARD_COLORS.length],
-              borderColor:  CARD_BORDERS[i % CARD_BORDERS.length],
-              animationDelay: `${(i * 0.05).toFixed(2)}s`,
-            }}
-          >
-            {w}
-          </span>
-        ))}
+      {/* 10 / 20 toggle */}
+      <div className="ob-count-toggle">
+        <button
+          className={`ob-count-btn${count === 10 ? ' ob-count-btn--active' : ''}`}
+          onClick={() => setCount(10)}
+        >
+          10 words
+        </button>
+        <button
+          className={`ob-count-btn${count === 20 ? ' ob-count-btn--active' : ''}`}
+          onClick={() => setCount(20)}
+        >
+          20 words
+        </button>
+      </div>
+
+      <div className="ob-word-grid">
+        {words.map((w, i) => {
+          const { bg, border } = WORD_CARD_COLORS[i % WORD_CARD_COLORS.length];
+          return (
+            <span
+              key={w}
+              className="ob-word-card"
+              style={{ background: bg, borderColor: border, animationDelay: `${(i * 0.04).toFixed(2)}s` }}
+            >
+              {w}
+            </span>
+          );
+        })}
       </div>
 
       <div className="ob-words-actions">
@@ -136,60 +163,50 @@ function GeneratedWords({ year, onConfirm }) {
   );
 }
 
-// Main onboarding orchestrator
+// ── Main orchestrator ──────────────────────────────────────────────────────
+
 function OnboardingFlow({ onComplete }) {
-  const [step, setStep]   = useState('age');      // age | source | generate | upload
-  const [age,  setAge]    = useState(null);
+  const [step, setStep] = useState('year');   // year | source | generate | manual
+  const [year, setYear] = useState(null);
 
-  const year = age ? ageToYear(age) : null;
-
-  const handleAge = (selectedAge) => {
-    setAge(selectedAge);
-    setStep('source');
-  };
+  const handleYear = (y) => { setYear(y); setStep('source'); };
 
   const handleConfirmWords = (words) => {
-    onComplete({ age, year, words, difficulty: 'medium' });
+    const ageRange = YEAR_DATA[year]?.ageRange || [8, 9];
+    onComplete({ year, age: ageRange[0], words, difficulty: 'medium' });
   };
 
-  const handleUploadWords = (words) => {
-    onComplete({ age: age || 8, year: year || 3, words, difficulty: 'medium' });
+  const back = () => {
+    if (step === 'source')                      setStep('year');
+    else if (step === 'generate' || step === 'manual') setStep('source');
   };
 
   return (
     <div className="ob-wrap">
       <div className="ob-card">
-        {step === 'age' && (
-          <AgePicker onSelect={handleAge} />
-        )}
-        {step === 'source' && (
+        {step === 'year'     && <YearPicker onSelect={handleYear} />}
+        {step === 'source'   && (
           <WordSourcePicker
             onGenerate={() => setStep('generate')}
-            onUpload={() => setStep('upload')}
+            onManual={() => setStep('manual')}
           />
         )}
         {step === 'generate' && year !== null && (
           <GeneratedWords year={year} onConfirm={handleConfirmWords} />
         )}
-        {step === 'upload' && (
+        {step === 'manual' && (
           <div className="ob-step">
             <div className="ob-step-header">
-              <div className="ob-step-icon">📝</div>
+              <div className="ob-step-icon">✏️</div>
               <h2 className="ob-step-title">Add your words</h2>
-              <p className="ob-step-sub">Enter one word per line</p>
+              <p className="ob-step-sub">Type one at a time · min 3 words</p>
             </div>
-            <WordUpload onWordsUploaded={handleUploadWords} />
+            <AddWordsManual onWordsReady={handleConfirmWords} />
           </div>
         )}
 
-        {/* Step back */}
-        {step !== 'age' && (
-          <button
-            className="ob-back-btn"
-            onClick={() => setStep(step === 'generate' || step === 'upload' ? 'source' : 'age')}
-          >
-            ← Back
-          </button>
+        {step !== 'year' && (
+          <button className="ob-back-btn" onClick={back}>← Back</button>
         )}
       </div>
     </div>

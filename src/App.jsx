@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
-import Welcome       from './components/Welcome';
+import Welcome        from './components/Welcome';
 import OnboardingFlow from './components/OnboardingFlow';
-import WordListHub   from './components/WordListHub';
-import WordSearch    from './components/WordSearch';
-import SpellingQuiz  from './components/SpellingQuiz';
-import Hangman       from './components/Hangman';
-import Crossword     from './components/Crossword';
+import WordListHub    from './components/WordListHub';
+import WordSearch     from './components/WordSearch';
+import SpellingQuiz   from './components/SpellingQuiz';
+import Hangman        from './components/Hangman';
+import Crossword      from './components/Crossword';
 
 const STORAGE_KEY = 'spellify_session_v1';
 const INITIAL_STATUSES = {
@@ -21,33 +21,36 @@ function loadSession() {
   catch { return null; }
 }
 
+function hasProgress(activityStatuses) {
+  return Object.values(activityStatuses || {}).some(
+    (s) => s === 'in-progress' || s === 'completed'
+  );
+}
+
 function App() {
-  const [session, setSession] = useState(() => loadSession());
-  const [screen,  setScreen]  = useState(() => {
+  const [session,        setSession]        = useState(() => loadSession());
+  const [screen,         setScreen]         = useState(() => {
     const s = loadSession();
     return s && s.words && s.words.length > 0 ? 'hub' : 'welcome';
   });
   const [activeActivity, setActiveActivity] = useState(null);
+  const [showExitModal,  setShowExitModal]  = useState(false);
 
   useEffect(() => {
-    if (session) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
-    } else {
-      localStorage.removeItem(STORAGE_KEY);
-    }
+    if (session) localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+    else         localStorage.removeItem(STORAGE_KEY);
   }, [session]);
 
   const handleWelcomeStart = () => setScreen('onboarding');
 
-  const handleOnboardingComplete = ({ age, year, words, difficulty }) => {
-    const newSession = {
-      age,
+  const handleOnboardingComplete = ({ year, age, words, difficulty }) => {
+    setSession({
       year,
+      age,
       difficulty: difficulty || 'medium',
       words,
       activityStatuses: INITIAL_STATUSES,
-    };
-    setSession(newSession);
+    });
     setScreen('hub');
   };
 
@@ -78,17 +81,28 @@ function App() {
     setScreen('onboarding');
   };
 
-  const handleSettingsUpdate = (updates) => {
-    setSession((prev) => ({ ...prev, ...updates }));
+  const handleSettingsUpdate = (updates) => setSession((prev) => ({ ...prev, ...updates }));
+  const handleClearProgress  = () => setSession((prev) => ({ ...prev, activityStatuses: INITIAL_STATUSES }));
+
+  const handleBackToWelcome = () => {
+    if (session && hasProgress(session.activityStatuses)) {
+      setShowExitModal(true);
+    } else {
+      confirmExit();
+    }
   };
 
-  const handleClearProgress = () => {
-    setSession((prev) => ({ ...prev, activityStatuses: INITIAL_STATUSES }));
+  const confirmExit = () => {
+    setShowExitModal(false);
+    setSession(null);
+    setActiveActivity(null);
+    setScreen('welcome');
   };
 
-  // Activity screen
+  // ── Activity screen ──────────────────────────────────────────────────────
+
   if (activeActivity && session) {
-    const { id }                  = activeActivity;
+    const { id }                     = activeActivity;
     const { words, difficulty, age } = session;
     let Activity = null;
 
@@ -134,6 +148,8 @@ function App() {
     if (Activity) return <AppShell>{Activity}</AppShell>;
   }
 
+  // ── Screen routing ───────────────────────────────────────────────────────
+
   if (screen === 'welcome')    return <Welcome onStart={handleWelcomeStart} />;
   if (screen === 'onboarding') return <OnboardingFlow onComplete={handleOnboardingComplete} />;
 
@@ -142,20 +158,56 @@ function App() {
   }
 
   return (
-    <AppShell>
-      <WordListHub
-        words={session.words}
-        userAge={session.age || 8}
-        difficulty={session.difficulty || 'medium'}
-        activityStatuses={session.activityStatuses}
-        onLaunch={handleLaunch}
-        onChangeWords={handleChangeWords}
-        onSettingsUpdate={handleSettingsUpdate}
-        onClearProgress={handleClearProgress}
-      />
-    </AppShell>
+    <>
+      <AppShell>
+        <WordListHub
+          words={session.words}
+          userAge={session.age || 8}
+          difficulty={session.difficulty || 'medium'}
+          activityStatuses={session.activityStatuses}
+          onLaunch={handleLaunch}
+          onChangeWords={handleChangeWords}
+          onSettingsUpdate={handleSettingsUpdate}
+          onClearProgress={handleClearProgress}
+          onBackToWelcome={handleBackToWelcome}
+        />
+      </AppShell>
+
+      {showExitModal && (
+        <ExitConfirmModal
+          onConfirm={confirmExit}
+          onCancel={() => setShowExitModal(false)}
+        />
+      )}
+    </>
   );
 }
+
+// ── Exit confirmation modal ────────────────────────────────────────────────
+
+function ExitConfirmModal({ onConfirm, onCancel }) {
+  return (
+    <div className="exit-overlay" onClick={onCancel}>
+      <div className="exit-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="exit-modal-icon">⚠️</div>
+        <h2 className="exit-modal-title">Are you sure?</h2>
+        <p className="exit-modal-body">
+          You'll lose your progress if you go back to the welcome screen.
+        </p>
+        <div className="exit-modal-btns">
+          <button className="exit-btn exit-btn--cancel" onClick={onCancel}>
+            Continue Learning
+          </button>
+          <button className="exit-btn exit-btn--confirm" onClick={onConfirm}>
+            Go Back
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── App shell ─────────────────────────────────────────────────────────────
 
 function AppShell({ children }) {
   return (

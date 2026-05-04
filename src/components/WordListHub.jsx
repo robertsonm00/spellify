@@ -3,19 +3,34 @@ import './WordListHub.css';
 import Settings from './Settings';
 
 const ACTIVITIES = [
-  { id: 'wordsearch', name: 'Word Search',  icon: '🔍', timeEstimate: '5 mins'  },
-  { id: 'quiz',       name: 'Spelling Quiz', icon: '🎤', timeEstimate: '3 mins'  },
-  { id: 'hangman',    name: 'Hangman',       icon: '🎯', timeEstimate: '5 mins'  },
-  { id: 'crossword',  name: 'Crossword',     icon: '✏️', timeEstimate: '10 mins' },
+  { id: 'wordsearch', name: 'Word Search',   icon: '🔍', timeEstimate: '5 mins',  color: '#4d96ff', dark: '#1a5cbf' },
+  { id: 'quiz',       name: 'Spelling Quiz',  icon: '🎤', timeEstimate: '3 mins',  color: '#6bcb77', dark: '#1e7e34' },
+  { id: 'hangman',    name: 'Hangman',        icon: '🎯', timeEstimate: '5 mins',  color: '#ff9f43', dark: '#c05700' },
+  { id: 'crossword',  name: 'Crossword',      icon: '✏️', timeEstimate: '10 mins', color: '#c77dff', dark: '#6b21a8' },
 ];
 
 const STATUS_LABEL = {
   'not-started': 'Not Started',
   'in-progress': 'In Progress',
-  'completed':   'Completed ✓',
+  'completed':   'Done ✓',
 };
 
-const DIFF_COLORS = { easy: '#6bcb77', medium: '#4d96ff', hard: '#ff6b6b' };
+const DIFF_COLORS = {
+  easy:   { bg: '#6bcb77', dark: '#1e7e34' },
+  medium: { bg: '#4d96ff', dark: '#1a5cbf' },
+  hard:   { bg: '#ff6b6b', dark: '#c0392b' },
+};
+
+const WORD_CHIP_COLORS = [
+  { bg: '#fff0f0', border: '#ff6b6b' },
+  { bg: '#fff8e1', border: '#ffd93d' },
+  { bg: '#f0fff4', border: '#6bcb77' },
+  { bg: '#e8f4ff', border: '#4d96ff' },
+  { bg: '#f5f0ff', border: '#c77dff' },
+  { bg: '#fff4ec', border: '#ff9f43' },
+  { bg: '#f0ffff', border: '#00d2d3' },
+  { bg: '#fff0f8', border: '#ff6b9d' },
+];
 
 function WordListHub({
   words,
@@ -26,33 +41,45 @@ function WordListHub({
   onChangeWords,
   onSettingsUpdate,
   onClearProgress,
+  onBackToWelcome,
 }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const completedCount = Object.values(activityStatuses).filter((s) => s === 'completed').length;
   const progressPct    = Math.round((completedCount / ACTIVITIES.length) * 100);
 
+  // Pixel progress: 4 blocks, one per activity
+  const progressBlocks = ACTIVITIES.map((a) => activityStatuses[a.id] === 'completed');
+
   return (
     <div className="hub">
       {/* ── Top bar ── */}
       <div className="hub-topbar">
+        <button className="hub-home-btn" onClick={onBackToWelcome} title="Back to welcome">
+          🏠
+        </button>
+
         <div className="hub-diff-global">
-          <span className="hub-diff-label">Difficulty:</span>
-          {['easy', 'medium', 'hard'].map((d) => (
-            <button
-              key={d}
-              className={`hub-diff-pill${difficulty === d ? ' hub-diff-pill--active' : ''}`}
-              style={difficulty === d ? { background: DIFF_COLORS[d], borderColor: DIFF_COLORS[d] } : {}}
-              onClick={() => onSettingsUpdate({ difficulty: d })}
-            >
-              {d.charAt(0).toUpperCase() + d.slice(1)}
-            </button>
-          ))}
+          {['easy', 'medium', 'hard'].map((d) => {
+            const { bg, dark } = DIFF_COLORS[d];
+            const active = difficulty === d;
+            return (
+              <button
+                key={d}
+                className={`hub-diff-pill${active ? ' hub-diff-pill--active' : ''}`}
+                style={active ? { background: bg, borderColor: dark, color: '#fff', boxShadow: `3px 3px 0 ${dark}` } : {}}
+                onClick={() => onSettingsUpdate({ difficulty: d })}
+              >
+                {d.charAt(0).toUpperCase() + d.slice(1)}
+              </button>
+            );
+          })}
         </div>
+
         <button
           className="hub-settings-btn"
           onClick={() => setSettingsOpen(true)}
-          aria-label="Open settings"
+          aria-label="Settings"
         >
           ⚙️
         </button>
@@ -61,46 +88,66 @@ function WordListHub({
       {/* ── Word list ── */}
       <section className="hub-words">
         <div className="hub-section-header">
-          <h2>Your Words <span className="hub-word-count">({words.length})</span></h2>
+          <span className="hub-section-label">YOUR WORDS ({words.length})</span>
           <button className="hub-change-btn" onClick={onChangeWords}>Change Words</button>
         </div>
         <div className="hub-chips">
-          {words.map((w) => (
-            <span key={w} className="hub-chip">{w}</span>
-          ))}
+          {words.map((w, i) => {
+            const { bg, border } = WORD_CHIP_COLORS[i % WORD_CHIP_COLORS.length];
+            return (
+              <span key={w} className="hub-chip" style={{ background: bg, borderColor: border }}>
+                {w}
+              </span>
+            );
+          })}
         </div>
       </section>
 
-      {/* ── Progress ── */}
+      {/* ── Pixel progress bar ── */}
       <section className="hub-progress">
         <div className="hub-progress-labels">
-          <span>{completedCount} of {ACTIVITIES.length} activities completed</span>
+          <span>{completedCount} of {ACTIVITIES.length} activities done</span>
           <span className="hub-progress-pct">{progressPct}%</span>
         </div>
-        <div className="hub-progress-track">
-          <div
-            className="hub-progress-fill"
-            style={{ width: `${progressPct}%` }}
-          />
+        <div className="hub-pixel-progress">
+          {progressBlocks.map((filled, i) => (
+            <div
+              key={i}
+              className={`hub-pixel-block${filled ? ' hub-pixel-block--filled' : ''}`}
+              title={ACTIVITIES[i].name}
+            />
+          ))}
         </div>
       </section>
 
       {/* ── Activity cards ── */}
       <section className="hub-activities">
-        <h2>Activities</h2>
+        <span className="hub-section-label">ACTIVITIES</span>
         <div className="hub-grid">
           {ACTIVITIES.map((activity) => {
             const status = activityStatuses[activity.id] || 'not-started';
+            const done   = status === 'completed';
             return (
               <div
                 key={activity.id}
                 className={`hub-card hub-card--${status}`}
+                style={{
+                  borderColor:  activity.dark,
+                  boxShadow:    done
+                    ? `3px 3px 0 ${activity.dark}`
+                    : `5px 5px 0 ${activity.dark}`,
+                }}
                 onClick={() => onLaunch(activity.id)}
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => e.key === 'Enter' && onLaunch(activity.id)}
               >
-                <div className="hub-card-icon">{activity.icon}</div>
+                <div
+                  className="hub-card-header"
+                  style={{ background: activity.color }}
+                >
+                  <span className="hub-card-icon">{activity.icon}</span>
+                </div>
                 <div className="hub-card-body">
                   <h3 className="hub-card-name">{activity.name}</h3>
                   <span className={`hub-badge hub-badge--${status}`}>
