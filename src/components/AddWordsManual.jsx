@@ -1,5 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import './AddWordsManual.css';
+import FileUpload from './FileUpload';
 
 const WORD_COLORS = [
   { bg: '#fff0f0', border: '#ff6b6b' },
@@ -13,10 +14,10 @@ const WORD_COLORS = [
 ];
 
 function AddWordsManual({ onWordsReady }) {
-  const [input, setInput]   = useState('');
-  const [words, setWords]   = useState([]);
-  const [toast, setToast]   = useState(null);
-  const fileRef             = useRef(null);
+  const [input,       setInput]       = useState('');
+  const [words,       setWords]       = useState([]);
+  const [toast,       setToast]       = useState(null);
+  const [showUpload,  setShowUpload]  = useState(false);
 
   const showToast = (msg) => {
     setToast(msg);
@@ -38,32 +39,27 @@ function AddWordsManual({ onWordsReady }) {
 
   const removeWord = (idx) => setWords((prev) => prev.filter((_, i) => i !== idx));
 
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    if (file.name.endsWith('.pdf')) {
-      showToast('PDF upload coming soon — use TXT or CSV for now');
-      e.target.value = '';
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const parsed = ev.target.result
-        .split(/[\n,;\t]+/)
-        .map((w) => w.trim().toLowerCase().replace(/[^a-z'-]/g, ''))
-        .filter((w) => w.length >= 2 && w.length <= 20);
-      const unique = [...new Set([...words, ...parsed])].slice(0, 30);
-      setWords(unique);
-      showToast(`Added ${unique.length - words.length} words from file`);
-    };
-    reader.readAsText(file);
-    e.target.value = '';
+  // Called by FileUpload once the user picks their words
+  const handleFileWordsConfirmed = (extracted) => {
+    const merged = [...new Set([...words, ...extracted])].slice(0, 30);
+    setWords(merged);
+    setShowUpload(false);
+    showToast(`Added words from file! ${merged.length} total.`);
   };
 
-  const handlePhoto = () => {
-    showToast('📷 Photo OCR coming soon! Type words manually for now.');
-  };
+  // ── File upload view ──────────────────────────────────────────────────────
+  if (showUpload) {
+    return (
+      <div className="aw-wrap">
+        <FileUpload
+          onWordsConfirmed={handleFileWordsConfirmed}
+          onCancel={() => setShowUpload(false)}
+        />
+      </div>
+    );
+  }
 
+  // ── Manual entry view ─────────────────────────────────────────────────────
   return (
     <div className="aw-wrap">
       {toast && <div className="aw-toast">{toast}</div>}
@@ -120,17 +116,19 @@ function AddWordsManual({ onWordsReady }) {
 
       {/* ── Upload / Photo ── */}
       <div className="aw-upload-row">
-        <label className="aw-upload-btn">
+        <button
+          className="aw-upload-btn"
+          onClick={() => setShowUpload(true)}
+          type="button"
+        >
           <span>📁</span> Upload from File
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".txt,.csv"
-            onChange={handleFileUpload}
-            style={{ display: 'none' }}
-          />
-        </label>
-        <button className="aw-upload-btn aw-camera-btn" onClick={handlePhoto}>
+        </button>
+        {/* Camera: opens FileUpload which handles the camera input internally */}
+        <button
+          className="aw-upload-btn aw-camera-btn"
+          onClick={() => setShowUpload(true)}
+          type="button"
+        >
           <span>📷</span> Take Photo
         </button>
       </div>
