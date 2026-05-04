@@ -212,20 +212,18 @@ function WordSourcePicker({ onGenerate, onManual }) {
   return (
     <div className="ob-step ob-source">
       <div className="ob-step-header">
-        <div className="ob-step-icon">📚</div>
-        <h2 className="ob-step-title">Get your words</h2>
-        <p className="ob-step-sub">How would you like to choose?</p>
+        <h2 className="ob-step-title">Choose your spellings</h2>
       </div>
 
       <div className="ob-source-cards">
         <button className="ob-source-card ob-source-card--generate" onClick={onGenerate}>
           <span className="ob-source-icon">✨</span>
-          <strong>Generate for me</strong>
+          <strong>Random spellings</strong>
           <span className="ob-source-desc">UK curriculum words for your year group</span>
         </button>
         <button className="ob-source-card ob-source-card--manual" onClick={onManual}>
           <span className="ob-source-icon">✏️</span>
-          <strong>Add my own</strong>
+          <strong>Add my spellings</strong>
           <span className="ob-source-desc">Type, upload a file, or take a photo</span>
         </button>
       </div>
