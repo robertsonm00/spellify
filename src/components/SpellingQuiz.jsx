@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './SpellingQuiz.css';
+import { getSupportTip } from '../data/spelling/dyslexiaPatterns';
 
 // Seconds to memorise the word per difficulty
 const MEMORISE_TIME = { easy: 4, medium: 3, hard: 2 };
@@ -14,7 +15,7 @@ const ENCOURAGEMENTS = [
   "Outstanding!",
 ];
 
-function SpellingQuiz({ words, difficulty = 'medium', childName = '', childCharacter = null, onComplete, onExit }) {
+function SpellingQuiz({ words, difficulty = 'medium', dyslexiaMode = false, childName = '', childCharacter = null, onComplete, onExit }) {
   const memoriseTime = MEMORISE_TIME[difficulty] ?? 3;
 
   const [queue]     = useState(() => [...words].sort(() => Math.random() - 0.5));
@@ -37,6 +38,8 @@ function SpellingQuiz({ words, difficulty = 'medium', childName = '', childChara
         setPhase('type');
       }
     } else if (phase === 'feedback') {
+      const last = results[results.length - 1];
+      const hasTip = dyslexiaMode && last && !last.correct && getSupportTip(last.word);
       id = setTimeout(() => {
         const next = index + 1;
         if (next >= queue.length) {
@@ -47,7 +50,7 @@ function SpellingQuiz({ words, difficulty = 'medium', childName = '', childChara
           setInput('');
           setPhase('memorise');
         }
-      }, 1500);
+      }, hasTip ? 4500 : 1500);
     }
     return () => clearTimeout(id);
   }, [phase, countdown, index, queue.length, memoriseTime]);
@@ -140,6 +143,7 @@ function SpellingQuiz({ words, difficulty = 'medium', childName = '', childChara
 
       {phase === 'feedback' && (() => {
         const last = results[results.length - 1];
+        const tip  = !last.correct && dyslexiaMode ? getSupportTip(last.word) : null;
         return (
           <div className={`quiz-stage quiz-feedback ${last.correct ? 'correct' : 'wrong'}`}>
             <span className="feedback-icon">{last.correct ? '✓' : '✗'}</span>
@@ -147,6 +151,12 @@ function SpellingQuiz({ words, difficulty = 'medium', childName = '', childChara
               ? <p>Correct!</p>
               : <p>The word was <strong>{last.word}</strong></p>
             }
+            {tip && (
+              <div className="support-tip">
+                <span className="support-tip-icon">💡</span>
+                <span>{tip.support_strategy}</span>
+              </div>
+            )}
           </div>
         );
       })()}

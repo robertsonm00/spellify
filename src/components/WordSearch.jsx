@@ -20,8 +20,8 @@ function getCellsBetween(start, end) {
   }));
 }
 
-export default function WordSearch({ words, onComplete, onExit }) {
-  const [gameState,      setGameState]      = useState(() => generateWordSearch(words, GRID_SIZE));
+export default function WordSearch({ words, onComplete, onExit, dyslexiaMode = false }) {
+  const [gameState,      setGameState]      = useState(() => generateWordSearch(words, GRID_SIZE, { dyslexiaMode }));
   const [selectionAnchor, setSelectionAnchor] = useState(null); // click-mode anchor
   const [selectionCells,  setSelectionCells]  = useState([]);
   const [foundWords,      setFoundWords]      = useState([]);
@@ -35,7 +35,7 @@ export default function WordSearch({ words, onComplete, onExit }) {
   // ── Game actions ────────────────────────────────────────────────────────────
 
   const startGame = useCallback(() => {
-    setGameState(generateWordSearch(words, GRID_SIZE));
+    setGameState(generateWordSearch(words, GRID_SIZE, { dyslexiaMode }));
     setFoundWords([]);
     setFoundCells([]);
     setSelectionAnchor(null);

@@ -1,6 +1,42 @@
 // Word Search Engine - Generates and manages word search puzzles
 
-export const generateWordSearch = (words, gridSize) => {
+import { isConfusingPair } from '../data/spelling/visualConfusions';
+
+const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+
+/**
+ * Pick a filler letter for a grid cell.
+ * In Extra Support Mode, avoid placing a letter that is visually confusable
+ * with any of its 8 neighbours that are already filled.
+ */
+function pickFiller(grid, row, col, gridSize, extraSupport) {
+  if (!extraSupport) {
+    return LETTERS[Math.floor(Math.random() * LETTERS.length)];
+  }
+
+  // Collect already-filled neighbours
+  const neighbours = [];
+  for (let dr = -1; dr <= 1; dr++) {
+    for (let dc = -1; dc <= 1; dc++) {
+      if (dr === 0 && dc === 0) continue;
+      const r = row + dr;
+      const c = col + dc;
+      if (r >= 0 && r < gridSize && c >= 0 && c < gridSize && grid[r][c] !== '') {
+        neighbours.push(grid[r][c]);
+      }
+    }
+  }
+
+  // Shuffle the alphabet and pick the first non-confusing letter
+  const shuffled = [...LETTERS].sort(() => Math.random() - 0.5);
+  for (const letter of shuffled) {
+    if (!neighbours.some((n) => isConfusingPair(letter, n))) return letter;
+  }
+  // Fallback (all letters confusing — extremely unlikely)
+  return shuffled[0];
+}
+
+export const generateWordSearch = (words, gridSize, { dyslexiaMode = false } = {}) => {
   // Create empty grid
   const grid = Array(gridSize)
     .fill(null)
@@ -46,11 +82,11 @@ export const generateWordSearch = (words, gridSize) => {
     }
   });
 
-  // Fill remaining cells with random letters
+  // Fill remaining cells — avoid visually confusing neighbours in extra-support mode
   for (let i = 0; i < gridSize; i++) {
     for (let j = 0; j < gridSize; j++) {
       if (grid[i][j] === '') {
-        grid[i][j] = String.fromCharCode(65 + Math.floor(Math.random() * 26));
+        grid[i][j] = pickFiller(grid, i, j, gridSize, dyslexiaMode);
       }
     }
   }

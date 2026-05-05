@@ -2,6 +2,79 @@
   box-sizing: border-box;
 }
 
+/* ── Extra Support Mode ───────────────────────────────────────────────────
+   Applied as a class on <body> when session.dyslexiaMode is true.
+   Scoped selectors override font, size and spacing only on word-bearing
+   elements — game chrome and headings are left unchanged.
+   Never mentions "dyslexia" in class names.                               */
+
+body.extra-support {
+  font-family: 'OpenDyslexic', 'Arial Rounded MT Bold', 'Arial Rounded', Arial, sans-serif;
+}
+
+/* Word displays in every game ── */
+body.extra-support .quiz-word-display,
+body.extra-support .hm-letter,
+body.extra-support .hm-display,
+body.extra-support .ws-cell,
+body.extra-support .hub-chip,
+body.extra-support .ob-word-card,
+body.extra-support .ql-word {
+  font-family: 'OpenDyslexic', 'Arial Rounded MT Bold', 'Arial Rounded', Arial, sans-serif;
+  letter-spacing: 0.12em;
+}
+
+/* 20 % size boost on the word being studied / displayed */
+body.extra-support .quiz-word-display,
+body.extra-support .hm-display,
+body.extra-support .hm-letter {
+  font-size: 1.2em;
+}
+
+/* Slightly larger chips in the hub word list */
+body.extra-support .hub-chip {
+  font-size: 1.05em;
+}
+
+/* Typed input in the quiz */
+body.extra-support .quiz-stage input[type="text"],
+body.extra-support .quiz-stage input:not([type]) {
+  font-family: 'OpenDyslexic', 'Arial Rounded MT Bold', Arial, sans-serif;
+  letter-spacing: 0.1em;
+  font-size: 1.15em;
+}
+
+/* ── Support tip card ── */
+
+.support-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #fffbe6;
+  border: 2px solid #ffd93d;
+  border-radius: 10px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #4a3800;
+  line-height: 1.5;
+  text-align: left;
+  animation: tipSlide 0.25s ease-out;
+}
+
+@keyframes tipSlide {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.support-tip-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  line-height: 1.4;
+}
+
 body {
   margin: 0;
   font-family: 'Nunito', 'Segoe UI', Arial, sans-serif;

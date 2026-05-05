@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import './Hangman.css';
+import { getSupportTip } from '../data/spelling/dyslexiaPatterns';
 
 const MAX_WRONG = { easy: 8, medium: 6, hard: 4 };
 const ALPHABET  = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
@@ -33,7 +34,7 @@ function HangmanSVG({ stage }) {
   );
 }
 
-function Hangman({ words, difficulty = 'medium', childName = '', childCharacter = null, onComplete, onExit }) {
+function Hangman({ words, difficulty = 'medium', dyslexiaMode = false, childName = '', childCharacter = null, onComplete, onExit }) {
   const maxWrong = MAX_WRONG[difficulty] ?? 6;
 
   const [queue]          = useState(() => [...words].sort(() => Math.random() - 0.5));
@@ -58,6 +59,7 @@ function Hangman({ words, difficulty = 'medium', childName = '', childCharacter 
   // Auto-advance after showing word result
   useEffect(() => {
     if (phase !== 'word-result') return;
+    const hasTip = dyslexiaMode && !won && getSupportTip(queue[wordIndex]);
     const id = setTimeout(() => {
       const updatedResults = [...wordResults, { word: queue[wordIndex], won }];
       if (wordIndex + 1 >= queue.length) {
@@ -69,7 +71,7 @@ function Hangman({ words, difficulty = 'medium', childName = '', childCharacter 
         setGuessed(new Set());
         setPhase('playing');
       }
-    }, 2000);
+    }, hasTip ? 4500 : 2000);
     return () => clearTimeout(id);
   }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -166,6 +168,15 @@ function Hangman({ words, difficulty = 'medium', childName = '', childCharacter 
           {phase === 'word-result' && (
             <div className={`hm-word-result ${won ? 'won' : 'lost'}`}>
               {won ? '🎉 Nice one!' : `The word was ${currentWord}`}
+              {!won && dyslexiaMode && (() => {
+                const tip = getSupportTip(queue[wordIndex]);
+                return tip ? (
+                  <div className="support-tip">
+                    <span className="support-tip-icon">💡</span>
+                    <span>{tip.support_strategy}</span>
+                  </div>
+                ) : null;
+              })()}
             </div>
           )}
 

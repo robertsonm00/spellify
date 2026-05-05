@@ -28,6 +28,11 @@ function App() {
     saveSession(session);
   }, [session]);
 
+  // Apply/remove extra-support body class whenever dyslexiaMode changes
+  useEffect(() => {
+    document.body.classList.toggle('extra-support', !!(session?.dyslexiaMode));
+  }, [session?.dyslexiaMode]);
+
   const handleWelcomeStart = () => setScreen('onboarding');
 
   const handleOnboardingComplete = ({ year, age, words, wordObjects = [], dyslexiaMode = false, sourceMode = 'generated', difficulty }) => {
