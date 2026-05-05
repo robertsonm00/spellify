@@ -6,11 +6,12 @@ export const LEGACY_KEY_V0 = 'spellify_session';      // bare key used by earlie
 export const LEGACY_KEY = LEGACY_KEY_V1;
 
 export const INITIAL_STATUSES = {
-  wordsearch: 'not-started',
-  quiz:       'not-started',
-  hangman:    'not-started',
-  crossword:  'not-started',
-  writeit:    'not-started',
+  wordsearch:   'not-started',
+  memoryspell:  'not-started',
+  hangman:      'not-started',
+  crossword:    'not-started',
+  writeit:      'not-started',
+  quizquest:    'not-started',
 };
 
 /**

@@ -8,6 +8,8 @@ import SpellingQuiz   from './components/SpellingQuiz';
 import Hangman        from './components/Hangman';
 import Crossword      from './components/Crossword';
 import WriteIt        from './components/WriteIt';
+import MemorySpell    from './components/MemorySpell';
+import QuizQuest      from './components/QuizQuest';
 import { loadSession, saveSession, createSession, INITIAL_STATUSES, updateMastery, rebuildReviewQueue } from './data/spelling/sessionSchema';
 
 function hasProgress(activityStatuses) {
@@ -128,13 +130,13 @@ function App() {
           onExit={handleExit}
         />
       );
-    } else if (id === 'quiz') {
+    } else if (id === 'memoryspell') {
       Activity = (
-        <SpellingQuiz
+        <MemorySpell
           words={words}
-          difficulty={difficulty}
+          wordObjects={session.wordObjects || []}
           dyslexiaMode={dyslexiaMode}
-          onComplete={(results) => handleComplete('quiz', results)}
+          onComplete={(results) => handleComplete('memoryspell', results)}
           onExit={handleExit}
         />
       );
@@ -166,6 +168,16 @@ function App() {
           childName={session.childName || ''}
           dyslexiaMode={dyslexiaMode}
           onComplete={(results) => handleComplete('writeit', results || [])}
+          onExit={handleExit}
+        />
+      );
+    } else if (id === 'quizquest') {
+      Activity = (
+        <QuizQuest
+          words={words}
+          wordObjects={session.wordObjects || []}
+          dyslexiaMode={dyslexiaMode}
+          onComplete={(results) => handleComplete('quizquest', results || [])}
           onExit={handleExit}
         />
       );

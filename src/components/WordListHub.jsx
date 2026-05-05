@@ -5,11 +5,12 @@ import { GeneratedWords } from './OnboardingFlow';
 import { scoreWord, scoreToBand } from '../utils/difficultyEngine';
 
 const ACTIVITIES = [
-  { id: 'wordsearch', name: 'Word Search',   icon: '🔍', timeEstimate: '5 mins',  color: '#4d96ff', dark: '#1a5cbf' },
-  { id: 'quiz',       name: 'Spelling Quiz',  icon: '🎤', timeEstimate: '3 mins',  color: '#6bcb77', dark: '#1e7e34' },
-  { id: 'hangman',    name: 'Hangman',        icon: '🎯', timeEstimate: '5 mins',  color: '#ff9f43', dark: '#c05700' },
-  { id: 'crossword',  name: 'Crossword',      icon: '✏️', timeEstimate: '10 mins', color: '#c77dff', dark: '#6b21a8' },
-  { id: 'writeit',    name: 'Write It',       icon: '✏️', timeEstimate: '10 mins', color: '#a855f7', dark: '#581c87' },
+  { id: 'wordsearch',  name: 'Word Search',   icon: '🔍', timeEstimate: '5 mins',  color: '#4d96ff', dark: '#1a5cbf' },
+  { id: 'memoryspell', name: 'Memory Spell',  icon: '🧠', timeEstimate: '5 mins',  color: '#6bcb77', dark: '#1e7e34' },
+  { id: 'hangman',     name: 'Hangman',       icon: '🎯', timeEstimate: '5 mins',  color: '#ff9f43', dark: '#c05700' },
+  { id: 'crossword',   name: 'Crossword',     icon: '✏️', timeEstimate: '10 mins', color: '#c77dff', dark: '#6b21a8' },
+  { id: 'writeit',     name: 'Write It',      icon: '✏️', timeEstimate: '10 mins', color: '#a855f7', dark: '#581c87' },
+  { id: 'quizquest',   name: 'Quiz Quest',    icon: '🏆', timeEstimate: '5 mins',  color: '#ec4899', dark: '#9d174d' },
 ];
 
 const STATUS_LABEL = {
@@ -57,7 +58,7 @@ function WordListHub({
   const [settingsOpen,    setSettingsOpen]    = useState(false);
   const [changeWordsOpen, setChangeWordsOpen] = useState(false);
 
-  const completedCount = Object.values(activityStatuses).filter((s) => s === 'completed').length;
+  const completedCount = ACTIVITIES.filter((a) => activityStatuses[a.id] === 'completed').length;
   const progressPct    = Math.round((completedCount / ACTIVITIES.length) * 100);
 
   // Pixel progress: 4 blocks, one per activity
