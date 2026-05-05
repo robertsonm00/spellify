@@ -7,19 +7,7 @@ import WordSearch     from './components/WordSearch';
 import SpellingQuiz   from './components/SpellingQuiz';
 import Hangman        from './components/Hangman';
 import Crossword      from './components/Crossword';
-
-const STORAGE_KEY = 'spellify_session_v1';
-const INITIAL_STATUSES = {
-  wordsearch: 'not-started',
-  quiz:       'not-started',
-  hangman:    'not-started',
-  crossword:  'not-started',
-};
-
-function loadSession() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); }
-  catch { return null; }
-}
+import { loadSession, saveSession, createSession, toWordArray, INITIAL_STATUSES } from './data/spelling/sessionSchema';
 
 function hasProgress(activityStatuses) {
   return Object.values(activityStatuses || {}).some(
@@ -37,18 +25,15 @@ function App() {
   const [showExitModal,  setShowExitModal]  = useState(false);
 
   useEffect(() => {
-    if (session) localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
-    else         localStorage.removeItem(STORAGE_KEY);
+    saveSession(session);
   }, [session]);
 
   const handleWelcomeStart = () => setScreen('onboarding');
 
   const handleOnboardingComplete = ({ year, age, words, difficulty }) => {
     setSession({
-      year,
-      age,
+      ...createSession({ year, age, words, sourceMode: 'generated', dyslexiaMode: false }),
       difficulty: difficulty || 'medium',
-      words,
       activityStatuses: INITIAL_STATUSES,
     });
     setScreen('hub');
@@ -103,7 +88,7 @@ function App() {
 
   if (activeActivity && session) {
     const { id }                     = activeActivity;
-    const { words, difficulty, age } = session;
+    const { words, difficulty, age, dyslexiaMode = false } = session;
     let Activity = null;
 
     if (id === 'wordsearch') {
@@ -111,6 +96,7 @@ function App() {
         <WordSearch
           words={words}
           initialDifficulty={difficulty}
+          dyslexiaMode={dyslexiaMode}
           onComplete={() => handleComplete('wordsearch')}
           onExit={handleExit}
         />
@@ -120,6 +106,7 @@ function App() {
         <SpellingQuiz
           words={words}
           difficulty={difficulty}
+          dyslexiaMode={dyslexiaMode}
           onComplete={() => handleComplete('quiz')}
           onExit={handleExit}
         />
@@ -129,6 +116,7 @@ function App() {
         <Hangman
           words={words}
           difficulty={difficulty}
+          dyslexiaMode={dyslexiaMode}
           onComplete={() => handleComplete('hangman')}
           onExit={handleExit}
         />
@@ -139,6 +127,7 @@ function App() {
           words={words}
           userAge={age || 8}
           difficulty={difficulty}
+          dyslexiaMode={dyslexiaMode}
           onComplete={() => handleComplete('crossword')}
           onExit={handleExit}
         />
