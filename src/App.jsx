@@ -7,7 +7,7 @@ import WordSearch     from './components/WordSearch';
 import SpellingQuiz   from './components/SpellingQuiz';
 import Hangman        from './components/Hangman';
 import Crossword      from './components/Crossword';
-import { loadSession, saveSession, createSession, toWordArray, INITIAL_STATUSES } from './data/spelling/sessionSchema';
+import { loadSession, saveSession, createSession, INITIAL_STATUSES } from './data/spelling/sessionSchema';
 
 function hasProgress(activityStatuses) {
   return Object.values(activityStatuses || {}).some(
@@ -30,9 +30,9 @@ function App() {
 
   const handleWelcomeStart = () => setScreen('onboarding');
 
-  const handleOnboardingComplete = ({ year, age, words, difficulty }) => {
+  const handleOnboardingComplete = ({ year, age, words, wordObjects = [], dyslexiaMode = false, sourceMode = 'generated', difficulty }) => {
     setSession({
-      ...createSession({ year, age, words, sourceMode: 'generated', dyslexiaMode: false }),
+      ...createSession({ year, age, words, wordObjects, sourceMode, dyslexiaMode }),
       difficulty: difficulty || 'medium',
       activityStatuses: INITIAL_STATUSES,
     });

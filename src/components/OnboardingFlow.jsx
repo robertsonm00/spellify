@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import './OnboardingFlow.css';
-import { YEAR_DATA, getWordsForYear, getAgeRangeLabel } from '../data/ukCurriculum';
+import { YEAR_GROUPS, selectWords } from '../utils/wordSelectionEngine';
 import AddWordsManual from './AddWordsManual';
 
 const CHARACTERS = [
@@ -62,6 +62,7 @@ const CHARACTERS = [
 ];
 
 const YEAR_COLORS = {
+  0: { bg: '#f0fffc', border: '#2ec4b6', accent: '#2ec4b6', dark: '#147f74' },  // Reception — teal
   1: { bg: '#fff0f0', border: '#ff6b6b', accent: '#ff6b6b', dark: '#c0392b' },
   2: { bg: '#fff4ec', border: '#ff9f43', accent: '#ff9f43', dark: '#c05700' },
   3: { bg: '#fffbe6', border: '#ffd93d', accent: '#ffd93d', dark: '#8a6f00' },
@@ -180,22 +181,23 @@ function YearPicker({ name, onSelect }) {
       </div>
 
       <div className="ob-year-grid">
-        {Object.values(YEAR_DATA).map(({ year, label }) => {
-          const colors = YEAR_COLORS[year];
+        {YEAR_GROUPS.map(({ yearGroup, label, ageRange }) => {
+          const colors     = YEAR_COLORS[yearGroup];
+          const isRecep    = yearGroup === 0;
           return (
             <button
-              key={year}
-              className="ob-year-card"
+              key={yearGroup}
+              className={`ob-year-card${isRecep ? ' ob-year-card--reception' : ''}`}
               style={{
                 background:  colors.bg,
                 borderColor: colors.border,
                 boxShadow:   `3px 3px 0 ${colors.border}`,
                 color:       '#1a1a2e',
               }}
-              onClick={() => onSelect(year)}
+              onClick={() => onSelect(yearGroup)}
             >
               <span className="ob-year-ages" style={{ color: colors.dark }}>
-                {getAgeRangeLabel(year)}
+                Ages {ageRange[0]}–{ageRange[1]}
               </span>
               <span className="ob-year-label">{label}</span>
             </button>
@@ -233,20 +235,33 @@ function WordSourcePicker({ onGenerate, onManual }) {
 
 // ── Step 5a: Generated word preview ───────────────────────────────────────
 
-function GeneratedWords({ year, onConfirm }) {
-  const [count,    setCount]    = useState(10);
-  const [allWords, setAllWords] = useState(() => getWordsForYear(year, 20));
+function GeneratedWords({ yearGroup, onConfirm }) {
+  const [count,        setCount]        = useState(10);
+  const [extraSupport, setExtraSupport] = useState(false);
+  // Pre-fetch 20 so the 10/20 toggle is instant; re-run on mode or shuffle change
+  const [result, setResult] = useState(() =>
+    selectWords({ yearGroup, count: 20, dyslexiaMode: false })
+  );
 
-  const words = allWords.slice(0, count);
+  const words       = result.words.slice(0, count);
+  const wordObjects = result.wordObjects.slice(0, count);
 
-  const reshuffle = () => setAllWords(getWordsForYear(year, 20));
+  const reshuffle = () =>
+    setResult(selectWords({ yearGroup, count: 20, dyslexiaMode: extraSupport }));
+
+  const handleExtraSupportToggle = (val) => {
+    setExtraSupport(val);
+    setResult(selectWords({ yearGroup, count: 20, dyslexiaMode: val }));
+  };
+
+  const groupMeta = YEAR_GROUPS.find((g) => g.yearGroup === yearGroup) || YEAR_GROUPS[1];
 
   return (
     <div className="ob-step ob-words">
       <div className="ob-step-header">
         <div className="ob-step-icon">🎉</div>
         <h2 className="ob-step-title">Your words!</h2>
-        <p className="ob-step-sub">{YEAR_DATA[year]?.label} · {words.length} words ready</p>
+        <p className="ob-step-sub">{groupMeta.label} · {words.length} words ready</p>
       </div>
 
       {/* 10 / 20 toggle */}
@@ -265,6 +280,22 @@ function GeneratedWords({ year, onConfirm }) {
         </button>
       </div>
 
+      {/* Extra Support Mode */}
+      <label className="ob-support-toggle">
+        <div className="ob-support-switch">
+          <input
+            type="checkbox"
+            checked={extraSupport}
+            onChange={(e) => handleExtraSupportToggle(e.target.checked)}
+          />
+          <span className="ob-support-slider" />
+        </div>
+        <div className="ob-support-text">
+          <span className="ob-support-name">⭐ Extra Support Mode</span>
+          <span className="ob-support-hint">Picks shorter, simpler words</span>
+        </div>
+      </label>
+
       <div className="ob-word-grid">
         {words.map((w, i) => {
           const { bg, border } = WORD_CARD_COLORS[i % WORD_CARD_COLORS.length];
@@ -282,7 +313,10 @@ function GeneratedWords({ year, onConfirm }) {
 
       <div className="ob-words-actions">
         <button className="ob-reshuffle-btn" onClick={reshuffle}>🔀 Shuffle</button>
-        <button className="ob-play-btn" onClick={() => onConfirm(words)}>
+        <button
+          className="ob-play-btn"
+          onClick={() => onConfirm({ words, wordObjects, dyslexiaMode: extraSupport, sourceMode: 'generated' })}
+        >
           Let's Play! ▶
         </button>
       </div>
@@ -302,9 +336,12 @@ function OnboardingFlow({ onComplete, initialName = '', initialCharacter = null,
   const handleCharacter = (c) => { setCharacter(c); setStep('year'); };
   const handleYear = (y) => { setYear(y); setStep('source'); };
 
-  const handleConfirmWords = (words) => {
-    const ageRange = YEAR_DATA[year]?.ageRange || [8, 9];
-    onComplete({ name, character, year, age: ageRange[0], words, difficulty: 'medium' });
+  // Called by GeneratedWords with { words, wordObjects, dyslexiaMode, sourceMode }
+  // and by AddWordsManual (wrapped below) with sourceMode: 'manual'
+  const handleConfirmWords = ({ words, wordObjects = [], dyslexiaMode = false, sourceMode = 'generated' }) => {
+    const group = YEAR_GROUPS.find((g) => g.yearGroup === year);
+    const age   = group?.ageRange[0] ?? 8;
+    onComplete({ name, character, year, age, words, wordObjects, dyslexiaMode, sourceMode, difficulty: 'medium' });
   };
 
   const back = () => {
@@ -327,7 +364,7 @@ function OnboardingFlow({ onComplete, initialName = '', initialCharacter = null,
           />
         )}
         {step === 'generate' && year !== null && (
-          <GeneratedWords year={year} onConfirm={handleConfirmWords} />
+          <GeneratedWords yearGroup={year} onConfirm={handleConfirmWords} />
         )}
         {step === 'manual' && (
           <div className="ob-step">
@@ -336,7 +373,11 @@ function OnboardingFlow({ onComplete, initialName = '', initialCharacter = null,
               <h2 className="ob-step-title">Add your words</h2>
               <p className="ob-step-sub">Type one at a time · min 3 words</p>
             </div>
-            <AddWordsManual onWordsReady={handleConfirmWords} />
+            <AddWordsManual
+              onWordsReady={(words) =>
+                handleConfirmWords({ words, wordObjects: [], dyslexiaMode: false, sourceMode: 'manual' })
+              }
+            />
           </div>
         )}
 
