@@ -3,6 +3,15 @@ import './OnboardingFlow.css';
 import { YEAR_GROUPS, selectWords } from '../utils/wordSelectionEngine';
 import AddWordsManual from './AddWordsManual';
 
+const STARS = Array.from({ length: 60 }, (_, i) => ({
+  id: i,
+  left: (i * 37 + 13) % 100,
+  top:  (i * 53 + 7)  % 100,
+  delay: ((i * 0.31) % 3).toFixed(2),
+  size:  8 + (i % 4) * 4,
+  dim:   i % 3 === 0,
+}));
+
 const CHARACTERS = [
   { id: 'lion',      emoji: '🦁', name: 'Lion' },
   { id: 'tiger',     emoji: '🐯', name: 'Tiger' },
@@ -125,7 +134,6 @@ function NameInput({ onSubmit }) {
 // ── Step 2: Character picker ───────────────────────────────────────────────
 
 function CharacterPicker({ name, onSelect }) {
-  const [selected, setSelected] = useState(null);
   const [showMore, setShowMore] = useState(false);
 
   const initialCharacters = CHARACTERS.slice(0, 7);
@@ -141,8 +149,8 @@ function CharacterPicker({ name, onSelect }) {
         {charactersToShow.map((char) => (
           <button
             key={char.id}
-            className={`ob-character-card${selected === char.id ? ' ob-character-card--selected' : ''}`}
-            onClick={() => setSelected(char.id)}
+            className="ob-character-card"
+            onClick={() => onSelect(char.id)}
           >
             <span className="ob-character-emoji">{char.emoji}</span>
             <span className="ob-character-name">{char.name}</span>
@@ -158,14 +166,6 @@ function CharacterPicker({ name, onSelect }) {
           </button>
         )}
       </div>
-
-      <button
-        className={`ob-next-btn${selected !== null ? ' ob-next-btn--ready' : ''}`}
-        onClick={() => selected !== null && onSelect(selected)}
-        disabled={selected === null}
-      >
-        Next →
-      </button>
     </div>
   );
 }
@@ -234,12 +234,18 @@ function WordSourcePicker({ onGenerate, onManual }) {
 
 // ── Step 5a: Generated word preview ───────────────────────────────────────
 
-function GeneratedWords({ yearGroup, onConfirm }) {
+export function GeneratedWords({
+  yearGroup,
+  onConfirm,
+  initialDyslexiaMode = false,
+  showSupportToggle   = true,
+  confirmLabel        = "Let's Play! ▶",
+}) {
   const [count,        setCount]        = useState(10);
-  const [extraSupport, setExtraSupport] = useState(false);
+  const [extraSupport, setExtraSupport] = useState(initialDyslexiaMode);
   // Pre-fetch 20 so the 10/20 toggle is instant; re-run on mode or shuffle change
   const [result, setResult] = useState(() =>
-    selectWords({ yearGroup, count: 20, dyslexiaMode: false })
+    selectWords({ yearGroup, count: 20, dyslexiaMode: initialDyslexiaMode })
   );
 
   const words       = result.words.slice(0, count);
@@ -280,20 +286,22 @@ function GeneratedWords({ yearGroup, onConfirm }) {
       </div>
 
       {/* Extra Support Mode */}
-      <label className="ob-support-toggle">
-        <div className="ob-support-switch">
-          <input
-            type="checkbox"
-            checked={extraSupport}
-            onChange={(e) => handleExtraSupportToggle(e.target.checked)}
-          />
-          <span className="ob-support-slider" />
-        </div>
-        <div className="ob-support-text">
-          <span className="ob-support-name">⭐ Extra Support Mode</span>
-          <span className="ob-support-hint">Support your learning journey</span>
-        </div>
-      </label>
+      {showSupportToggle && (
+        <label className="ob-support-toggle">
+          <div className="ob-support-switch">
+            <input
+              type="checkbox"
+              checked={extraSupport}
+              onChange={(e) => handleExtraSupportToggle(e.target.checked)}
+            />
+            <span className="ob-support-slider" />
+          </div>
+          <div className="ob-support-text">
+            <span className="ob-support-name">⭐ Extra Support Mode</span>
+            <span className="ob-support-hint">Support your learning journey</span>
+          </div>
+        </label>
+      )}
 
       <div className="ob-word-grid">
         {words.map((w, i) => {
@@ -316,7 +324,7 @@ function GeneratedWords({ yearGroup, onConfirm }) {
           className="ob-play-btn"
           onClick={() => onConfirm({ words, wordObjects, dyslexiaMode: extraSupport, sourceMode: 'generated' })}
         >
-          Let's Play! ▶
+          {confirmLabel}
         </button>
       </div>
     </div>
@@ -352,6 +360,20 @@ function OnboardingFlow({ onComplete, initialName = '', initialCharacter = null,
 
   return (
     <div className="ob-wrap">
+      <div className="ob-stars" aria-hidden="true">
+        {STARS.map((s) => (
+          <span
+            key={s.id}
+            className={`ob-star${s.dim ? ' ob-star--dim' : ''}`}
+            style={{
+              left:           `${s.left}%`,
+              top:            `${s.top}%`,
+              fontSize:       `${s.size}px`,
+              animationDelay: `${s.delay}s`,
+            }}
+          >★</span>
+        ))}
+      </div>
       <div className="ob-card">
         {step === 'name'     && <NameInput onSubmit={handleName} />}
         {step === 'character' && <CharacterPicker name={name} onSelect={handleCharacter} />}

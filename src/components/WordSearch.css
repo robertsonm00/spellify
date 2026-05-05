@@ -87,7 +87,7 @@
   padding: 0.75rem 1rem 0.75rem;
   overflow: hidden;
   min-height: 0;
-  align-items: flex-start;
+  align-items: stretch;
 }
 
 /* ── Grid wrapper — centres the grid and absorbs remaining space ── */
@@ -197,6 +197,9 @@
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
+  align-self: stretch;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .ws-word {

@@ -79,8 +79,9 @@
   gap: 1rem;
   padding: 1rem;
   flex: 1;
-  align-items: flex-start;
-  overflow: auto;
+  align-items: stretch;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* ── Word list sidebar ── */
@@ -88,60 +89,75 @@
 .cw-wordlist {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.5rem;
   flex-shrink: 0;
-  width: 130px;
+  width: 160px;
+  align-self: stretch;
+  min-height: 0;
 }
 
 .cw-wordlist-title {
   font-family: 'Press Start 2P', monospace;
   font-size: 0.5rem;
-  color: #aaa;
+  color: #888;
   letter-spacing: 0.08em;
-  margin: 0 0 0.25rem;
+  margin: 0;
   text-transform: uppercase;
 }
 
-.cw-word-chip {
+.cw-word-rows {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.cw-word-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.3rem;
-  padding: 0.4rem 0.6rem;
-  border: 2.5px solid transparent;
-  border-radius: 8px;
-  cursor: pointer;
+  gap: 0.45rem;
+  padding: 0.35rem 0.6rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 999px;
+  background: #fff;
   font-family: 'Nunito', sans-serif;
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   font-weight: 800;
-  text-align: left;
-  transition: transform 0.08s, box-shadow 0.08s;
+  color: #1a1a2e;
   width: 100%;
+  user-select: none;
+  transition: background 0.1s, border-color 0.1s;
 }
-.cw-word-chip:hover { transform: translateX(2px); }
 
-.cw-word-chip--done {
-  opacity: 0.55;
+/* Match the wordsearch success state */
+.cw-word-row--done {
+  opacity: 0.45;
+  background: #f0fdf4;
+  border-color: #86efac;
+  color: #166534;
+}
+.cw-word-row--done .cw-word-text {
   text-decoration: line-through;
 }
-.cw-word-chip--done.cw-word-chip--active {
-  opacity: 1;
-  text-decoration: none;
+
+.cw-word-check {
+  font-size: 0.7rem;
+  color: #16a34a;
+  font-weight: 900;
+  flex-shrink: 0;
 }
 
-.cw-word-chip-text {
-  text-transform: capitalize;
+.cw-word-text {
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  letter-spacing: 0.03em;
-}
-
-.cw-word-chip-check {
-  font-size: 0.75rem;
-  font-weight: 900;
-  flex-shrink: 0;
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
 }
 
 /* ── Grid area ── */
@@ -150,20 +166,22 @@
   flex: 1;
   display: flex;
   justify-content: center;
-  overflow: auto;
+  align-items: center;
+  min-width: 0;
+  min-height: 0;
 }
 
 .cw-grid {
   display: grid;
-  grid-template-columns: repeat(var(--cols), 40px);
-  grid-auto-rows: 40px;
+  grid-template-columns: repeat(var(--cols), 1fr);
+  grid-template-rows:    repeat(var(--rows), 1fr);
   gap: 3px;
-  background: #93c5fd;     /* light-blue dividers — no more black */
-  border: 4px solid #1a1a2e;
-  border-radius: 6px;
-  box-shadow: 6px 6px 0 #1a1a2e;
   user-select: none;
-  align-self: flex-start;
+  /* Fill the largest square-celled area that fits the grid container */
+  aspect-ratio: var(--cols) / var(--rows);
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
 }
 
 /* ── Cells ── */
@@ -175,17 +193,32 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  border: 1.5px solid #1a1a2e;
+  border-radius: 4px;
   transition: background 0.08s;
+  min-width: 0;
+  min-height: 0;
 }
 
+/* Dead squares: no border, no fill — let the page background show through */
 .cw-cell--black {
-  background: #4a6fa5;    /* blue-grey instead of black */
+  background: transparent;
+  border: none;
   cursor: default;
 }
 
 /* Highlight states */
 .cw-cell--in-word  { background: #fef9c3; }   /* pale yellow */
 .cw-cell--selected { background: #ffd93d; }   /* bright yellow */
+
+/* Outer stroke around every cell in the selected word — uses the same
+   bright yellow as the active cell. z-index keeps the stroke above
+   neighbouring cells so it isn't clipped at the grid gap. */
+.cw-cell--in-word,
+.cw-cell--selected {
+  box-shadow: 0 0 0 3px #ffd93d;
+  z-index: 2;
+}
 
 /* Feedback */
 .cw-cell--correct  { background: #bbf7d0; }   /* pale green */
@@ -200,7 +233,7 @@
   position: absolute;
   top: 2px;
   left: 3px;
-  font-size: 0.58rem;
+  font-size: clamp(0.5rem, 1.1vmin, 0.7rem);
   font-weight: 800;
   color: #444;
   line-height: 1;
@@ -210,13 +243,12 @@
 
 /* Letter */
 .cw-letter {
-  font-size: 1.1rem;
+  font-size: clamp(0.9rem, 3.6vmin, 1.6rem);
   font-weight: 900;
   font-family: 'Nunito', sans-serif;
   text-transform: uppercase;
   color: #1a1a2e;
   line-height: 1;
-  padding-top: 4px;
   pointer-events: none;
 }
 
@@ -416,11 +448,30 @@
 .cw-done-btn--secondary:hover  { transform: translate(2px,2px); box-shadow: 1px 1px 0 #ccc; }
 .cw-done-btn--secondary:active { transform: translate(3px,3px); box-shadow: none; }
 
-/* ── Error ── */
+/* ── Error & loading ── */
 
 .cw-error {
   text-align: center;
   color: #888;
-  margin: 3rem auto;
+  margin: 3rem auto 0.5rem;
   font-weight: 700;
+}
+
+.cw-error-detail {
+  text-align: center;
+  color: #b45309;
+  font-size: 0.85rem;
+  font-weight: 700;
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.cw-loading {
+  text-align: center;
+  color: #555;
+  margin: 3rem auto;
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: 'Nunito', sans-serif;
 }

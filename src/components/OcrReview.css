@@ -1,0 +1,340 @@
+/* ── OcrReview ──────────────────────────────────────────────────────────── */
+
+.ocr-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  font-family: 'Nunito', sans-serif;
+}
+
+/* ── Header ── */
+
+.ocr-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+}
+
+.ocr-header-icon {
+  font-size: 1.4rem;
+  line-height: 1.2;
+  flex-shrink: 0;
+}
+
+.ocr-header-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 900;
+  color: #1a1a2e;
+}
+
+.ocr-header-sub {
+  margin: 0.15rem 0 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #888;
+}
+
+/* ── Empty ── */
+
+.ocr-empty {
+  padding: 1rem 1.25rem;
+  background: #fffbeb;
+  border: 2.5px dashed #fcd34d;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.ocr-empty-msg {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #78350f;
+  line-height: 1.45;
+}
+
+.ocr-empty-add-btn {
+  align-self: stretch;
+  padding: 0.55rem 1rem;
+  background: #fff;
+  border: 2.5px dashed #a78bfa;
+  border-radius: 999px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #7c3aed;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.ocr-empty-add-btn:hover { background: #faf5ff; border-color: #7c3aed; }
+
+/* ── Chip area ── */
+
+.ocr-chip-area {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+  padding: 0.85rem;
+  background: #fafafa;
+  border: 2.5px dashed #e0e0e0;
+  border-radius: 14px;
+  min-height: 3rem;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+/* ── Chip ── */
+
+.ocr-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.32rem 0.45rem 0.32rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.88rem;
+  font-weight: 800;
+  border: 2.5px solid;
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+
+.ocr-chip:not(.ocr-chip--editing):not(.ocr-chip--adding):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Status colours */
+.ocr-chip--confident {
+  background: #f0fdf4;
+  border-color: #86efac;
+  color: #14532d;
+}
+.ocr-chip--needsReview {
+  background: #fffbeb;
+  border-color: #fcd34d;
+  color: #78350f;
+}
+.ocr-chip--rejected {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+  color: #6b7280;
+  opacity: 0.7;
+}
+
+/* Editing outline */
+.ocr-chip--editing {
+  outline: 2.5px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* Add chip */
+.ocr-chip--adding {
+  background: #f0f9ff;
+  border-color: #7dd3fc;
+  border-style: dashed;
+  color: #0369a1;
+}
+
+/* Status icon */
+.ocr-chip-status {
+  font-size: 0.78rem;
+  line-height: 1;
+  font-weight: 900;
+  min-width: 0.9rem;
+  text-align: center;
+}
+
+/* Editable text */
+.ocr-chip-text {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  line-height: 1.3;
+}
+.ocr-chip-text:hover {
+  text-decoration: underline dotted 2px;
+  text-underline-offset: 2px;
+}
+
+/* Inline input */
+.ocr-chip-input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
+  padding: 0;
+  min-width: 2ch;
+  max-width: 16ch;
+  line-height: 1.3;
+}
+.ocr-chip-input::placeholder { color: inherit; opacity: 0.5; }
+
+/* Delete (✕) button */
+.ocr-chip-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.09);
+  border: none;
+  border-radius: 50%;
+  font-size: 0.58rem;
+  line-height: 1;
+  color: inherit;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.1s, color 0.1s, transform 0.1s;
+}
+.ocr-chip-delete:hover {
+  background: rgba(192, 39, 39, 0.18);
+  color: #b91c1c;
+  transform: scale(1.2);
+}
+
+/* ── Suggestion bubble ── */
+
+.ocr-chip-suggest {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  white-space: nowrap;
+  padding: 0.3rem 0.55rem;
+  background: #fff;
+  border: 2px solid #93c5fd;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #1e3a8a;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  z-index: 1;
+}
+
+.ocr-chip-suggest-yes {
+  background: #eff6ff;
+  border: 1.5px solid #93c5fd;
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 800;
+  color: #1d4ed8;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.ocr-chip-suggest-yes:hover { background: #dbeafe; }
+
+.ocr-chip-suggest-no {
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0.1rem 0.25rem;
+  text-decoration: underline dotted;
+}
+.ocr-chip-suggest-no:hover { color: #1f2937; }
+
+/* ── + Add word pill ── */
+
+.ocr-add-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.32rem 0.9rem;
+  background: #fff;
+  border: 2.5px dashed #a78bfa;
+  border-radius: 999px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #7c3aed;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, transform 0.08s;
+}
+.ocr-add-btn:hover {
+  background: #faf5ff;
+  border-color: #7c3aed;
+  transform: translateY(-1px);
+}
+
+/* ── Stats line ── */
+
+.ocr-count {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #555;
+  text-align: center;
+}
+
+.ocr-count-warn {
+  color: #c05700;
+}
+
+/* ── Action bar ── */
+
+.ocr-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 0.25rem;
+}
+
+.ocr-back-btn {
+  background: none;
+  border: none;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #aaa;
+  cursor: pointer;
+  padding: 0.25rem 0;
+  transition: color 0.12s;
+}
+.ocr-back-btn:hover { color: #555; }
+
+.ocr-confirm-btn {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.55rem;
+  padding: 0.75rem 1.25rem;
+  border: 3px solid #1a1a2e;
+  border-radius: 4px;
+  background: #6bcb77;
+  color: #1a1a2e;
+  cursor: pointer;
+  box-shadow: 4px 4px 0 #1a1a2e;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  transition: transform 0.06s, box-shadow 0.06s;
+}
+.ocr-confirm-btn:hover  { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #1a1a2e; }
+.ocr-confirm-btn:active { transform: translate(4px, 4px); box-shadow: none; }
+
+.ocr-confirm-btn--disabled {
+  background: #d4d4d4;
+  border-color: #bbb;
+  box-shadow: 4px 4px 0 #bbb;
+  color: #999;
+  cursor: default;
+}
+.ocr-confirm-btn--disabled:hover {
+  transform: none;
+  box-shadow: 4px 4px 0 #bbb;
+}

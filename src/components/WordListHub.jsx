@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import './WordListHub.css';
 import Settings from './Settings';
+import { GeneratedWords } from './OnboardingFlow';
 import { scoreWord, scoreToBand } from '../utils/difficultyEngine';
 
 const ACTIVITIES = [
@@ -8,6 +9,7 @@ const ACTIVITIES = [
   { id: 'quiz',       name: 'Spelling Quiz',  icon: '🎤', timeEstimate: '3 mins',  color: '#6bcb77', dark: '#1e7e34' },
   { id: 'hangman',    name: 'Hangman',        icon: '🎯', timeEstimate: '5 mins',  color: '#ff9f43', dark: '#c05700' },
   { id: 'crossword',  name: 'Crossword',      icon: '✏️', timeEstimate: '10 mins', color: '#c77dff', dark: '#6b21a8' },
+  { id: 'writeit',    name: 'Write It',       icon: '✏️', timeEstimate: '10 mins', color: '#a855f7', dark: '#581c87' },
 ];
 
 const STATUS_LABEL = {
@@ -37,6 +39,8 @@ function MasteryDot({ rate }) {
 function WordListHub({
   words,
   userAge = 8,
+  year = null,
+  dyslexiaMode = false,
   difficulty = 'medium',
   activityStatuses,
   mastery = {},
@@ -50,7 +54,8 @@ function WordListHub({
   onClearProgress,
   onBackToWelcome,
 }) {
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsOpen,    setSettingsOpen]    = useState(false);
+  const [changeWordsOpen, setChangeWordsOpen] = useState(false);
 
   const completedCount = Object.values(activityStatuses).filter((s) => s === 'completed').length;
   const progressPct    = Math.round((completedCount / ACTIVITIES.length) * 100);
@@ -92,7 +97,7 @@ function WordListHub({
       <section className="hub-words">
         <div className="hub-section-header">
           <span className="hub-section-label">YOUR WORDS ({words.length})</span>
-          <button className="hub-change-btn" onClick={onChangeWords}>Change Words</button>
+          <button className="hub-change-btn" onClick={() => setChangeWordsOpen(true)}>Change Words</button>
         </div>
         <div className="hub-chips">
           {words.map((w, i) => {
@@ -189,12 +194,43 @@ function WordListHub({
       {settingsOpen && (
         <Settings
           userAge={userAge}
+          dyslexiaMode={dyslexiaMode}
           onUpdate={onSettingsUpdate}
-          onChangeWords={() => { setSettingsOpen(false); onChangeWords(); }}
+          onChangeWords={() => { setSettingsOpen(false); setChangeWordsOpen(true); }}
           onClearProgress={() => { onClearProgress(); }}
           onClose={() => setSettingsOpen(false)}
         />
       )}
+
+      {/* ── Change Words modal ── */}
+      {changeWordsOpen && year !== null && (
+        <ChangeWordsModal
+          yearGroup={year}
+          dyslexiaMode={dyslexiaMode}
+          onConfirm={(payload) => {
+            onChangeWords(payload);
+            setChangeWordsOpen(false);
+          }}
+          onClose={() => setChangeWordsOpen(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+function ChangeWordsModal({ yearGroup, dyslexiaMode, onConfirm, onClose }) {
+  return (
+    <div className="hub-change-overlay" onClick={onClose}>
+      <div className="hub-change-modal" onClick={(e) => e.stopPropagation()}>
+        <button className="hub-change-close" onClick={onClose} aria-label="Close">✕</button>
+        <GeneratedWords
+          yearGroup={yearGroup}
+          initialDyslexiaMode={dyslexiaMode}
+          showSupportToggle={false}
+          confirmLabel="Use these words ▶"
+          onConfirm={onConfirm}
+        />
+      </div>
     </div>
   );
 }

@@ -21,60 +21,66 @@ function getMaxHints(userAge) {
 
 // ── Definition lookup ────────────────────────────────────────────────────────
 
-async function fetchFromApi(word) {
+// Walk the API meanings in noun → verb → other order, returning the first
+// safe primary-sense definition. This biases toward concrete, kid-friendly
+// senses (e.g. "mouse" = animal, not "a shy person").
+function pickKidFriendly(meanings) {
+  const PART_ORDER = { noun: 0, verb: 1 };
+  const ordered = [...meanings].sort((a, b) =>
+    (PART_ORDER[a.partOfSpeech] ?? 2) - (PART_ORDER[b.partOfSpeech] ?? 2)
+  );
+  for (const meaning of ordered) {
+    for (const def of (meaning.definitions || [])) {
+      const text = def.definition;
+      if (!text || text.startsWith('(') || text.length < 12) continue;
+      if (!isSafeDefinition(text)) continue;
+      return text;
+    }
+  }
+  return null;
+}
+
+// Returns:
+//   { found: true,  definition: 'text' | null }   — word exists in the dictionary
+//   { found: false }                              — confirmed not a word (404)
+//   { found: 'unknown' }                          — network failed; treat permissively
+async function lookupApi(word) {
   try {
     const res = await fetch(
       `https://api.dictionaryapi.dev/api/v2/entries/en/${word.toLowerCase()}`
     );
-    if (!res.ok) return null;
+    if (res.status === 404) return { found: false };
+    if (!res.ok)            return { found: 'unknown' };
     const data = await res.json();
-
-    // Flatten all definitions across all meanings, then:
-    // 1. Strip definitions that start with bracketed labels like "(archaic)"
-    // 2. Require a minimum length (avoids single-word "definitions" like "Cannabis.")
-    // 3. Run every candidate through the content-safety filter — rejects drug
-    //    references, slurs, explicit content and editorially-marked offensive defs
-    // 4. Return the shortest remaining safe definition (most likely to be primary)
-    const defs = data[0]?.meanings?.flatMap(m =>
-      m.definitions.map(d => d.definition)
-    ) ?? [];
-
-    const safe = defs
-      .filter(d => d && !d.startsWith('(') && d.length > 12)
-      .filter(isSafeDefinition)
-      .sort((a, b) => a.length - b.length);
-
-    return safe[0] ?? null;
+    if (!Array.isArray(data) || !data[0]?.meanings?.length) return { found: false };
+    return { found: true, definition: pickKidFriendly(data[0].meanings) };
   } catch {
-    return null;
+    return { found: 'unknown' };
   }
 }
 
-async function fetchDefinition(word) {
+// Validates a single word and resolves a kid-friendly definition.
+//   - Local DEFINITIONS map always wins (curated, safe by construction).
+//   - Otherwise the dictionary API decides validity.
+//   - Network/server failures keep the word but leave the clue blank.
+async function validateWord(word) {
   const key = word.toLowerCase();
-  if (DEFINITIONS[key]) return DEFINITIONS[key];
-  const api = await fetchFromApi(key);
-  return api ?? 'Can you spell this word?';
+  if (DEFINITIONS[key]) return { word, valid: true, definition: DEFINITIONS[key] };
+
+  const api = await lookupApi(key);
+  if (api.found === false)   return { word, valid: false };
+  if (api.found === 'unknown') return { word, valid: true,  definition: null };
+  return { word, valid: true, definition: api.definition };
 }
 
 function ageAwareDefinition(def, userAge) {
+  if (!def) return def;
   if (userAge < 7  && def.length > 70)  return def.slice(0, 67) + '…';
   if (userAge < 10 && def.length > 130) return def.slice(0, 127) + '…';
   return def;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-
-const CHIP_COLORS = [
-  { bg: '#fff0f0', border: '#ff6b6b' },
-  { bg: '#fff8e1', border: '#ffd93d' },
-  { bg: '#f0fff4', border: '#6bcb77' },
-  { bg: '#e8f4ff', border: '#4d96ff' },
-  { bg: '#f5f0ff', border: '#c77dff' },
-  { bg: '#fff4ec', border: '#ff9f43' },
-  { bg: '#f0ffff', border: '#00d2d3' },
-  { bg: '#fff0f8', border: '#ff6b9d' },
-];
 
 function cellKey(row, col) { return `${row},${col}`; }
 
@@ -105,7 +111,9 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
   const maxWords = getMaxWords(userAge, difficulty);
   const maxHints = getMaxHints(userAge);
 
-  const [layout]         = useState(() => generateCrossword(words, maxWords));
+  // Validation runs once per word list — null until done.
+  const [validation,     setValidation]     = useState(null);
+  const [layout,         setLayout]         = useState(null);
   const [definitions,    setDefinitions]    = useState(new Map());
   const [filled,         setFilled]         = useState(new Map());
   const [selectedCell,   setSelectedCell]   = useState(null);
@@ -117,13 +125,36 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
   const [wordsVisible,   setWordsVisible]   = useState(true);
   const containerRef     = useRef(null);
 
+  // Validate every word against the dictionary, then build the crossword
+  // from the survivors. Words confirmed-missing (404) are excluded;
+  // network failures stay in (permissive) but with no definition.
   useEffect(() => {
-    if (!layout) return;
-    layout.placedWords.forEach(async (pw) => {
-      const def = await fetchDefinition(pw.word);
-      setDefinitions(prev => new Map(prev).set(pw.word, ageAwareDefinition(def, userAge)));
-    });
-  }, [layout, userAge]);
+    let cancelled = false;
+    setValidation(null);
+    setLayout(null);
+    (async () => {
+      const results = await Promise.all(words.map(validateWord));
+      if (cancelled) return;
+      const valid     = results.filter(r => r.valid);
+      const validList = valid.map(r => r.word);
+      const skipped   = results.filter(r => !r.valid).map(r => r.word);
+
+      const built = generateCrossword(validList, maxWords);
+      const defs  = new Map();
+      if (built) {
+        for (const pw of built.placedWords) {
+          const match = valid.find(r => r.word.toLowerCase() === pw.word.toLowerCase());
+          if (match?.definition) {
+            defs.set(pw.word, ageAwareDefinition(match.definition, userAge));
+          }
+        }
+      }
+      setValidation({ skipped });
+      setLayout(built);
+      setDefinitions(defs);
+    })();
+    return () => { cancelled = true; };
+  }, [words, maxWords, userAge]);
 
   useEffect(() => { containerRef.current?.focus(); }, [layout]);
 
@@ -260,13 +291,30 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
     }
   };
 
-  // ── No layout ─────────────────────────────────────────────────────────────
+  // ── Loading & no-layout states ────────────────────────────────────────────
 
-  if (!layout) {
+  if (validation === null) {
     return (
       <div className="cw-wrap">
         <button className="cw-back" onClick={onExit}>← Hub</button>
-        <p className="cw-error">Need at least 2 words to build a crossword.</p>
+        <p className="cw-loading">📖 Checking the dictionary…</p>
+      </div>
+    );
+  }
+
+  if (!layout) {
+    const skipped = validation?.skipped ?? [];
+    return (
+      <div className="cw-wrap">
+        <button className="cw-back" onClick={onExit}>← Hub</button>
+        <p className="cw-error">
+          Couldn't build a crossword — need at least 2 dictionary words.
+        </p>
+        {skipped.length > 0 && (
+          <p className="cw-error-detail">
+            Skipped: {skipped.join(', ')}
+          </p>
+        )}
       </div>
     );
   }
@@ -361,41 +409,30 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
         {/* Word list sidebar */}
         {wordsVisible && (
           <aside className="cw-wordlist">
-            <p className="cw-wordlist-title">Words</p>
-            {cwWords.map((pw, i) => {
-              const done   = isWordComplete(pw, filled);
-              const active = selectedWord?.id === pw.id;
-              const { bg, border } = CHIP_COLORS[i % CHIP_COLORS.length];
-              const display = wordsVisible
-                ? pw.word.toLowerCase()
-                : '• '.repeat(pw.word.length).trim();
-              return (
-                <button
-                  key={pw.id}
-                  className={`cw-word-chip${done ? ' cw-word-chip--done' : ''}${active ? ' cw-word-chip--active' : ''}`}
-                  style={{
-                    background:  active ? border : bg,
-                    borderColor: border,
-                    color:       active ? '#fff' : '#1a1a2e',
-                  }}
-                  onClick={() => {
-                    const first = wordCells(pw.word, pw.row, pw.col, pw.direction)[0];
-                    setSelectedCell(first);
-                    setSelDir(pw.direction);
-                    containerRef.current?.focus();
-                  }}
-                >
-                  <span className="cw-word-chip-text">{display}</span>
-                  {done && <span className="cw-word-chip-check">✓</span>}
-                </button>
-              );
-            })}
+            <p className="cw-wordlist-title">Word list</p>
+            <ul className="cw-word-rows">
+              {cwWords.map((pw) => {
+                const done = isWordComplete(pw, filled);
+                return (
+                  <li
+                    key={pw.id}
+                    className={`cw-word-row${done ? ' cw-word-row--done' : ''}`}
+                  >
+                    {done && <span className="cw-word-check" aria-hidden="true">✓</span>}
+                    <span className="cw-word-text">{pw.word.toLowerCase()}</span>
+                  </li>
+                );
+              })}
+            </ul>
           </aside>
         )}
 
         {/* Grid */}
         <div className="cw-grid-area">
-          <div className="cw-grid" style={{ '--cols': layout.cols }}>
+          <div
+            className="cw-grid"
+            style={{ '--cols': layout.cols, '--rows': layout.rows }}
+          >
             {Array.from({ length: layout.rows }, (_, r) =>
               Array.from({ length: layout.cols }, (_, c) => {
                 const k    = cellKey(r, c);
@@ -439,7 +476,7 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
           <>
             <div className="cw-clue-bar-meta">
               <span className="cw-clue-bar-num">
-                {selectedWord.number} {selectedWord.direction === 'across' ? '→' : '↓'}
+                {selectedWord.direction === 'across' ? '→' : '↓'}
               </span>
               <span className="cw-clue-bar-letters">{selectedWord.word.length} letters</span>
               {wordDone && <span className="cw-clue-bar-done">✓ Done!</span>}

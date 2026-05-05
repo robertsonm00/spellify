@@ -17,6 +17,9 @@ body.extra-support .quiz-word-display,
 body.extra-support .hm-letter,
 body.extra-support .hm-display,
 body.extra-support .ws-cell,
+body.extra-support .cw-letter,
+body.extra-support .cw-word-text,
+body.extra-support .cw-clue-bar-text,
 body.extra-support .hub-chip,
 body.extra-support .ob-word-card,
 body.extra-support .ql-word {
@@ -34,6 +37,16 @@ body.extra-support .hm-letter {
 /* Slightly larger chips in the hub word list */
 body.extra-support .hub-chip {
   font-size: 1.05em;
+}
+
+/* Larger word pills + clue text in the crossword */
+body.extra-support .cw-word-row {
+  font-size: 1.05em;
+  padding-block: 0.45rem;
+}
+body.extra-support .cw-clue-bar-text {
+  font-size: 1.1em;
+  line-height: 1.5;
 }
 
 /* Typed input in the quiz */

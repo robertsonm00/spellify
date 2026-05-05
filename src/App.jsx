@@ -7,6 +7,7 @@ import WordSearch     from './components/WordSearch';
 import SpellingQuiz   from './components/SpellingQuiz';
 import Hangman        from './components/Hangman';
 import Crossword      from './components/Crossword';
+import WriteIt        from './components/WriteIt';
 import { loadSession, saveSession, createSession, INITIAL_STATUSES, updateMastery, rebuildReviewQueue } from './data/spelling/sessionSchema';
 
 function hasProgress(activityStatuses) {
@@ -76,10 +77,20 @@ function App() {
 
   const handleExit = () => setActiveActivity(null);
 
-  const handleChangeWords = () => {
-    setSession((prev) => prev ? { ...prev, words: [], activityStatuses: INITIAL_STATUSES } : null);
+  const handleChangeWords = ({ words, wordObjects = [], dyslexiaMode, sourceMode = 'generated' } = {}) => {
+    setSession((prev) => {
+      if (!prev) return prev;
+      const next = {
+        ...prev,
+        words,
+        wordObjects,
+        sourceMode,
+        dyslexiaMode: dyslexiaMode ?? prev.dyslexiaMode ?? false,
+        activityStatuses: { ...INITIAL_STATUSES },
+      };
+      return rebuildReviewQueue(next);
+    });
     setActiveActivity(null);
-    setScreen('onboarding');
   };
 
   const handleSettingsUpdate = (updates) => setSession((prev) => ({ ...prev, ...updates }));
@@ -148,6 +159,16 @@ function App() {
           onExit={handleExit}
         />
       );
+    } else if (id === 'writeit') {
+      Activity = (
+        <WriteIt
+          words={words}
+          childName={session.childName || ''}
+          dyslexiaMode={dyslexiaMode}
+          onComplete={(results) => handleComplete('writeit', results || [])}
+          onExit={handleExit}
+        />
+      );
     } else if (id === 'review') {
       Activity = (
         <SpellingQuiz
@@ -178,6 +199,8 @@ function App() {
         <WordListHub
           words={session.words}
           userAge={session.age || 8}
+          year={session.year ?? null}
+          dyslexiaMode={session.dyslexiaMode || false}
           difficulty={session.difficulty || 'medium'}
           activityStatuses={session.activityStatuses}
           mastery={session.mastery || {}}

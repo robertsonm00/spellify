@@ -18,6 +18,11 @@
   text-align: center;
 }
 
+/* Crop step needs a wider canvas */
+.fu-wrap--crop {
+  max-width: 680px;
+}
+
 /* ── Drop zone ── */
 
 .fu-dropzone {
@@ -132,6 +137,15 @@
   color: #4c1d95;
 }
 
+.fu-processing-sub {
+  margin: 0.15rem 0 0.25rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #888;
+  text-align: center;
+  max-width: 280px;
+}
+
 .fu-progress-track {
   width: 100%;
   max-width: 300px;
@@ -194,105 +208,4 @@
 .fu-retry-btn:hover  { transform: translate(1px, 1px); box-shadow: 2px 2px 0 #1a1a2e; }
 .fu-retry-btn:active { transform: translate(3px, 3px); box-shadow: none; }
 
-/* ── Preview state ── */
-
-.fu-preview-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.fu-preview-title {
-  margin: 0;
-  font-size: 0.88rem;
-  font-weight: 700;
-  color: #555;
-}
-.fu-preview-title strong { color: #1a1a2e; }
-
-.fu-preview-actions {
-  display: flex;
-  gap: 0.4rem;
-}
-
-.fu-sel-btn {
-  font-family: 'Nunito', sans-serif;
-  font-size: 0.75rem;
-  font-weight: 800;
-  padding: 0.25rem 0.65rem;
-  border: 2px solid #ddd;
-  border-radius: 6px;
-  background: #fff;
-  color: #555;
-  cursor: pointer;
-}
-.fu-sel-btn:hover { background: #f5f5f5; }
-
-/* ── Word grid ── */
-
-.fu-word-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  width: 100%;
-  max-height: 260px;
-  overflow-y: auto;
-  padding: 0.25rem 0;
-}
-
-.fu-word-chip {
-  font-family: 'Nunito', sans-serif;
-  font-size: 0.82rem;
-  font-weight: 800;
-  padding: 0.35rem 0.75rem;
-  border-radius: 999px;
-  border: 2px solid var(--chip-border, #ddd);
-  background: var(--chip-bg, #f5f5f5);
-  color: var(--chip-text, #aaa);
-  cursor: pointer;
-  transition: transform 0.08s, opacity 0.1s;
-  white-space: nowrap;
-  text-transform: capitalize;
-}
-.fu-word-chip:not(:disabled):hover { transform: scale(1.05); }
-.fu-word-chip--active { font-weight: 900; }
-.fu-word-chip:disabled { opacity: 0.4; cursor: default; }
-
-/* ── Confirm row ── */
-
-.fu-confirm-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  gap: 0.75rem;
-  margin-top: 0.25rem;
-}
-
-.fu-confirm-btn {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 0.55rem;
-  padding: 0.75rem 1.25rem;
-  border: 3px solid #1a1a2e;
-  border-radius: 4px;
-  background: #6bcb77;
-  color: #1a1a2e;
-  cursor: pointer;
-  box-shadow: 4px 4px 0 #1a1a2e;
-  transition: transform 0.06s, box-shadow 0.06s;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-.fu-confirm-btn:hover  { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #1a1a2e; }
-.fu-confirm-btn:active { transform: translate(4px, 4px); box-shadow: none; }
-.fu-confirm-btn--disabled {
-  background: #d4d4d4;
-  border-color: #bbb;
-  box-shadow: 4px 4px 0 #bbb;
-  color: #999;
-  cursor: default;
-}
-.fu-confirm-btn--disabled:hover { transform: none; box-shadow: 4px 4px 0 #bbb; }
+/* Preview state is handled by WordReview component */

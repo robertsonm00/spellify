@@ -1,0 +1,561 @@
+/* ── Wrap ────────────────────────────────────────────────────────────────── */
+
+.wi-wrap {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 56px);
+  background: linear-gradient(160deg, #f5f0ff 0%, #fdf4ff 100%);
+  font-family: 'Nunito', sans-serif;
+  padding: 0 0 1.5rem;
+}
+
+/* ── Top bar ──────────────────────────────────────────────────────────────── */
+
+.wi-topbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  background: #fff;
+  border-bottom: 3px solid #1a1a2e;
+  box-shadow: 0 3px 0 #1a1a2e;
+}
+
+.wi-back,
+.wi-print-btn,
+.wi-done-btn {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 800;
+  padding: 0.4rem 0.85rem;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  color: #555;
+  white-space: nowrap;
+  transition: background 0.1s, border-color 0.1s;
+}
+.wi-back:hover { background: #f5f5f5; }
+
+.wi-print-btn {
+  border-color: #a855f7;
+  color: #581c87;
+  background: #f5f0ff;
+}
+.wi-print-btn:hover { background: #ede4ff; }
+
+.wi-done-btn {
+  border-color: #6bcb77;
+  background: #ecfdf5;
+  color: #166534;
+}
+.wi-done-btn:hover { background: #d1fae5; }
+
+.wi-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.95rem;
+  color: #1a1a2e;
+  margin: 0;
+  flex: 1;
+  text-align: center;
+}
+
+.wi-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ── Method banner ────────────────────────────────────────────────────────── */
+
+.wi-steps {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.85rem 1rem;
+  flex-wrap: wrap;
+}
+
+.wi-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  background: #fff;
+  border: 2px solid #c4a8f5;
+  border-radius: 12px;
+  padding: 0.5rem 0.85rem;
+  min-width: 64px;
+  box-shadow: 2px 2px 0 #a855f7;
+}
+
+.wi-step-icon {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.wi-step-label {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #581c87;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ── Table layout ─────────────────────────────────────────────────────────── */
+
+.wi-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0 1rem;
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.wi-thead,
+.wi-row {
+  display: grid;
+  grid-template-columns: minmax(200px, 1.4fr) repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+  align-items: stretch;
+}
+
+.wi-thead {
+  margin-top: 0.25rem;
+}
+
+.wi-th {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.55rem;
+  text-transform: uppercase;
+  color: #6b21a8;
+  letter-spacing: 0.06em;
+  padding: 0.4rem 0.6rem;
+  text-align: center;
+}
+
+.wi-th--word { text-align: left; }
+
+.wi-row {
+  position: relative;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1.5px solid #e0d5f5;
+  border-radius: 12px;
+  padding: 0.5rem;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.wi-row--done {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+
+.wi-row--celebrate { animation: rowGlow 1.5s ease-out; }
+
+@keyframes rowGlow {
+  0%, 100% { box-shadow: none; }
+  30%      { box-shadow: 0 0 0 4px #fef08a, 0 0 22px #fde047; }
+}
+
+.wi-row-burst {
+  position: absolute;
+  top: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1.05rem;
+  letter-spacing: 0.5em;
+  pointer-events: none;
+  animation: burst 1.5s ease-out forwards;
+  white-space: nowrap;
+}
+
+@keyframes burst {
+  0%   { opacity: 0; transform: translate(-50%, 6px) scale(0.6); }
+  20%  { opacity: 1; transform: translate(-50%, -6px) scale(1.05); }
+  100% { opacity: 0; transform: translate(-50%, -34px) scale(1); }
+}
+
+/* ── Cells ────────────────────────────────────────────────────────────────── */
+
+.wi-cell {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 10px;
+  background: #fff;
+  border: 2px solid #ede4ff;
+  position: relative;
+  min-width: 0;
+}
+
+.wi-cell--word {
+  background: #faf5ff;
+  border-color: #d8b4fe;
+}
+
+.wi-cell--locked {
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+  opacity: 0.55;
+}
+
+.wi-cell--success {
+  background: #ecfdf5;
+  border-color: #86efac;
+  animation: cellBounce 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.wi-cell--retry {
+  background: #fffbeb;
+  border-color: #fbbf24;
+}
+
+@keyframes cellBounce {
+  0%   { transform: scale(0.92); }
+  60%  { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* ── Word display ─────────────────────────────────────────────────────────── */
+
+.wi-word-display {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.wi-speaker {
+  background: #fff;
+  border: 2px solid #c4a8f5;
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1rem;
+  flex-shrink: 0;
+  transition: transform 0.1s, background 0.1s;
+}
+.wi-speaker:hover { background: #f5f0ff; transform: scale(1.05); }
+.wi-speaker:active { transform: scale(0.95); }
+
+.wi-word-text {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #1a1a2e;
+  text-transform: lowercase;
+  letter-spacing: 0.03em;
+  font-family: 'Nunito', sans-serif;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+/* Cover the word on screen — DOM still holds the real text so print can
+   render it. Pseudo-element overlays the dots while the text is masked. */
+.wi-word-text--hidden {
+  position: relative;
+  color: transparent;
+  text-shadow: none;
+  user-select: none;
+}
+.wi-word-text--hidden::before {
+  content: '· · · · ·';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  color: #c4a8f5;
+  letter-spacing: 0.4em;
+}
+
+.wi-reveal-btn {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #6b21a8;
+  background: transparent;
+  border: 1.5px dashed #c4a8f5;
+  border-radius: 6px;
+  padding: 0.18rem 0.5rem;
+  cursor: pointer;
+  align-self: flex-start;
+}
+.wi-reveal-btn:hover { background: #f5f0ff; }
+
+/* ── Input ────────────────────────────────────────────────────────────────── */
+
+.wi-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.wi-input {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0.5rem 0.7rem;
+  font-family: 'Nunito', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  border: 2px solid #d8b4fe;
+  border-radius: 8px;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.1s, background 0.1s;
+}
+.wi-input:focus { border-color: #a855f7; background: #faf5ff; }
+
+.wi-input:disabled {
+  background: #f9fafb;
+  color: #9ca3af;
+  border-color: #e5e7eb;
+  cursor: not-allowed;
+}
+
+.wi-cell--success .wi-input {
+  border-color: #6bcb77;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.wi-cell--retry .wi-input {
+  border-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.wi-check-btn {
+  background: #a855f7;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 0.7rem;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.1s;
+}
+.wi-check-btn:hover { background: #9333ea; }
+
+.wi-success-badge {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 1rem;
+  pointer-events: none;
+  animation: successPop 0.5s ease;
+}
+
+@keyframes successPop {
+  0%   { transform: scale(0); opacity: 0; }
+  60%  { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* ── Helper / feedback ────────────────────────────────────────────────────── */
+
+.wi-feedback {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.wi-feedback--retry { color: #b45309; }
+
+.wi-helper {
+  background: #fef3c7;
+  border: 1.5px solid #f59e0b;
+  border-radius: 6px;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.75rem;
+  color: #92400e;
+  font-weight: 700;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.wi-helper-word {
+  font-size: 1rem;
+  color: #1a1a2e;
+  letter-spacing: 0.05em;
+}
+
+/* ── Full-list completion ─────────────────────────────────────────────────── */
+
+.wi-complete {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  background: rgba(26, 26, 46, 0.55);
+  z-index: 50;
+  pointer-events: none;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 1.1rem;
+  color: #fff;
+  text-align: center;
+  padding: 2rem;
+  text-shadow: 2px 2px 0 #1a1a2e;
+}
+
+.wi-complete-emoji {
+  font-size: 4rem;
+  animation: starSpin 1.5s ease-out;
+}
+
+@keyframes starSpin {
+  0%   { transform: rotate(0deg) scale(0); opacity: 0; }
+  100% { transform: rotate(360deg) scale(1); opacity: 1; }
+}
+
+/* ── Extra Support boost ──────────────────────────────────────────────────── */
+
+.wi-wrap--es .wi-word-text,
+.wi-wrap--es .wi-input,
+.wi-wrap--es .wi-helper-word {
+  font-family: 'OpenDyslexic', 'Arial Rounded MT Bold', Arial, sans-serif;
+  letter-spacing: 0.12em;
+}
+.wi-wrap--es .wi-word-text { font-size: 1.35rem; }
+.wi-wrap--es .wi-input     { font-size: 1.1rem; }
+
+/* ── Print-only header ────────────────────────────────────────────────────── */
+
+.wi-print-header { display: none; }
+
+/* ── Print stylesheet ─────────────────────────────────────────────────────── */
+
+@media print {
+  .wi-no-print { display: none !important; }
+
+  .wi-wrap {
+    background: #fff !important;
+    color: #000 !important;
+    min-height: auto;
+    padding: 0;
+  }
+
+  .wi-print-header {
+    display: block;
+    text-align: center;
+    border-bottom: 2px solid #000;
+    padding: 0.5rem 1rem 0.6rem;
+    margin-bottom: 1rem;
+  }
+
+  .wi-print-title {
+    font-family: 'Nunito', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #000;
+  }
+
+  .wi-print-name {
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-top: 0.25rem;
+  }
+
+  .wi-print-instructions {
+    margin: 0.4rem 0 0;
+    font-size: 0.85rem;
+    font-style: italic;
+    color: #000;
+  }
+
+  .wi-table {
+    max-width: 100%;
+    padding: 0 1rem;
+    gap: 0;
+  }
+
+  .wi-thead,
+  .wi-row {
+    grid-template-columns: minmax(120px, 1fr) repeat(3, 1fr);
+    gap: 0;
+    page-break-inside: avoid;
+  }
+
+  .wi-th {
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: #000;
+    border-bottom: 1.5px solid #000;
+    padding: 0.4rem 0.5rem;
+    background: #fff !important;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .wi-row {
+    background: #fff !important;
+    border: none;
+    padding: 0;
+  }
+
+  .wi-cell,
+  .wi-cell--success,
+  .wi-cell--retry {
+    background: #fff !important;
+    border: 1px solid #000;
+    border-top: none;
+    border-left: none;
+    border-radius: 0;
+    padding: 0.65rem 0.6rem;
+    min-height: 48px;
+    box-shadow: none !important;
+    color: #000 !important;
+    animation: none !important;
+  }
+  .wi-row .wi-cell:first-child { border-left: 1px solid #000; }
+
+  .wi-cell--word {
+    font-weight: 800;
+  }
+
+  /* Print: word column always shows the word, practice cells always blank */
+  .wi-word-text,
+  .wi-word-text--hidden {
+    color: #000 !important;
+    letter-spacing: 0.03em;
+    font-size: 1rem;
+    text-shadow: none !important;
+  }
+  .wi-word-text--hidden::before { content: none !important; }
+
+  .wi-input-wrap { display: block; }
+
+  .wi-input {
+    border: none !important;
+    background: transparent !important;
+    color: transparent !important;
+    width: 100%;
+    padding: 0;
+    height: 1.2rem;
+  }
+  .wi-input:disabled { color: transparent !important; }
+  .wi-input::placeholder { color: transparent !important; }
+
+  .wi-helper,
+  .wi-feedback,
+  .wi-row-burst { display: none !important; }
+}

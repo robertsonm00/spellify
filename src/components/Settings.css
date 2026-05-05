@@ -151,3 +151,83 @@
   background: #fff0f0;
   border-color: #ffaaaa;
 }
+
+/* ── Extra Support Mode toggle ─────────────────────────────────── */
+.settings-support-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  padding: 0.7rem 0.9rem;
+  border-radius: 10px;
+  border: 2px solid #e0e0e0;
+  background: #fafafa;
+  transition: border-color 0.15s, background 0.15s;
+  user-select: none;
+}
+
+.settings-support-toggle:has(input:checked) {
+  border-color: #667eea;
+  background: #f0f4ff;
+}
+
+.settings-support-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-support-name {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #1a1a2e;
+}
+
+.settings-support-hint {
+  font-size: 0.74rem;
+  color: #888;
+  line-height: 1.25;
+}
+
+.settings-support-switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 44px;
+  height: 24px;
+}
+
+.settings-support-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.settings-support-slider {
+  position: absolute;
+  inset: 0;
+  background: #ccc;
+  border-radius: 24px;
+  transition: background 0.2s;
+  cursor: pointer;
+}
+.settings-support-slider::before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.settings-support-switch input:checked + .settings-support-slider {
+  background: #667eea;
+}
+.settings-support-switch input:checked + .settings-support-slider::before {
+  transform: translateX(20px);
+}

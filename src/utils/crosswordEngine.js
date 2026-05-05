@@ -199,14 +199,15 @@ export function generateCrossword(inputWords, maxWords = 15) {
   // Assign clue numbers
   const numbered = assignClueNumbers(shifted);
 
-  // Compute grid dimensions (always 15x15)
-  const rows = Math.min(15, Math.max(...numbered.map(pw => 
+  // Tight grid dimensions — only as many rows/cols as the placed words occupy.
+  // Avoids dead-square padding around the active footprint.
+  const rows = Math.max(...numbered.map(pw =>
     pw.direction === 'down' ? pw.row + pw.word.length : pw.row + 1
-  )));
-  
-  const cols = Math.min(15, Math.max(...numbered.map(pw => 
-    pw.direction === 'across' ? pw.col + pw.word.length : pw.col + 1
-  )));
+  ));
 
-  return { placedWords: numbered, rows: 15, cols: 15 };
+  const cols = Math.max(...numbered.map(pw =>
+    pw.direction === 'across' ? pw.col + pw.word.length : pw.col + 1
+  ));
+
+  return { placedWords: numbered, rows, cols };
 }

@@ -10,6 +10,7 @@ export const INITIAL_STATUSES = {
   quiz:       'not-started',
   hangman:    'not-started',
   crossword:  'not-started',
+  writeit:    'not-started',
 };
 
 /**

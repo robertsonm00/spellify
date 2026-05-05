@@ -1,73 +1,112 @@
 import React, { useState, useRef, useCallback } from 'react';
 import './FileUpload.css';
 import { validateFile } from '../utils/fileValidator';
-import { ocrImageFile } from '../utils/ocrEngine';
+import { extractCandidatesFromImage, classifyTextWords } from '../utils/ocrExtract';
 import { extractWordsFromPDF } from '../utils/pdfExtractor';
+import { preprocessImageFile } from '../utils/imagePreprocess';
+import ImageCropper from './ImageCropper';
+import OcrReview   from './OcrReview';
 
 const IMAGE_TYPES = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif']);
 const TEXT_TYPES  = new Set(['txt', 'csv']);
-
-const WORD_COLORS = [
-  { bg: '#fff0f6', border: '#f9a8d4', text: '#9d174d' },
-  { bg: '#eff6ff', border: '#93c5fd', text: '#1e40af' },
-  { bg: '#f0fdf4', border: '#86efac', text: '#14532d' },
-  { bg: '#fffbeb', border: '#fcd34d', text: '#78350f' },
-  { bg: '#faf5ff', border: '#d8b4fe', text: '#6b21a8' },
-  { bg: '#fff7ed', border: '#fdba74', text: '#9a3412' },
-];
 
 function getExt(file) {
   const parts = file.name.split('.');
   return (parts[parts.length - 1] || '').toLowerCase();
 }
 
+// ── Canvas crop helper (runs after the crop UI confirms) ──────────────────
+function cropImageFile(file, { x, y, w, h }) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const sx = Math.round(x * img.naturalWidth);
+      const sy = Math.round(y * img.naturalHeight);
+      const sw = Math.max(Math.round(w * img.naturalWidth),  1);
+      const sh = Math.max(Math.round(h * img.naturalHeight), 1);
+      const canvas     = document.createElement('canvas');
+      canvas.width     = sw;
+      canvas.height    = sh;
+      canvas.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+      canvas.toBlob((blob) => {
+        if (!blob) { reject(new Error('toBlob returned null')); return; }
+        resolve(new File([blob], 'cropped.png', { type: 'image/png' }));
+      }, 'image/png');
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Image load failed')); };
+    img.src = url;
+  });
+}
+
+// Strip non-letter junk from a raw text-file dump and return word tokens.
+function tokenizeText(rawText, minLen = 2) {
+  return rawText
+    .replace(/[^a-zA-Z\s]/g, ' ')
+    .split(/\s+/)
+    .map((t) => t.toLowerCase())
+    .filter((t) => t.length >= minLen && t.length <= 20);
+}
+
 // ── states ─────────────────────────────────────────────────────────────────
 const IDLE        = 'idle';
 const VALIDATING  = 'validating';
-const PROCESSING  = 'processing';
+const CROPPING    = 'cropping';
+const PREPROCESS  = 'preprocess';   // “Scanning your list…”
+const PROCESSING  = 'processing';   // OCR / PDF
 const PREVIEW     = 'preview';
+const NO_WORDS    = 'noWords';
 const ERROR       = 'error';
 
 export default function FileUpload({ onWordsConfirmed, onCancel }) {
-  const [uiState,    setUiState]    = useState(IDLE);
-  const [progress,   setProgress]   = useState(0);
-  const [errorMsg,   setErrorMsg]   = useState('');
-  const [words,      setWords]      = useState([]);       // extracted words
-  const [selected,   setSelected]   = useState(new Set()); // which are checked
-  const [isDragging, setIsDragging] = useState(false);
-  const fileInputRef = useRef(null);
+  const [uiState,     setUiState]    = useState(IDLE);
+  const [progress,    setProgress]   = useState(0);
+  const [statusMsg,   setStatusMsg]  = useState('');
+  const [errorMsg,    setErrorMsg]   = useState('');
+  const [candidates,  setCandidates] = useState([]);
+  const [isDragging,  setIsDragging] = useState(false);
+  const [pendingFile, setPendingFile] = useState(null);
+  const fileInputRef   = useRef(null);
   const cameraInputRef = useRef(null);
 
-  // ── core process ─────────────────────────────────────────────────────────
-  const processFile = useCallback(async (file) => {
-    setUiState(VALIDATING);
-    setProgress(0);
-    setErrorMsg('');
-
-    // 1. Validate
-    const { valid, reason } = await validateFile(file);
-    if (!valid) {
-      setErrorMsg(reason);
-      setUiState(ERROR);
-      return;
-    }
-
-    setUiState(PROCESSING);
+  // ── Run OCR / PDF / text extraction ──────────────────────────────────────
+  const runExtraction = useCallback(async (file) => {
     const ext = getExt(file);
     let extracted = [];
 
     try {
       if (ext === 'pdf') {
-        extracted = await extractWordsFromPDF(file, setProgress);
+        setUiState(PROCESSING);
+        setStatusMsg('Reading your PDF…');
+        setProgress(0);
+        const words = await extractWordsFromPDF(file, setProgress);
+        extracted = classifyTextWords(words);
       } else if (IMAGE_TYPES.has(ext)) {
-        extracted = await ocrImageFile(file, setProgress);
+        // Phase 1: preprocess (resize / greyscale / contrast / deskew).
+        setUiState(PREPROCESS);
+        setStatusMsg('Scanning your list…');
+        setProgress(0);
+        // Yield to the browser so the UI repaints before the synchronous
+        // pixel work kicks off — otherwise the spinner doesn't appear on
+        // older devices.
+        await new Promise((r) => setTimeout(r, 30));
+        const prepped = await preprocessImageFile(file, {
+          deskew: true,
+          contrast: 40,
+          threshold: false,
+        });
+
+        // Phase 2: OCR.
+        setUiState(PROCESSING);
+        setStatusMsg('Reading the words…');
+        extracted = await extractCandidatesFromImage(prepped, setProgress);
       } else if (TEXT_TYPES.has(ext)) {
-        // Plain text: read directly
+        setUiState(PROCESSING);
+        setStatusMsg('Reading your list…');
         const text = await file.text();
-        // Replace commas/semicolons with spaces then parse
-        const cleaned = text.replace(/[,;|]/g, ' ');
-        const { parseWordsFromText } = await import('../utils/ocrEngine');
-        extracted = parseWordsFromText(cleaned);
+        const words = tokenizeText(text);
+        extracted = classifyTextWords(words);
         setProgress(100);
       }
     } catch (err) {
@@ -77,20 +116,54 @@ export default function FileUpload({ onWordsConfirmed, onCancel }) {
       return;
     }
 
-    if (extracted.length === 0) {
-      setErrorMsg('No words could be found in this file. Try a different file.');
+    if (!extracted || extracted.length === 0) {
+      setUiState(NO_WORDS);
+      return;
+    }
+
+    setCandidates(extracted.slice(0, 60));
+    setUiState(PREVIEW);
+  }, []);
+
+  // ── Validate then route ──────────────────────────────────────────────────
+  const processFile = useCallback(async (file) => {
+    setUiState(VALIDATING);
+    setProgress(0);
+    setErrorMsg('');
+
+    const { valid, reason } = await validateFile(file);
+    if (!valid) {
+      setErrorMsg(reason);
       setUiState(ERROR);
       return;
     }
 
-    // Pre-select all words (up to 30)
-    const limited = extracted.slice(0, 60);
-    setWords(limited);
-    setSelected(new Set(limited.slice(0, 30)));
-    setUiState(PREVIEW);
-  }, []);
+    if (IMAGE_TYPES.has(getExt(file))) {
+      setPendingFile(file);
+      setUiState(CROPPING);
+    } else {
+      await runExtraction(file);
+    }
+  }, [runExtraction]);
 
-  // ── drag & drop ──────────────────────────────────────────────────────────
+  // ── Crop confirmed ───────────────────────────────────────────────────────
+  const handleCropConfirm = useCallback(async (cropBox) => {
+    const file = pendingFile;
+    setPendingFile(null);
+    setUiState(PREPROCESS);
+    setStatusMsg('Scanning your list…');
+    setProgress(0);
+    try {
+      const croppedFile = await cropImageFile(file, cropBox);
+      await runExtraction(croppedFile);
+    } catch (err) {
+      console.error('[FileUpload] Crop error:', err);
+      setErrorMsg('Could not crop the image. Please try again.');
+      setUiState(ERROR);
+    }
+  }, [pendingFile, runExtraction]);
+
+  // ── Drag & drop ──────────────────────────────────────────────────────────
   const handleDrop = useCallback((e) => {
     e.preventDefault();
     setIsDragging(false);
@@ -98,40 +171,29 @@ export default function FileUpload({ onWordsConfirmed, onCancel }) {
     if (file) processFile(file);
   }, [processFile]);
 
-  const handleDragOver = (e) => { e.preventDefault(); setIsDragging(true); };
+  const handleDragOver  = (e) => { e.preventDefault(); setIsDragging(true); };
   const handleDragLeave = () => setIsDragging(false);
 
-  // ── file input ───────────────────────────────────────────────────────────
+  // ── File input ───────────────────────────────────────────────────────────
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) processFile(file);
     e.target.value = '';
   };
 
-  // ── preview toggles ──────────────────────────────────────────────────────
-  const toggleWord = (word) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(word)) {
-        next.delete(word);
-      } else {
-        if (next.size >= 30) return prev; // max 30
-        next.add(word);
-      }
-      return next;
-    });
-  };
+  // ── Renders ──────────────────────────────────────────────────────────────
 
-  const selectAll   = () => setSelected(new Set(words.slice(0, 30)));
-  const deselectAll = () => setSelected(new Set());
-
-  const handleConfirm = () => {
-    const chosen = [...selected];
-    if (chosen.length < 1) return;
-    onWordsConfirmed(chosen);
-  };
-
-  // ── renders ───────────────────────────────────────────────────────────────
+  if (uiState === CROPPING && pendingFile) {
+    return (
+      <div className="fu-wrap fu-wrap--crop">
+        <ImageCropper
+          imageFile={pendingFile}
+          onConfirm={handleCropConfirm}
+          onCancel={() => { setPendingFile(null); setUiState(IDLE); }}
+        />
+      </div>
+    );
+  }
 
   if (uiState === IDLE || uiState === VALIDATING) {
     return (
@@ -153,7 +215,6 @@ export default function FileUpload({ onWordsConfirmed, onCancel }) {
           <p className="fu-dropzone-types">JPG · PNG · PDF · TXT · CSV — max 5 MB</p>
         </div>
 
-        {/* Camera button */}
         <button
           className="fu-camera-btn"
           onClick={() => cameraInputRef.current?.click()}
@@ -189,15 +250,44 @@ export default function FileUpload({ onWordsConfirmed, onCancel }) {
     );
   }
 
+  if (uiState === PREPROCESS) {
+    return (
+      <div className="fu-wrap fu-wrap--center">
+        <div className="fu-processing-icon">🔍</div>
+        <p className="fu-processing-title">Scanning your list…</p>
+        <p className="fu-processing-sub">Tidying up your photo so we can read it.</p>
+      </div>
+    );
+  }
+
   if (uiState === PROCESSING) {
     return (
       <div className="fu-wrap fu-wrap--center">
         <div className="fu-processing-icon">⚙️</div>
-        <p className="fu-processing-title">Reading your file…</p>
+        <p className="fu-processing-title">{statusMsg || 'Reading your file…'}</p>
         <div className="fu-progress-track">
           <div className="fu-progress-bar" style={{ width: `${progress}%` }} />
         </div>
         <p className="fu-progress-label">{progress}%</p>
+      </div>
+    );
+  }
+
+  if (uiState === NO_WORDS) {
+    return (
+      <div className="fu-wrap fu-wrap--center">
+        <div className="fu-error-icon">🔎</div>
+        <p className="fu-error-title">No reliable words found</p>
+        <p className="fu-error-msg">
+          Try cropping the photo to just the word column, take a brighter
+          shot, or type your words in by hand.
+        </p>
+        <button className="fu-retry-btn" onClick={() => setUiState(IDLE)} type="button">
+          Try Again
+        </button>
+        <button className="fu-cancel-link" onClick={onCancel} type="button">
+          ← Type words instead
+        </button>
       </div>
     );
   }
@@ -218,61 +308,19 @@ export default function FileUpload({ onWordsConfirmed, onCancel }) {
     );
   }
 
-  // PREVIEW state
-  const selectedCount = selected.size;
-  return (
-    <div className="fu-wrap">
-      <div className="fu-preview-header">
-        <p className="fu-preview-title">
-          Found <strong>{words.length}</strong> words — pick up to 30
-        </p>
-        <div className="fu-preview-actions">
-          <button className="fu-sel-btn" onClick={selectAll}   type="button">Select 30</button>
-          <button className="fu-sel-btn" onClick={deselectAll} type="button">Clear</button>
-        </div>
+  // PREVIEW — review classified candidates before anything is added to
+  // the app's word list. Confirmed words are the single source of truth.
+  if (uiState === PREVIEW) {
+    return (
+      <div className="fu-wrap">
+        <OcrReview
+          candidates={candidates}
+          onConfirm={(finalWords) => onWordsConfirmed(finalWords)}
+          onBack={() => { setCandidates([]); setUiState(IDLE); }}
+        />
       </div>
+    );
+  }
 
-      <div className="fu-word-grid">
-        {words.map((word, i) => {
-          const color = WORD_COLORS[i % WORD_COLORS.length];
-          const active = selected.has(word);
-          return (
-            <button
-              key={word}
-              className={`fu-word-chip${active ? ' fu-word-chip--active' : ''}`}
-              style={{
-                '--chip-bg':     active ? color.bg     : '#f5f5f5',
-                '--chip-border': active ? color.border : '#ddd',
-                '--chip-text':   active ? color.text   : '#aaa',
-              }}
-              onClick={() => toggleWord(word)}
-              type="button"
-              disabled={!active && selectedCount >= 30}
-              title={active ? 'Click to deselect' : selectedCount >= 30 ? 'Max 30 reached' : 'Click to select'}
-            >
-              {active ? '✓ ' : ''}{word}
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="fu-confirm-row">
-        <button
-          className="fu-cancel-link"
-          onClick={() => setUiState(IDLE)}
-          type="button"
-        >
-          ← Try Another File
-        </button>
-        <button
-          className={`fu-confirm-btn${selectedCount < 1 ? ' fu-confirm-btn--disabled' : ''}`}
-          onClick={handleConfirm}
-          disabled={selectedCount < 1}
-          type="button"
-        >
-          Use {selectedCount} Word{selectedCount !== 1 ? 's' : ''} ▶
-        </button>
-      </div>
-    </div>
-  );
+  return null;
 }

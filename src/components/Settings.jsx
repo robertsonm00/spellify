@@ -2,7 +2,7 @@ import React from 'react';
 import './Settings.css';
 import { YEAR_LABELS, ageToYear } from '../data/ukCurriculum';
 
-function Settings({ userAge, onUpdate, onChangeWords, onClearProgress, onClose }) {
+function Settings({ userAge, dyslexiaMode = false, onUpdate, onChangeWords, onClearProgress, onClose }) {
   const year = ageToYear(userAge);
 
   return (
@@ -18,6 +18,23 @@ function Settings({ userAge, onUpdate, onChangeWords, onClearProgress, onClose }
             {YEAR_LABELS[year]} <span className="settings-muted">(age {userAge})</span>
           </span>
         </div>
+
+        <div className="settings-divider" />
+
+        <label className="settings-support-toggle">
+          <div className="settings-support-text">
+            <span className="settings-support-name">⭐ Extra Support Mode</span>
+            <span className="settings-support-hint">Bigger fonts, simpler words, gentler activities</span>
+          </div>
+          <div className="settings-support-switch">
+            <input
+              type="checkbox"
+              checked={dyslexiaMode}
+              onChange={(e) => onUpdate({ dyslexiaMode: e.target.checked })}
+            />
+            <span className="settings-support-slider" />
+          </div>
+        </label>
 
         <div className="settings-divider" />
 

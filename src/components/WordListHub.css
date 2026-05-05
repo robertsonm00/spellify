@@ -402,3 +402,60 @@
   transform: translateY(-2px);
   box-shadow: 3px 5px 0 #c8a800;
 }
+
+/* ── Change Words modal ───────────────────────────────────────────── */
+.hub-change-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  z-index: 1100;
+  backdrop-filter: blur(2px);
+  overflow-y: auto;
+}
+
+.hub-change-modal {
+  position: relative;
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.25);
+  padding: 1.25rem;
+  width: 100%;
+  max-width: 560px;
+  max-height: calc(100vh - 3rem);
+  overflow-y: auto;
+  font-family: 'Nunito', sans-serif;
+  animation: hub-change-pop 0.2s ease;
+}
+
+@keyframes hub-change-pop {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.hub-change-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: #f0f0f0;
+  font-size: 0.95rem;
+  cursor: pointer;
+  color: #555;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+.hub-change-close:hover { background: #e0e0e0; }
+
+/* When GeneratedWords renders inside the change modal, drop its outer card chrome */
+.hub-change-modal .ob-step {
+  padding-top: 0.5rem;
+}

@@ -1,21 +1,47 @@
 .ob-wrap {
+  position: relative;
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 2rem 1rem;
   font-family: 'Nunito', sans-serif;
+  overflow: hidden;
+}
+
+.ob-stars {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.ob-star {
+  position: absolute;
+  color: #fff;
+  animation: ob-twinkle 2.4s ease-in-out infinite alternate;
+  opacity: 0.85;
+}
+
+.ob-star--dim {
+  color: #aad4f5;
+  opacity: 0.5;
+}
+
+@keyframes ob-twinkle {
+  0%   { opacity: 0.2; transform: scale(0.8); }
+  100% { opacity: 1;   transform: scale(1.2); }
 }
 
 .ob-card {
+  position: relative;
+  z-index: 1;
   background: #fff;
   border-radius: 24px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.45);
   padding: 2.5rem 2rem 2rem;
   width: 100%;
   max-width: 580px;
-  position: relative;
 }
 
 /* ── Step layout ── */
