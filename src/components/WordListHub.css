@@ -157,7 +157,10 @@
 }
 
 .hub-chip {
-  padding: 0.35rem 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.6rem 0.35rem 0.8rem;
   border: 2.5px solid transparent;
   border-radius: 8px;
   font-size: 0.88rem;
@@ -167,6 +170,20 @@
   font-family: 'Nunito', sans-serif;
   color: #1a1a2e;
 }
+
+/* ── Difficulty star badge ── */
+
+.hub-diff-star {
+  font-style: normal;
+  font-size: 0.6rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.hub-diff-star--easy      { color: #1e7e34; }
+.hub-diff-star--moderate  { color: #a07800; }
+.hub-diff-star--hard      { color: #c05700; }
+.hub-diff-star--challenge { color: #c0392b; }
 
 .hub-change-btn {
   font-family: 'Nunito', sans-serif;

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import './WordListHub.css';
 import Settings from './Settings';
+import { scoreWord, scoreToBand } from '../utils/difficultyEngine';
 
 const ACTIVITIES = [
   { id: 'wordsearch', name: 'Word Search',   icon: '🔍', timeEstimate: '5 mins',  color: '#4d96ff', dark: '#1a5cbf' },
@@ -86,9 +87,11 @@ function WordListHub({
         <div className="hub-chips">
           {words.map((w, i) => {
             const { bg, border } = WORD_CHIP_COLORS[i % WORD_CHIP_COLORS.length];
+            const band = scoreToBand(scoreWord(w));
             return (
               <span key={w} className="hub-chip" style={{ background: bg, borderColor: border }}>
                 {w}
+                <span className={`hub-diff-star hub-diff-star--${band}`} title={band}>★</span>
               </span>
             );
           })}
