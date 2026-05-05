@@ -1,5 +1,9 @@
-export const STORAGE_KEY = 'spellify_session_v2';
-export const LEGACY_KEY  = 'spellify_session_v1';
+export const STORAGE_KEY   = 'spellify_session_v2';
+export const LEGACY_KEY_V1 = 'spellify_session_v1';
+export const LEGACY_KEY_V0 = 'spellify_session';      // bare key used by earliest builds
+
+/** @deprecated kept for external references; prefer LEGACY_KEY_V1 */
+export const LEGACY_KEY = LEGACY_KEY_V1;
 
 export const INITIAL_STATUSES = {
   wordsearch: 'not-started',
@@ -30,33 +34,53 @@ export function createSession({ year, age, words = [], wordObjects = [], sourceM
 
 /**
  * Load a session from localStorage.
- * Tries v2 key first; falls back to v1 and migrates to v2 shape.
- * Returns null if nothing is found.
+ *
+ * Priority:
+ *   1. spellify_session_v2  — current format, returned as-is
+ *   2. spellify_session_v1  — written by App.jsx before the data-layer refactor
+ *   3. spellify_session     — bare key used by the earliest builds
+ *
+ * When a legacy record is found it is migrated to the v2 shape and
+ * immediately written under STORAGE_KEY so the next load is instant.
+ *
+ * Returns null if no stored session exists.
  */
 export function loadSession() {
   try {
+    // ── 1. Current key ───────────────────────────────────────────────────────
     const v2Raw = localStorage.getItem(STORAGE_KEY);
     if (v2Raw) return JSON.parse(v2Raw);
 
-    const v1Raw = localStorage.getItem(LEGACY_KEY);
-    if (v1Raw) {
-      const v1 = JSON.parse(v1Raw);
-      // Migrate v1 → v2
-      return {
+    // ── 2 & 3. Legacy keys (v1 then bare) ───────────────────────────────────
+    const legacyRaw =
+      localStorage.getItem(LEGACY_KEY_V1) ??
+      localStorage.getItem(LEGACY_KEY_V0);
+
+    if (legacyRaw) {
+      const old = JSON.parse(legacyRaw);
+
+      const migrated = {
         _version: 2,
-        year:    v1.year   ?? null,
-        age:     v1.age    ?? null,
-        sourceMode:   'generated',
-        dyslexiaMode: false,
-        words:        v1.words           ?? [],
-        wordObjects:  [],
-        activityStatuses: v1.activityStatuses ?? { ...INITIAL_STATUSES },
-        mastery:     {},
-        reviewQueue: [],
+        // 'year' field is the same in both v0 and v1
+        year:         old.year          ?? null,
+        age:          old.age           ?? null,
+        difficulty:   old.difficulty    ?? 'medium',
+        sourceMode:   old.sourceMode    ?? 'generated',
+        dyslexiaMode: old.dyslexiaMode  ?? false,
+        words:        old.words         ?? [],
+        wordObjects:  old.wordObjects   ?? [],
+        activityStatuses: old.activityStatuses ?? { ...INITIAL_STATUSES },
+        mastery:      old.mastery       ?? {},
+        reviewQueue:  old.reviewQueue   ?? [],
       };
+
+      // Persist immediately so future loads hit the v2 key
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+
+      return migrated;
     }
   } catch {
-    // corrupted storage — fall through
+    // Corrupted storage — start fresh
   }
   return null;
 }
