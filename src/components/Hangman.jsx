@@ -130,7 +130,7 @@ function Hangman({ words, difficulty = 'medium', dyslexiaMode = false, childName
           </ul>
           <div className="hm-done-actions">
             <button onClick={restart}>Play Again</button>
-            <button onClick={onComplete}>Back to Hub</button>
+            <button onClick={() => onComplete(wordResults.map(r => ({ word: r.word, correct: r.won })))}>Back to Hub</button>
           </div>
         </div>
       </div>

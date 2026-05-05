@@ -129,7 +129,6 @@ function CharacterPicker({ name, onSelect }) {
   const [showMore, setShowMore] = useState(false);
 
   const initialCharacters = CHARACTERS.slice(0, 7);
-  const moreCharacters = CHARACTERS.slice(7);
   const charactersToShow = showMore ? CHARACTERS : initialCharacters;
 
   return (
@@ -292,7 +291,7 @@ function GeneratedWords({ yearGroup, onConfirm }) {
         </div>
         <div className="ob-support-text">
           <span className="ob-support-name">⭐ Extra Support Mode</span>
-          <span className="ob-support-hint">Picks shorter, simpler words</span>
+          <span className="ob-support-hint">Support your learning journey</span>
         </div>
       </label>
 

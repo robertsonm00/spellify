@@ -27,14 +27,24 @@ const WORD_CHIP_COLORS = [
   { bg: '#fff0f8', border: '#ff6b9d' },
 ];
 
+// ── Mastery dot ───────────────────────────────────────────────────────────────
+function MasteryDot({ rate }) {
+  if (rate === null) return <span className="hub-mastery-dot hub-mastery-dot--new"    title="Not tried yet" />;
+  if (rate >= 0.6)   return <span className="hub-mastery-dot hub-mastery-dot--mastered" title="Mastered!" />;
+  return               <span className="hub-mastery-dot hub-mastery-dot--learning"  title="Keep practising" />;
+}
+
 function WordListHub({
   words,
   userAge = 8,
   difficulty = 'medium',
   activityStatuses,
+  mastery = {},
+  reviewQueue = [],
   childName = '',
   childCharacter = null,
   onLaunch,
+  onReview,
   onChangeWords,
   onSettingsUpdate,
   onClearProgress,
@@ -87,9 +97,12 @@ function WordListHub({
         <div className="hub-chips">
           {words.map((w, i) => {
             const { bg, border } = WORD_CHIP_COLORS[i % WORD_CHIP_COLORS.length];
-            const band = scoreToBand(scoreWord(w));
+            const band  = scoreToBand(scoreWord(w));
+            const entry = mastery[w.toLowerCase()];
+            const rate  = entry && entry.attempts > 0 ? entry.correct / entry.attempts : null;
             return (
               <span key={w} className="hub-chip" style={{ background: bg, borderColor: border }}>
+                <MasteryDot rate={rate} />
                 {w}
                 <span className={`hub-diff-star hub-diff-star--${band}`} title={band}>★</span>
               </span>
@@ -97,6 +110,22 @@ function WordListHub({
           })}
         </div>
       </section>
+
+      {/* ── Review callout ── */}
+      {reviewQueue.length > 0 && (
+        <section className="hub-review-callout">
+          <div className="hub-review-inner">
+            <span className="hub-review-emoji">⭐</span>
+            <div className="hub-review-text">
+              <strong>{reviewQueue.length} word{reviewQueue.length > 1 ? 's' : ''} to practise</strong>
+              <span>Keep going — you're almost there!</span>
+            </div>
+            <button className="hub-review-btn" onClick={onReview}>
+              Practise →
+            </button>
+          </div>
+        </section>
+      )}
 
       {/* ── Pixel progress bar ── */}
       <section className="hub-progress">

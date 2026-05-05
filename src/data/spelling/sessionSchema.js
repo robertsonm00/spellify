@@ -105,3 +105,57 @@ export function saveSession(session) {
 export function toWordArray(session) {
   return session?.words ?? [];
 }
+
+// ── Mastery tracking ───────────────────────────────────────────────────────
+
+/**
+ * Record the outcome of one word attempt.
+ * Returns a new session with mastery[word] incremented.
+ *
+ * @param {object}  session
+ * @param {string}  word
+ * @param {boolean} correct
+ * @returns {object}
+ */
+export function updateMastery(session, word, correct) {
+  const key     = word.toLowerCase();
+  const current = session?.mastery?.[key] || { attempts: 0, correct: 0 };
+  return {
+    ...session,
+    mastery: {
+      ...(session?.mastery || {}),
+      [key]: {
+        attempts: current.attempts + 1,
+        correct:  current.correct + (correct ? 1 : 0),
+      },
+    },
+  };
+}
+
+/**
+ * Return the mastery rate (0–1) for a word, or null if never attempted.
+ *
+ * @param {object} session
+ * @param {string} word
+ * @returns {number|null}
+ */
+export function getMasteryRate(session, word) {
+  const entry = session?.mastery?.[word.toLowerCase()];
+  if (!entry || entry.attempts === 0) return null;
+  return entry.correct / entry.attempts;
+}
+
+/**
+ * Rebuild session.reviewQueue — every word that has been attempted at least
+ * once but whose mastery rate is below the 0.6 threshold.
+ *
+ * @param {object} session
+ * @returns {object}  new session with updated reviewQueue
+ */
+export function rebuildReviewQueue(session) {
+  const queue = (session.words || []).filter((w) => {
+    const rate = getMasteryRate(session, w);
+    return rate !== null && rate < 0.6;
+  });
+  return { ...session, reviewQueue: queue };
+}

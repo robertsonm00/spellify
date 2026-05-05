@@ -102,7 +102,7 @@ function SpellingQuiz({ words, difficulty = 'medium', dyslexiaMode = false, chil
             >
               Try Again
             </button>
-            <button onClick={onComplete}>Back to Hub</button>
+            <button onClick={() => onComplete(results.map(r => ({ word: r.word, correct: r.correct })))}>Back to Hub</button>
           </div>
         </div>
       </div>

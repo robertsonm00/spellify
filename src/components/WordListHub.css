@@ -334,3 +334,71 @@
 .hub-badge--not-started { background: #f0f0f0; color: #888; }
 .hub-badge--in-progress  { background: #fff3e0; color: #c05700; border: 1.5px solid #ff9f43; }
 .hub-badge--completed    { background: #e8f5e9; color: #1e7e34; border: 1.5px solid #6bcb77; }
+
+/* ── Mastery dots ── */
+
+.hub-mastery-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.hub-mastery-dot--new      { background: #ccc; }
+.hub-mastery-dot--learning { background: #ff9f43; }
+.hub-mastery-dot--mastered { background: #6bcb77; }
+
+/* ── Review callout ── */
+
+.hub-review-callout {
+  background: #fff8e1;
+  border: 2.5px solid #ffd93d;
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+}
+
+.hub-review-inner {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.hub-review-emoji {
+  font-size: 1.6rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.hub-review-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.88rem;
+  color: #5a4000;
+}
+
+.hub-review-text strong {
+  font-size: 0.95rem;
+  color: #3a2800;
+}
+
+.hub-review-btn {
+  background: #ffd93d;
+  border: 2.5px solid #c8a800;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.5rem;
+  color: #3a2800;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 3px 3px 0 #c8a800;
+  transition: transform 0.1s, box-shadow 0.1s;
+  flex-shrink: 0;
+}
+
+.hub-review-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 3px 5px 0 #c8a800;
+}

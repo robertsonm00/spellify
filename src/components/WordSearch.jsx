@@ -160,7 +160,7 @@ export default function WordSearch({ words, onComplete, onExit, dyslexiaMode = f
           <h2 className="ws-complete-title">All words found!</h2>
           <div className="ws-complete-actions">
             <button className="ws-done-btn ws-done-btn--primary"   onClick={startGame}>Play Again</button>
-            <button className="ws-done-btn ws-done-btn--secondary" onClick={onComplete}>Back to Hub</button>
+            <button className="ws-done-btn ws-done-btn--secondary" onClick={() => onComplete(words.map(w => ({ word: w, correct: true })))}>Back to Hub</button>
           </div>
         </div>
       </div>

@@ -7,7 +7,7 @@ import WordSearch     from './components/WordSearch';
 import SpellingQuiz   from './components/SpellingQuiz';
 import Hangman        from './components/Hangman';
 import Crossword      from './components/Crossword';
-import { loadSession, saveSession, createSession, INITIAL_STATUSES } from './data/spelling/sessionSchema';
+import { loadSession, saveSession, createSession, INITIAL_STATUSES, updateMastery, rebuildReviewQueue } from './data/spelling/sessionSchema';
 
 function hasProgress(activityStatuses) {
   return Object.values(activityStatuses || {}).some(
@@ -45,21 +45,32 @@ function App() {
   };
 
   const handleLaunch = (id) => {
-    setSession((prev) => ({
-      ...prev,
-      activityStatuses: {
-        ...prev.activityStatuses,
-        [id]: prev.activityStatuses[id] === 'not-started' ? 'in-progress' : prev.activityStatuses[id],
-      },
-    }));
+    if (id !== 'review') {
+      setSession((prev) => ({
+        ...prev,
+        activityStatuses: {
+          ...prev.activityStatuses,
+          [id]: prev.activityStatuses[id] === 'not-started' ? 'in-progress' : prev.activityStatuses[id],
+        },
+      }));
+    }
     setActiveActivity({ id });
   };
 
-  const handleComplete = (id) => {
-    setSession((prev) => ({
-      ...prev,
-      activityStatuses: { ...prev.activityStatuses, [id]: 'completed' },
-    }));
+  const handleComplete = (id, results = []) => {
+    setSession((prev) => {
+      // Mark activity as completed (review doesn't affect activityStatuses)
+      let next = id === 'review'
+        ? { ...prev }
+        : { ...prev, activityStatuses: { ...prev.activityStatuses, [id]: 'completed' } };
+      // Apply mastery updates for every word result
+      for (const { word, correct } of results) {
+        next = updateMastery(next, word, correct);
+      }
+      // Rebuild review queue based on updated mastery
+      next = rebuildReviewQueue(next);
+      return next;
+    });
     setActiveActivity(null);
   };
 
@@ -72,7 +83,7 @@ function App() {
   };
 
   const handleSettingsUpdate = (updates) => setSession((prev) => ({ ...prev, ...updates }));
-  const handleClearProgress  = () => setSession((prev) => ({ ...prev, activityStatuses: INITIAL_STATUSES }));
+  const handleClearProgress  = () => setSession((prev) => ({ ...prev, activityStatuses: INITIAL_STATUSES, mastery: {}, reviewQueue: [] }));
 
   const handleBackToWelcome = () => {
     if (session && hasProgress(session.activityStatuses)) {
@@ -93,7 +104,7 @@ function App() {
 
   if (activeActivity && session) {
     const { id }                     = activeActivity;
-    const { words, difficulty, age, dyslexiaMode = false } = session;
+    const { words, difficulty, age, dyslexiaMode = false, reviewQueue = [] } = session;
     let Activity = null;
 
     if (id === 'wordsearch') {
@@ -102,7 +113,7 @@ function App() {
           words={words}
           initialDifficulty={difficulty}
           dyslexiaMode={dyslexiaMode}
-          onComplete={() => handleComplete('wordsearch')}
+          onComplete={(results) => handleComplete('wordsearch', results)}
           onExit={handleExit}
         />
       );
@@ -112,7 +123,7 @@ function App() {
           words={words}
           difficulty={difficulty}
           dyslexiaMode={dyslexiaMode}
-          onComplete={() => handleComplete('quiz')}
+          onComplete={(results) => handleComplete('quiz', results)}
           onExit={handleExit}
         />
       );
@@ -122,7 +133,7 @@ function App() {
           words={words}
           difficulty={difficulty}
           dyslexiaMode={dyslexiaMode}
-          onComplete={() => handleComplete('hangman')}
+          onComplete={(results) => handleComplete('hangman', results)}
           onExit={handleExit}
         />
       );
@@ -133,7 +144,17 @@ function App() {
           userAge={age || 8}
           difficulty={difficulty}
           dyslexiaMode={dyslexiaMode}
-          onComplete={() => handleComplete('crossword')}
+          onComplete={(results) => handleComplete('crossword', results || [])}
+          onExit={handleExit}
+        />
+      );
+    } else if (id === 'review') {
+      Activity = (
+        <SpellingQuiz
+          words={reviewQueue.length > 0 ? reviewQueue : words}
+          difficulty={difficulty}
+          dyslexiaMode={dyslexiaMode}
+          onComplete={(results) => handleComplete('review', results)}
           onExit={handleExit}
         />
       );
@@ -159,7 +180,10 @@ function App() {
           userAge={session.age || 8}
           difficulty={session.difficulty || 'medium'}
           activityStatuses={session.activityStatuses}
+          mastery={session.mastery || {}}
+          reviewQueue={session.reviewQueue || []}
           onLaunch={handleLaunch}
+          onReview={() => handleLaunch('review')}
           onChangeWords={handleChangeWords}
           onSettingsUpdate={handleSettingsUpdate}
           onClearProgress={handleClearProgress}
