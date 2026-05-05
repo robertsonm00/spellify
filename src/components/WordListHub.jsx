@@ -15,12 +15,6 @@ const STATUS_LABEL = {
   'completed':   'Done ✓',
 };
 
-const DIFF_COLORS = {
-  easy:   { bg: '#6bcb77', dark: '#1e7e34' },
-  medium: { bg: '#4d96ff', dark: '#1a5cbf' },
-  hard:   { bg: '#ff6b6b', dark: '#c0392b' },
-};
-
 const WORD_CHIP_COLORS = [
   { bg: '#fff0f0', border: '#ff6b6b' },
   { bg: '#fff8e1', border: '#ffd93d' },
@@ -60,23 +54,6 @@ function WordListHub({
         <button className="hub-home-btn" onClick={onBackToWelcome} title="Back to welcome">
           🏠
         </button>
-
-        <div className="hub-diff-global">
-          {['easy', 'medium', 'hard'].map((d) => {
-            const { bg, dark } = DIFF_COLORS[d];
-            const active = difficulty === d;
-            return (
-              <button
-                key={d}
-                className={`hub-diff-pill${active ? ' hub-diff-pill--active' : ''}`}
-                style={active ? { background: bg, borderColor: dark, color: '#fff', boxShadow: `3px 3px 0 ${dark}` } : {}}
-                onClick={() => onSettingsUpdate({ difficulty: d })}
-              >
-                {d.charAt(0).toUpperCase() + d.slice(1)}
-              </button>
-            );
-          })}
-        </div>
 
         <button
           className="hub-settings-btn"
@@ -180,7 +157,6 @@ function WordListHub({
       {settingsOpen && (
         <Settings
           userAge={userAge}
-          difficulty={difficulty}
           onUpdate={onSettingsUpdate}
           onChangeWords={() => { setSettingsOpen(false); onChangeWords(); }}
           onClearProgress={() => { onClearProgress(); }}
