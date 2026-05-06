@@ -37,6 +37,20 @@
 }
 .ws-back-btn:hover { background: #f5f5f5; }
 
+.ws-restart-btn {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.3rem 0.75rem;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
+  color: #555;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.ws-restart-btn:hover { background: #f5f5f5; }
+
 .ws-header-center { flex: 1; text-align: center; }
 
 .ws-title {
