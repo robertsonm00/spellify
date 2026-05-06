@@ -38,6 +38,14 @@ const STEPS = [
 
 const NUM_BASE = 3; // base practices that count toward 100%
 
+const CELEBRATE_MSGS = [
+  { emoji: '🎉', text: 'You did it!' },
+  { emoji: '✋', text: 'High five!' },
+  { emoji: '🌟', text: 'Amazing work!' },
+  { emoji: '🎊', text: 'Brilliant!' },
+  { emoji: '💪', text: 'Keep going!' },
+];
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function makeInitialState(words) {
@@ -66,6 +74,10 @@ function getPracticeLabel(i) {
   return `Extra ${i - 2}`;
 }
 
+function getCompletedLabel(i) {
+  return `Practice ${i + 1}`;
+}
+
 // ── Component ────────────────────────────────────────────────────────────────
 
 function WriteIt({
@@ -78,8 +90,10 @@ function WriteIt({
   onExit,
 }) {
   const [rows, setRows] = useState(() => savedProgress?.rows ?? makeInitialState(words));
-  const [wordsHidden,  setWordsHidden]  = useState(false);
+  const [wordsHidden,     setWordsHidden]     = useState(false);
+  const [confirmRestart,  setConfirmRestart]  = useState(false);
   const [justCompleted, setJustCompleted] = useState(false);
+  const [celebrate, setCelebrate] = useState(null); // { emoji, text, hiding }
   const [confettiFired, setConfettiFired] = useState(() => {
     if (!savedProgress?.rows) return false;
     return savedProgress.rows.every(r =>
@@ -87,10 +101,11 @@ function WriteIt({
     );
   });
 
-  const inputRefs        = useRef({});
-  const onSaveRef        = useRef(onSaveProgress);
-  onSaveRef.current      = onSaveProgress;
-  const prevRoundRef     = useRef(null);
+  const inputRefs          = useRef({});
+  const onSaveRef          = useRef(onSaveProgress);
+  onSaveRef.current        = onSaveProgress;
+  const prevRoundRef       = useRef(null);
+  const celebrateTimerRef  = useRef(null);
 
   // ── Derived ────────────────────────────────────────────────────────────────
 
@@ -106,9 +121,9 @@ function WriteIt({
   const baseAllDone = currentRound >= NUM_BASE;
 
   const gridTemplate = [
-    'minmax(120px, 200px)',
+    'minmax(200px, 260px)',
     ...Array.from({ length: numPractices }, (_, i) => {
-      if (i < currentRound || currentRound >= numPractices) return '52px';
+      if (i < currentRound || currentRound >= numPractices) return '80px';
       if (i === currentRound) return 'minmax(150px, 1fr)';
       return '72px';
     }),
@@ -153,15 +168,38 @@ function WriteIt({
     }
   }, [baseAllDone, confettiFired]);
 
-  // ── Reset revealed flags when round advances ───────────────────────────────
+  // ── Celebration dismiss ────────────────────────────────────────────────────
+
+  const dismissCelebration = useCallback(() => {
+    setCelebrate(prev => prev ? { ...prev, hiding: true } : null);
+    setTimeout(() => setCelebrate(null), 450);
+  }, []);
+
+  // ── Round-advance: reset hidden words + show celebration popup ─────────────
 
   useEffect(() => {
     if (prevRoundRef.current !== null && prevRoundRef.current !== currentRound) {
-      setRows(prev => prev.map(r => ({ ...r, revealed: false })));
       setWordsHidden(false);
+      if (currentRound > prevRoundRef.current && currentRound < numPractices) {
+        const pool = [
+          ...CELEBRATE_MSGS,
+          ...(childName
+            ? [{ emoji: '🤩', text: `Great job, ${childName}!` }, { emoji: '⭐', text: `Well done, ${childName}!` }]
+            : []),
+        ];
+        const pick = pool[Math.floor(Math.random() * pool.length)];
+        setCelebrate({ ...pick, hiding: false });
+        clearTimeout(celebrateTimerRef.current);
+        celebrateTimerRef.current = setTimeout(() => {
+          setCelebrate(prev => prev ? { ...prev, hiding: true } : null);
+          setTimeout(() => setCelebrate(null), 450);
+        }, 3550);
+      }
     }
     prevRoundRef.current = currentRound;
-  }, [currentRound]);
+  }, [currentRound, numPractices, childName]);
+
+  useEffect(() => () => clearTimeout(celebrateTimerRef.current), []);
 
   // ── Per-word celebrate auto-fade ───────────────────────────────────────────
 
@@ -176,12 +214,18 @@ function WriteIt({
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
-  const handleRestart = () => {
+  const doRestart = () => {
     onSaveRef.current?.(null);
     setRows(makeInitialState(words));
     setWordsHidden(false);
     setJustCompleted(false);
     setConfettiFired(false);
+  };
+
+  const handleRestartClick = () => {
+    const hasProgress = rows.some(r => r.practices.some(p => p.done));
+    if (hasProgress) setConfirmRestart(true);
+    else doRestart();
   };
 
   const updatePractice = useCallback((wordIdx, practiceIdx, patch) => {
@@ -207,8 +251,7 @@ function WriteIt({
     if (cell.done) return;
 
     if (isCorrect(cell.value, row.word)) {
-      // Reveal words if this was a P1 submission
-      if (currentRound === 0) setWordsHidden(false);
+      setWordsHidden(false);
 
       setRows(prev => prev.map((r, i) => {
         if (i !== wordIdx) return r;
@@ -236,13 +279,7 @@ function WriteIt({
   };
 
   const handleInputFocus = () => {
-    if (currentRound === 0) setWordsHidden(true);
-  };
-
-  const toggleReveal = (wordIdx) => {
-    setRows(prev => prev.map((r, i) =>
-      i === wordIdx ? { ...r, revealed: !r.revealed } : r
-    ));
+    setWordsHidden(true);
   };
 
   const addPractice = () => {
@@ -270,7 +307,7 @@ function WriteIt({
         <button className="wi-back" onClick={onExit}>← Hub</button>
         <h2 className="wi-title">Write It</h2>
         <div className="wi-topbar-actions">
-          <button className="wi-restart-btn" onClick={handleRestart} title="Restart">↺ Restart</button>
+          <button className="wi-restart-btn" onClick={handleRestartClick} title="Restart">↺ Restart</button>
           <button className="wi-print-btn" onClick={() => window.print()} title="Print as worksheet">🖨 Print</button>
           {baseAllDone && (
             <button className="wi-done-btn" onClick={handleComplete}>Back to Hub ▶</button>
@@ -295,11 +332,6 @@ function WriteIt({
             <span className="wi-step-label">{s.label}</span>
           </div>
         ))}
-        {wordsHidden && currentRound === 0 && (
-          <button className="wi-reveal-words-btn" onClick={() => setWordsHidden(false)}>
-            👁 Show words
-          </button>
-        )}
       </div>
 
       {/* Table */}
@@ -311,7 +343,7 @@ function WriteIt({
             <div className="wi-th wi-th--word">Word</div>
             {Array.from({ length: numPractices }, (_, i) => {
               if (i < currentRound || currentRound >= numPractices)
-                return <div key={i} className="wi-th wi-th--done">✓</div>;
+                return <div key={i} className="wi-th wi-th--done">{getCompletedLabel(i)}</div>;
               if (i === currentRound)
                 return <div key={i} className="wi-th wi-th--active">{getPracticeLabel(i)}</div>;
               return <div key={i} className="wi-th wi-th--locked">P{i + 1}</div>;
@@ -321,8 +353,7 @@ function WriteIt({
           {/* Word rows */}
           {rows.map((row, wordIdx) => {
             const allRowDone = row.practices.every(p => p.done);
-            const wordFaded   = wordsHidden && currentRound === 0;
-            const wordCovered = currentRound > 0 && !row.revealed && !allRowDone;
+            const wordFaded  = wordsHidden && !allRowDone;
 
             return (
               <div
@@ -345,18 +376,18 @@ function WriteIt({
                     >
                       🔊
                     </button>
-                    <span className={`wi-word-text${wordFaded ? ' wi-word-text--faded' : ''}${wordCovered ? ' wi-word-text--covered' : ''}`}>
+                    <button
+                      className={`wi-eye wi-no-print${wordsHidden ? ' wi-eye--hidden' : ''}`}
+                      onClick={() => setWordsHidden(h => !h)}
+                      title={wordsHidden ? 'Show words' : 'Hide words'}
+                      aria-label={wordsHidden ? 'Show words' : 'Hide words'}
+                    >
+                      👁
+                    </button>
+                    <span className={`wi-word-text${wordFaded ? ' wi-word-text--faded' : ''}`}>
                       {row.word}
                     </span>
                   </div>
-                  {currentRound > 0 && !allRowDone && (
-                    <button
-                      className="wi-reveal-btn wi-no-print"
-                      onClick={() => toggleReveal(wordIdx)}
-                    >
-                      {row.revealed ? 'Hide' : 'Peek'}
-                    </button>
-                  )}
                 </div>
 
                 {/* Practice cells */}
@@ -439,6 +470,35 @@ function WriteIt({
           <button className="wi-add-practice-btn" onClick={addPractice}>
             + Add Practice
           </button>
+        </div>
+      )}
+
+      {/* Restart confirmation */}
+      {confirmRestart && (
+        <div className="exit-overlay" onClick={() => setConfirmRestart(false)}>
+          <div className="exit-modal" onClick={e => e.stopPropagation()}>
+            <div className="exit-modal-icon">↺</div>
+            <h2 className="exit-modal-title">Restart?</h2>
+            <p className="exit-modal-body">You'll lose your progress so far.</p>
+            <div className="exit-modal-btns">
+              <button className="exit-btn exit-btn--cancel" onClick={() => setConfirmRestart(false)}>Keep going</button>
+              <button className="exit-btn exit-btn--confirm" onClick={() => { setConfirmRestart(false); doRestart(); }}>Yes, restart</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Round-complete celebration popup */}
+      {celebrate && (
+        <div className="wi-celebrate-overlay" onClick={dismissCelebration}>
+          <div
+            className={`wi-celebrate-popup${celebrate.hiding ? ' wi-celebrate-popup--hiding' : ''}`}
+            onClick={e => e.stopPropagation()}
+          >
+            <button className="wi-celebrate-close" onClick={dismissCelebration} aria-label="Close">✕</button>
+            <div className="wi-celebrate-emoji">{celebrate.emoji}</div>
+            <p className="wi-celebrate-msg">{celebrate.text}</p>
+          </div>
         </div>
       )}
 

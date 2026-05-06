@@ -100,21 +100,6 @@
   text-transform: uppercase;
 }
 
-/* Reveal words button — appears when words are faded */
-.wi-reveal-words-btn {
-  font-family: 'Nunito', sans-serif;
-  font-size: 0.82rem;
-  font-weight: 700;
-  padding: 0.3rem 0.8rem;
-  border: 1.5px solid #c4a8f5;
-  border-radius: 8px;
-  background: #fff;
-  color: #6b21a8;
-  cursor: pointer;
-  transition: background 0.1s;
-  margin-left: 0.5rem;
-}
-.wi-reveal-words-btn:hover { background: #f5f0ff; }
 
 /* ── Table outer — provides horizontal scroll ─────────────────────────────── */
 
@@ -160,7 +145,24 @@
   text-overflow: ellipsis;
 }
 
-.wi-th--word  { text-align: left; }
+.wi-th--done {
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.3;
+  color: #16a34a;
+  font-size: 0.44rem;
+}
+
+.wi-th--word  {
+  text-align: left;
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  background: linear-gradient(160deg, #f5f0ff 0%, #fdf4ff 100%);
+  padding-right: 1.25rem;
+  border-right: 2px solid #d8b4fe;
+  box-shadow: 3px 0 8px rgba(0, 0, 0, 0.06);
+}
 .wi-th--done  { color: #16a34a; }
 .wi-th--active { color: #6b21a8; }
 .wi-th--locked { color: #9ca3af; }
@@ -220,6 +222,9 @@
   position: sticky;
   left: 0;
   z-index: 2;
+  padding-right: 1.25rem;
+  border-right: 2px solid #d8b4fe;
+  box-shadow: 3px 0 8px rgba(0, 0, 0, 0.06);
 }
 
 /* Completed tick cell */
@@ -279,7 +284,8 @@
   min-width: 0;
 }
 
-.wi-speaker {
+.wi-speaker,
+.wi-eye {
   background: #fff;
   border: 2px solid #c4a8f5;
   border-radius: 50%;
@@ -291,10 +297,15 @@
   cursor: pointer;
   font-size: 1rem;
   flex-shrink: 0;
-  transition: transform 0.1s, background 0.1s;
+  transition: transform 0.1s, background 0.1s, opacity 0.15s;
 }
-.wi-speaker:hover  { background: #f5f0ff; transform: scale(1.05); }
-.wi-speaker:active { transform: scale(0.95); }
+.wi-speaker:hover,
+.wi-eye:hover  { background: #f5f0ff; transform: scale(1.05); }
+.wi-speaker:active,
+.wi-eye:active { transform: scale(0.95); }
+
+.wi-eye { opacity: 0.35; }
+.wi-eye--hidden { opacity: 1; background: #faf5ff; }
 
 .wi-word-text {
   font-size: 1.2rem;
@@ -334,18 +345,6 @@
   letter-spacing: 0.4em;
 }
 
-.wi-reveal-btn {
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: #6b21a8;
-  background: transparent;
-  border: 1.5px dashed #c4a8f5;
-  border-radius: 6px;
-  padding: 0.18rem 0.5rem;
-  cursor: pointer;
-  align-self: flex-start;
-}
-.wi-reveal-btn:hover { background: #f5f0ff; }
 
 /* ── Input ────────────────────────────────────────────────────────────────── */
 
@@ -491,6 +490,80 @@
 @keyframes starSpin {
   0%   { transform: rotate(0deg) scale(0); opacity: 0; }
   100% { transform: rotate(360deg) scale(1); opacity: 1; }
+}
+
+/* ── Round-complete celebration popup ─────────────────────────────────────── */
+
+.wi-celebrate-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(26, 26, 46, 0.35);
+}
+
+.wi-celebrate-popup {
+  position: relative;
+  background: #fff;
+  border: 4px solid #1a1a2e;
+  border-radius: 16px;
+  box-shadow: 8px 8px 0 #1a1a2e;
+  padding: 2.5rem 3rem 2rem;
+  text-align: center;
+  min-width: 240px;
+  animation: wi-cel-in 0.38s cubic-bezier(0.34, 1.46, 0.64, 1) both;
+}
+
+.wi-celebrate-popup--hiding {
+  animation: wi-cel-out 0.42s ease-in forwards;
+}
+
+@keyframes wi-cel-in {
+  from { opacity: 0; transform: translateY(-28px) scale(0.88); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes wi-cel-out {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to   { opacity: 0; transform: translateY(14px) scale(0.94); }
+}
+
+.wi-celebrate-close {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.65rem;
+  background: transparent;
+  border: none;
+  font-size: 1rem;
+  color: #9ca3af;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0.2rem 0.35rem;
+  border-radius: 4px;
+  transition: color 0.1s, background 0.1s;
+}
+.wi-celebrate-close:hover { color: #1a1a2e; background: #f3f4f6; }
+
+.wi-celebrate-emoji {
+  font-size: 3.5rem;
+  line-height: 1;
+  margin-bottom: 0.65rem;
+  animation: wi-cel-bounce 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s both;
+}
+
+@keyframes wi-cel-bounce {
+  from { transform: scale(0.5); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+.wi-celebrate-msg {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.9rem;
+  color: #1a1a2e;
+  margin: 0;
+  line-height: 1.7;
 }
 
 /* ── Extra Support boost ──────────────────────────────────────────────────── */

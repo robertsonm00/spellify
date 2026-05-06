@@ -27,6 +27,7 @@ export default function WordSearch({ words, savedProgress = null, onSaveProgress
   const [foundWords,      setFoundWords]      = useState(savedProgress?.foundWords ?? []);
   const [foundCells,      setFoundCells]      = useState(savedProgress?.foundCells ?? []);
   const [toast,           setToast]           = useState(null);
+  const [confirmRestart,  setConfirmRestart]  = useState(false);
 
   // Drag state in refs to avoid stale closures inside event handlers
   const isDraggingRef = useRef(false);
@@ -183,7 +184,7 @@ export default function WordSearch({ words, savedProgress = null, onSaveProgress
         <div className="ws-header-center">
           <h1 className="ws-title">Word Search</h1>
         </div>
-        <button className="ws-restart-btn" onClick={startGame} title="Restart game">↺ Restart</button>
+        <button className="ws-restart-btn" onClick={() => { if (foundWords.length > 0) setConfirmRestart(true); else startGame(); }} title="Restart game">↺ Restart</button>
       </div>
 
       {/* ── Progress strip — full width, touches header border ── */}
@@ -240,6 +241,20 @@ export default function WordSearch({ words, savedProgress = null, onSaveProgress
         </ul>
 
       </div>
+
+      {confirmRestart && (
+        <div className="exit-overlay" onClick={() => setConfirmRestart(false)}>
+          <div className="exit-modal" onClick={e => e.stopPropagation()}>
+            <div className="exit-modal-icon">↺</div>
+            <h2 className="exit-modal-title">Restart?</h2>
+            <p className="exit-modal-body">You'll lose your progress so far.</p>
+            <div className="exit-modal-btns">
+              <button className="exit-btn exit-btn--cancel" onClick={() => setConfirmRestart(false)}>Keep going</button>
+              <button className="exit-btn exit-btn--confirm" onClick={() => { setConfirmRestart(false); startGame(); }}>Yes, restart</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

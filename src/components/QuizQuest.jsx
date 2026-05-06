@@ -385,7 +385,8 @@ export default function QuizQuest({
   const [phase,      setPhase]      = useState(savedProgress ? 'question' : 'start');
   const [qIdx,       setQIdx]       = useState(savedProgress?.qIdx ?? 0);
   const [results,    setResults]    = useState(savedProgress?.results ?? []);
-  const [lastResult, setLastResult] = useState(null);
+  const [lastResult,      setLastResult]      = useState(null);
+  const [confirmRestart,  setConfirmRestart]  = useState(false);
 
   const question = questions[qIdx] ?? null;
 
@@ -428,6 +429,12 @@ export default function QuizQuest({
     setPhase('start');
   };
 
+  const handleRestartClick = () => {
+    const hasProgress = qIdx > 0 || results.length > 0;
+    if (hasProgress && phase !== 'results') setConfirmRestart(true);
+    else handlePlayAgain();
+  };
+
   const handleComplete = () => {
     onSaveProgress?.(null);
     // Collapse multiple results-per-word into a single { word, correct } per
@@ -449,7 +456,7 @@ export default function QuizQuest({
     <div className="qq-topbar">
       <button className="qq-back" onClick={onExit}>← Hub</button>
       <h2 className="qq-title">Quiz Quest</h2>
-      <button className="qq-restart" onClick={handlePlayAgain} title="Restart quiz">↺ Restart</button>
+      <button className="qq-restart" onClick={handleRestartClick} title="Restart quiz">↺ Restart</button>
     </div>
   );
 
@@ -592,6 +599,20 @@ export default function QuizQuest({
         )}
 
       </div>
+
+      {confirmRestart && (
+        <div className="exit-overlay" onClick={() => setConfirmRestart(false)}>
+          <div className="exit-modal" onClick={e => e.stopPropagation()}>
+            <div className="exit-modal-icon">↺</div>
+            <h2 className="exit-modal-title">Restart?</h2>
+            <p className="exit-modal-body">You'll lose your progress so far.</p>
+            <div className="exit-modal-btns">
+              <button className="exit-btn exit-btn--cancel" onClick={() => setConfirmRestart(false)}>Keep going</button>
+              <button className="exit-btn exit-btn--confirm" onClick={() => { setConfirmRestart(false); handlePlayAgain(); }}>Yes, restart</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
