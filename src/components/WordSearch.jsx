@@ -20,12 +20,12 @@ function getCellsBetween(start, end) {
   }));
 }
 
-export default function WordSearch({ words, onComplete, onExit, dyslexiaMode = false }) {
-  const [gameState,      setGameState]      = useState(() => generateWordSearch(words, GRID_SIZE, { dyslexiaMode }));
+export default function WordSearch({ words, savedProgress = null, onSaveProgress, onComplete, onExit, dyslexiaMode = false }) {
+  const [gameState,      setGameState]      = useState(() => savedProgress?.gameState ?? generateWordSearch(words, GRID_SIZE, { dyslexiaMode }));
   const [selectionAnchor, setSelectionAnchor] = useState(null); // click-mode anchor
   const [selectionCells,  setSelectionCells]  = useState([]);
-  const [foundWords,      setFoundWords]      = useState([]);
-  const [foundCells,      setFoundCells]      = useState([]);
+  const [foundWords,      setFoundWords]      = useState(savedProgress?.foundWords ?? []);
+  const [foundCells,      setFoundCells]      = useState(savedProgress?.foundCells ?? []);
   const [toast,           setToast]           = useState(null);
 
   // Drag state in refs to avoid stale closures inside event handlers
@@ -35,7 +35,9 @@ export default function WordSearch({ words, onComplete, onExit, dyslexiaMode = f
   // ── Game actions ────────────────────────────────────────────────────────────
 
   const startGame = useCallback(() => {
-    setGameState(generateWordSearch(words, GRID_SIZE, { dyslexiaMode }));
+    onSaveProgress?.(null);
+    const fresh = generateWordSearch(words, GRID_SIZE, { dyslexiaMode });
+    setGameState(fresh);
     setFoundWords([]);
     setFoundCells([]);
     setSelectionAnchor(null);
@@ -43,7 +45,7 @@ export default function WordSearch({ words, onComplete, onExit, dyslexiaMode = f
     setToast(null);
     isDraggingRef.current = false;
     dragStartRef.current  = null;
-  }, [words]);
+  }, [words, onSaveProgress]);
 
   const showToast = (msg) => {
     setToast(msg);
@@ -58,8 +60,11 @@ export default function WordSearch({ words, onComplete, onExit, dyslexiaMode = f
     const e       = cells[cells.length - 1];
     const matched = checkWord(gameState.grid, s.row, s.col, e.row, e.col, gameState.placedWords);
     if (matched && !foundWords.includes(matched.word)) {
-      setFoundWords(prev => [...prev, matched.word]);
-      setFoundCells(prev => [...prev, ...cells]);
+      const newFoundWords = [...foundWords, matched.word];
+      const newFoundCells = [...foundCells, ...cells];
+      setFoundWords(newFoundWords);
+      setFoundCells(newFoundCells);
+      onSaveProgress?.({ gameState, foundWords: newFoundWords, foundCells: newFoundCells });
       showToast(`✓ ${matched.word.toLowerCase()}`);
       return true;
     }
@@ -160,7 +165,7 @@ export default function WordSearch({ words, onComplete, onExit, dyslexiaMode = f
           <h2 className="ws-complete-title">All words found!</h2>
           <div className="ws-complete-actions">
             <button className="ws-done-btn ws-done-btn--primary"   onClick={startGame}>Play Again</button>
-            <button className="ws-done-btn ws-done-btn--secondary" onClick={() => onComplete(words.map(w => ({ word: w, correct: true })))}>Back to Hub</button>
+            <button className="ws-done-btn ws-done-btn--secondary" onClick={() => { onSaveProgress?.(null); onComplete(words.map(w => ({ word: w, correct: true }))); }}>Back to Hub</button>
           </div>
         </div>
       </div>
@@ -178,6 +183,7 @@ export default function WordSearch({ words, onComplete, onExit, dyslexiaMode = f
         <div className="ws-header-center">
           <h1 className="ws-title">Word Search</h1>
         </div>
+        <button className="ws-restart-btn" onClick={startGame} title="Restart game">↺ Restart</button>
       </div>
 
       {/* ── Progress strip — full width, touches header border ── */}
