@@ -3,74 +3,137 @@
 .cw-wrap {
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 56px);
+  min-height: 100vh;
   background: linear-gradient(160deg, #f0f4ff 0%, #fdf4ff 100%);
   font-family: 'Nunito', sans-serif;
   outline: none;
 }
 
-/* ── Header ── */
+/* ── Dark navy topbar ── */
 
-.cw-header {
+.cw-topbar {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.75rem 1.25rem;
-  background: #fff;
-  border-bottom: 3px solid #1a1a2e;
-  box-shadow: 0 3px 0 #1a1a2e;
+  padding: 0.9rem 1.25rem;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  border-bottom: 3px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.cw-topbar-stars {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.cw-topbar-star {
+  position: absolute;
+  color: #fff;
+  opacity: 0.5;
+}
+
+.cw-topbar-star--dim {
+  color: #aad4f5;
+  opacity: 0.25;
 }
 
 .cw-back {
+  position: relative;
+  z-index: 1;
   font-family: 'Nunito', sans-serif;
   font-size: 0.82rem;
-  font-weight: 700;
-  padding: 0.35rem 0.75rem;
-  border: 2px solid #ddd;
+  font-weight: 800;
+  padding: 0.42rem 0.85rem;
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
-  background: #fff;
-  color: #555;
+  background: rgba(255, 255, 255, 0.1);
   cursor: pointer;
+  color: rgba(255, 255, 255, 0.85);
   white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
   flex-shrink: 0;
 }
-.cw-back:hover { background: #f5f5f5; }
+.cw-back:hover { background: rgba(255, 255, 255, 0.18); color: #fff; }
 
-.cw-header-center {
-  flex: 1;
-  text-align: center;
+.cw-topbar-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  pointer-events: none;
+}
+
+.cw-topbar-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 0;
+}
+
+.cw-brand-letter {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 1.4rem;
+  line-height: 1;
+  display: inline-block;
+  text-shadow:
+    0 0 20px currentColor,
+    0 0 40px currentColor,
+    3px 3px 0 rgba(0, 0, 0, 0.5);
+  animation: cw-brand-float 16s ease-in-out infinite;
+}
+
+@keyframes cw-brand-float {
+  0%      { transform: translateY(0); }
+  6.25%   { transform: translateY(-4px); }
+  12.5%   { transform: translateY(0); }
+  18.75%  { transform: translateY(-4px); }
+  25%     { transform: translateY(0); }
+  31.25%  { transform: translateY(-4px); }
+  37.5%   { transform: translateY(0); }
+  100%    { transform: translateY(0); }
 }
 
 .cw-title {
+  position: relative;
+  z-index: 1;
   font-family: 'Press Start 2P', monospace;
-  font-size: 0.85rem;
-  color: #1a1a2e;
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.9);
   margin: 0;
-  line-height: 1.6;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  white-space: nowrap;
 }
 
-.cw-progress {
-  margin: 0;
-  font-size: 0.8rem;
-  color: #888;
-  font-weight: 700;
+.cw-topbar-right {
+  margin-left: auto;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .cw-toggle-btn {
   font-family: 'Nunito', sans-serif;
   font-size: 0.8rem;
-  font-weight: 700;
-  padding: 0.35rem 0.75rem;
-  border: 2px solid #c77dff;
+  font-weight: 800;
+  padding: 0.42rem 0.85rem;
+  border: 1.5px solid rgba(200, 130, 255, 0.5);
   border-radius: 8px;
-  background: #f5f0ff;
-  color: #6b21a8;
+  background: rgba(199, 125, 255, 0.18);
+  color: #e8b4ff;
   cursor: pointer;
   white-space: nowrap;
-  flex-shrink: 0;
-  transition: background 0.1s;
+  transition: background 0.15s;
 }
-.cw-toggle-btn:hover { background: #ede9fe; }
+.cw-toggle-btn:hover { background: rgba(199, 125, 255, 0.3); }
 
 /* ── Body ── */
 
@@ -199,6 +262,9 @@
   min-width: 0;
   min-height: 0;
 }
+
+/* Hover state for interactive squares */
+.cw-cell:not(.cw-cell--black):hover { background: #fef3c7; }
 
 /* Dead squares: no border, no fill — let the page background show through */
 .cw-cell--black {

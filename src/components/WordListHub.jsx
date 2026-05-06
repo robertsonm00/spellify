@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import './WordListHub.css';
 import Settings from './Settings';
 import { GeneratedWords } from './OnboardingFlow';
@@ -144,6 +144,26 @@ function WordDetailModal({ word, userAge, chipColor, onClose }) {
   );
 }
 
+const HEADER_STARS = Array.from({ length: 40 }, (_, i) => ({
+  id: i,
+  left:  (i * 37 + 13) % 100,
+  top:   (i * 53 + 7)  % 100,
+  delay: ((i * 0.31) % 3).toFixed(2),
+  size:  6 + (i % 4) * 3,
+  dim:   i % 3 === 0,
+}));
+
+const BRAND_LETTERS = [
+  { letter: 'S', color: '#ff6b6b' },
+  { letter: 'P', color: '#ffd93d' },
+  { letter: 'E', color: '#6bcb77' },
+  { letter: 'L', color: '#4d96ff' },
+  { letter: 'L', color: '#c77dff' },
+  { letter: 'I', color: '#ff9f43' },
+  { letter: 'F', color: '#ff6b6b' },
+  { letter: 'Y', color: '#ffd93d' },
+];
+
 const ACTIVITIES = [
   { id: 'wordsearch',  name: 'Word Search',   icon: '🔍', timeEstimate: '5 mins',  color: '#4d96ff', dark: '#1a5cbf' },
   { id: 'memoryspell', name: 'Memory Spell',  icon: '🧠', timeEstimate: '5 mins',  color: '#6bcb77', dark: '#1e7e34' },
@@ -206,33 +226,44 @@ function WordListHub({
   const progressBlocks = ACTIVITIES.map((a) => activityStatuses[a.id] === 'completed');
 
   return (
+    <div className="hub-shell">
+      {/* ── Header ── */}
+      <header className="hub-header">
+        <div className="hub-header-stars" aria-hidden="true">
+          {HEADER_STARS.map((s) => (
+            <span
+              key={s.id}
+              className={`hub-header-star${s.dim ? ' hub-header-star--dim' : ''}`}
+              style={{ left: `${s.left}%`, top: `${s.top}%`, fontSize: `${s.size}px`, animationDelay: `${s.delay}s` }}
+            >★</span>
+          ))}
+        </div>
+
+        <button className="hub-exit-btn" onClick={onBackToWelcome}>
+          ← Exit
+        </button>
+
+        <div className="hub-brand" aria-label="Spellify">
+          {BRAND_LETTERS.map(({ letter, color }, i) => (
+            <span
+              key={i}
+              className="hub-brand-letter"
+              style={{ color, animationDelay: `${i * 0.08}s` }}
+            >{letter}</span>
+          ))}
+        </div>
+
+        <button className="hub-settings-trigger" onClick={() => setSettingsOpen(true)}>
+          <span className="hub-settings-trigger-icon">⚙️</span> Settings
+        </button>
+      </header>
+
     <div className="hub">
-      {/* ── Top bar ── */}
-      <div className="hub-topbar">
-        <button className="hub-home-btn" onClick={onBackToWelcome} title="Back to welcome">
-          🏠
-        </button>
-
-        <button
-          className="hub-settings-btn"
-          onClick={() => setSettingsOpen(true)}
-          aria-label="Settings"
-        >
-          ⚙️
-        </button>
-      </div>
-
       {/* ── Welcome section ── */}
       {childName && (
-        <section className="hub-welcome">
-          <div className="hub-welcome-content">
-            <span className="hub-welcome-character">{childCharacter?.emoji || '⭐'}</span>
-            <div className="hub-welcome-text">
-              <p className="hub-welcome-greeting">Welcome, <strong>{childName}</strong>!</p>
-              <p className="hub-welcome-subtext">Ready to master some spellings?</p>
-            </div>
-          </div>
-        </section>
+        <h1 className="hub-welcome-heading">
+          Welcome {childName} &amp; {childCharacter?.emoji || '⭐'}!
+        </h1>
       )}
 
       {/* ── Word list ── */}
@@ -352,6 +383,8 @@ function WordListHub({
         <Settings
           userAge={userAge}
           dyslexiaMode={dyslexiaMode}
+          childName={childName}
+          childCharacter={childCharacter}
           onUpdate={onSettingsUpdate}
           onChangeWords={() => { setSettingsOpen(false); setChangeWordsOpen(true); }}
           onClearProgress={() => { onClearProgress(); }}
@@ -371,6 +404,7 @@ function WordListHub({
           onClose={() => setChangeWordsOpen(false)}
         />
       )}
+    </div>
     </div>
   );
 }

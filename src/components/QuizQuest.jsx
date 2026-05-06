@@ -367,6 +367,25 @@ function QuestionCard({ question, onAnswer, dyslexiaMode }) {
   return null;
 }
 
+const HEADER_STARS = Array.from({ length: 40 }, (_, i) => ({
+  id: i,
+  left:  (i * 37 + 13) % 100,
+  top:   (i * 53 + 7)  % 100,
+  size:  6 + (i % 4) * 3,
+  dim:   i % 3 === 0,
+}));
+
+const BRAND_LETTERS = [
+  { letter: 'S', color: '#ff6b6b' },
+  { letter: 'P', color: '#ffd93d' },
+  { letter: 'E', color: '#6bcb77' },
+  { letter: 'L', color: '#4d96ff' },
+  { letter: 'L', color: '#c77dff' },
+  { letter: 'I', color: '#ff9f43' },
+  { letter: 'F', color: '#ff6b6b' },
+  { letter: 'Y', color: '#ffd93d' },
+];
+
 // ── Main component ───────────────────────────────────────────────────────────
 
 export default function QuizQuest({
@@ -454,9 +473,24 @@ export default function QuizQuest({
 
   const topbar = (
     <div className="qq-topbar">
-      <button className="qq-back" onClick={onExit}>← Hub</button>
-      <h2 className="qq-title">Quiz Quest</h2>
-      <button className="qq-restart" onClick={handleRestartClick} title="Restart quiz">↺ Restart</button>
+      <div className="qq-topbar-stars" aria-hidden="true">
+        {HEADER_STARS.map((s) => (
+          <span key={s.id} className={`qq-topbar-star${s.dim ? ' qq-topbar-star--dim' : ''}`}
+            style={{ left: `${s.left}%`, top: `${s.top}%`, fontSize: `${s.size}px` }}>★</span>
+        ))}
+      </div>
+      <button className="qq-back" onClick={onExit}>← Exit</button>
+      <div className="qq-topbar-center">
+        <span className="qq-topbar-brand" aria-label="Spellify">
+          {BRAND_LETTERS.map(({ letter, color }, i) => (
+            <span key={i} className="qq-brand-letter" style={{ color, animationDelay: `${i * 0.08}s` }}>{letter}</span>
+          ))}
+        </span>
+        <h2 className="qq-title">Quiz Quest</h2>
+      </div>
+      <div className="qq-topbar-right">
+        <button className="qq-restart" onClick={handleRestartClick} title="Restart quiz">↺ Restart</button>
+      </div>
     </div>
   );
 

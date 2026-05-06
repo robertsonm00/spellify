@@ -2,7 +2,7 @@ import React from 'react';
 import './Settings.css';
 import { YEAR_LABELS, ageToYear } from '../data/ukCurriculum';
 
-function Settings({ userAge, dyslexiaMode = false, onUpdate, onChangeWords, onClearProgress, onClose }) {
+function Settings({ userAge, dyslexiaMode = false, childName, childCharacter, onUpdate, onChangeWords, onClearProgress, onClose }) {
   const year = ageToYear(userAge);
 
   return (
@@ -11,6 +11,18 @@ function Settings({ userAge, dyslexiaMode = false, onUpdate, onChangeWords, onCl
         <button className="settings-close" onClick={onClose} aria-label="Close settings">✕</button>
 
         <h2 className="settings-title">⚙️ Settings</h2>
+
+        {childName && (
+          <div className="settings-row">
+            <span className="settings-label">Learner</span>
+            <span className="settings-value">
+              {childCharacter?.emoji && (
+                <span className="settings-buddy-icon">{childCharacter.emoji}</span>
+              )}
+              {childName}
+            </span>
+          </div>
+        )}
 
         <div className="settings-row">
           <span className="settings-label">School Year</span>

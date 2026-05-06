@@ -3,7 +3,7 @@
 .ms-wrap {
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 56px);
+  min-height: 100vh;
   background: linear-gradient(160deg, #f0f4ff 0%, #f5f0ff 100%);
   font-family: 'Nunito', sans-serif;
 }
@@ -11,37 +11,110 @@
 /* ── Top bar ─────────────────────────────────────────────────────────────── */
 
 .ms-topbar {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.75rem 1.25rem;
-  background: #fff;
-  border-bottom: 3px solid #1a1a2e;
-  box-shadow: 0 3px 0 #1a1a2e;
+  padding: 0.9rem 1.25rem;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  border-bottom: 3px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+.ms-topbar-stars {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.ms-topbar-star {
+  position: absolute;
+  color: #fff;
+  opacity: 0.5;
+}
+
+.ms-topbar-star--dim {
+  color: #aad4f5;
+  opacity: 0.25;
 }
 
 .ms-back {
+  position: relative;
+  z-index: 1;
   font-family: 'Nunito', sans-serif;
   font-size: 0.82rem;
   font-weight: 800;
-  padding: 0.4rem 0.85rem;
-  border: 2px solid #ddd;
+  padding: 0.42rem 0.85rem;
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.1);
   cursor: pointer;
-  color: #555;
+  color: rgba(255, 255, 255, 0.85);
   white-space: nowrap;
-  transition: background 0.1s;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
 }
-.ms-back:hover { background: #f5f5f5; }
+.ms-back:hover { background: rgba(255, 255, 255, 0.18); color: #fff; }
+
+/* Centre group: SPELLIFY brand + activity title, absolutely centred */
+.ms-topbar-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  pointer-events: none;
+}
+
+.ms-topbar-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 0;
+}
+
+.ms-brand-letter {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 1.4rem;
+  line-height: 1;
+  display: inline-block;
+  text-shadow:
+    0 0 20px currentColor,
+    0 0 40px currentColor,
+    3px 3px 0 rgba(0, 0, 0, 0.5);
+  animation: ms-brand-float 16s ease-in-out infinite;
+}
+
+@keyframes ms-brand-float {
+  0%      { transform: translateY(0); }
+  6.25%   { transform: translateY(-4px); }
+  12.5%   { transform: translateY(0); }
+  18.75%  { transform: translateY(-4px); }
+  25%     { transform: translateY(0); }
+  31.25%  { transform: translateY(-4px); }
+  37.5%   { transform: translateY(0); }
+  100%    { transform: translateY(0); }
+}
 
 .ms-title {
+  position: relative;
+  z-index: 1;
   font-family: 'Press Start 2P', monospace;
-  font-size: 0.85rem;
-  color: #1a1a2e;
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.9);
   margin: 0;
-  flex: 1;
-  text-align: center;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  white-space: nowrap;
+}
+
+/* Balances the exit button so the centre group is truly centred */
+.ms-topbar-spacer {
+  flex-shrink: 0;
+  width: 80px; /* approximate width of ← Exit button */
+  visibility: hidden;
 }
 
 /* ── Progress bar ────────────────────────────────────────────────────────── */

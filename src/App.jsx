@@ -211,7 +211,7 @@ function App() {
       );
     }
 
-    if (Activity) return <AppShell>{Activity}</AppShell>;
+    if (Activity) return <AppShell hideHeader={id === 'memoryspell' || id === 'writeit' || id === 'wordsearch' || id === 'hangman' || id === 'crossword' || id === 'quizquest'}>{Activity}</AppShell>;
   }
 
   // ── Screen routing ───────────────────────────────────────────────────────
@@ -225,7 +225,7 @@ function App() {
 
   return (
     <>
-      <AppShell>
+      <AppShell hideHeader>
         <WordListHub
           words={session.words}
           userAge={session.age || 8}
@@ -282,13 +282,15 @@ function ExitConfirmModal({ onConfirm, onCancel }) {
 
 // ── App shell ─────────────────────────────────────────────────────────────
 
-function AppShell({ children }) {
+function AppShell({ children, hideHeader = false }) {
   return (
     <div className="app-shell">
-      <header className="app-header">
-        <span className="app-header-logo">🎯</span>
-        <span className="app-header-title">Spellify</span>
-      </header>
+      {!hideHeader && (
+        <header className="app-header">
+          <span className="app-header-logo">🎯</span>
+          <span className="app-header-title">Spellify</span>
+        </header>
+      )}
       <main className="app-main">{children}</main>
     </div>
   );

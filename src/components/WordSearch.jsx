@@ -5,6 +5,25 @@ import './WordSearch.css';
 // Fixed 10×10 max
 const GRID_SIZE = 10;
 
+const HEADER_STARS = Array.from({ length: 40 }, (_, i) => ({
+  id: i,
+  left:  (i * 37 + 13) % 100,
+  top:   (i * 53 + 7)  % 100,
+  size:  6 + (i % 4) * 3,
+  dim:   i % 3 === 0,
+}));
+
+const BRAND_LETTERS = [
+  { letter: 'S', color: '#ff6b6b' },
+  { letter: 'P', color: '#ffd93d' },
+  { letter: 'E', color: '#6bcb77' },
+  { letter: 'L', color: '#4d96ff' },
+  { letter: 'L', color: '#c77dff' },
+  { letter: 'I', color: '#ff9f43' },
+  { letter: 'F', color: '#ff6b6b' },
+  { letter: 'Y', color: '#ffd93d' },
+];
+
 function getCellsBetween(start, end) {
   const rowDiff = end.row - start.row;
   const colDiff = end.col - start.col;
@@ -47,6 +66,18 @@ export default function WordSearch({ words, savedProgress = null, onSaveProgress
     isDraggingRef.current = false;
     dragStartRef.current  = null;
   }, [words, onSaveProgress]);
+
+  // Restart without regenerating the grid — only clears found state.
+  const resetProgress = useCallback(() => {
+    onSaveProgress?.(null);
+    setFoundWords([]);
+    setFoundCells([]);
+    setSelectionAnchor(null);
+    setSelectionCells([]);
+    setToast(null);
+    isDraggingRef.current = false;
+    dragStartRef.current  = null;
+  }, [onSaveProgress]);
 
   const showToast = (msg) => {
     setToast(msg);
@@ -179,12 +210,25 @@ export default function WordSearch({ words, savedProgress = null, onSaveProgress
     <div className="ws-wrap" onContextMenu={cancelSelection}>
 
       {/* ── Header ── */}
-      <div className="ws-header">
-        <button className="ws-back-btn" onClick={onExit}>← Hub</button>
-        <div className="ws-header-center">
-          <h1 className="ws-title">Word Search</h1>
+      <div className="ws-topbar">
+        <div className="ws-topbar-stars" aria-hidden="true">
+          {HEADER_STARS.map((s) => (
+            <span key={s.id} className={`ws-topbar-star${s.dim ? ' ws-topbar-star--dim' : ''}`}
+              style={{ left: `${s.left}%`, top: `${s.top}%`, fontSize: `${s.size}px` }}>★</span>
+          ))}
         </div>
-        <button className="ws-restart-btn" onClick={() => { if (foundWords.length > 0) setConfirmRestart(true); else startGame(); }} title="Restart game">↺ Restart</button>
+        <button className="ws-back" onClick={onExit}>← Exit</button>
+        <div className="ws-topbar-center">
+          <span className="ws-topbar-brand" aria-label="Spellify">
+            {BRAND_LETTERS.map(({ letter, color }, i) => (
+              <span key={i} className="ws-brand-letter" style={{ color, animationDelay: `${i * 0.08}s` }}>{letter}</span>
+            ))}
+          </span>
+          <h2 className="ws-title">Word Search</h2>
+        </div>
+        <div className="ws-topbar-right">
+          <button className="ws-restart-btn" onClick={() => { if (foundWords.length > 0) setConfirmRestart(true); else resetProgress(); }} title="Restart game">↺ Restart</button>
+        </div>
       </div>
 
       {/* ── Progress strip — full width, touches header border ── */}
@@ -250,7 +294,7 @@ export default function WordSearch({ words, savedProgress = null, onSaveProgress
             <p className="exit-modal-body">You'll lose your progress so far.</p>
             <div className="exit-modal-btns">
               <button className="exit-btn exit-btn--cancel" onClick={() => setConfirmRestart(false)}>Keep going</button>
-              <button className="exit-btn exit-btn--confirm" onClick={() => { setConfirmRestart(false); startGame(); }}>Yes, restart</button>
+              <button className="exit-btn exit-btn--confirm" onClick={() => { setConfirmRestart(false); resetProgress(); }}>Yes, restart</button>
             </div>
           </div>
         </div>

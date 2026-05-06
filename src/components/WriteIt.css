@@ -3,7 +3,7 @@
 .wi-wrap {
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 56px);
+  min-height: 100vh;
   background: linear-gradient(160deg, #f5f0ff 0%, #fdf4ff 100%);
   font-family: 'Nunito', sans-serif;
   padding: 0 0 1.5rem;
@@ -12,62 +12,145 @@
 /* ── Top bar ──────────────────────────────────────────────────────────────── */
 
 .wi-topbar {
+  position: relative;
   display: flex;
   align-items: center;
+  padding: 0.9rem 1.25rem;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  border-bottom: 3px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
   gap: 0.75rem;
-  padding: 0.75rem 1.25rem;
-  background: #fff;
-  border-bottom: 3px solid #1a1a2e;
-  box-shadow: 0 3px 0 #1a1a2e;
 }
 
-.wi-back,
+.wi-topbar-stars {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.wi-topbar-star {
+  position: absolute;
+  color: #fff;
+  opacity: 0.5;
+}
+
+.wi-topbar-star--dim {
+  color: #aad4f5;
+  opacity: 0.25;
+}
+
+/* Centre group: absolutely centred regardless of side widths */
+.wi-topbar-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  pointer-events: none;
+}
+
+.wi-topbar-brand {
+  display: flex;
+  align-items: baseline;
+}
+
+.wi-brand-letter {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 1.4rem;
+  line-height: 1;
+  display: inline-block;
+  text-shadow:
+    0 0 20px currentColor,
+    0 0 40px currentColor,
+    3px 3px 0 rgba(0, 0, 0, 0.5);
+  animation: wi-brand-float 16s ease-in-out infinite;
+}
+
+@keyframes wi-brand-float {
+  0%      { transform: translateY(0); }
+  6.25%   { transform: translateY(-4px); }
+  12.5%   { transform: translateY(0); }
+  18.75%  { transform: translateY(-4px); }
+  25%     { transform: translateY(0); }
+  31.25%  { transform: translateY(-4px); }
+  37.5%   { transform: translateY(0); }
+  100%    { transform: translateY(0); }
+}
+
+.wi-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  white-space: nowrap;
+}
+
+.wi-back {
+  position: relative;
+  z-index: 1;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 800;
+  padding: 0.42rem 0.85rem;
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.85);
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+.wi-back:hover { background: rgba(255, 255, 255, 0.18); color: #fff; }
+
+.wi-topbar-actions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
 .wi-restart-btn,
 .wi-print-btn,
 .wi-done-btn {
   font-family: 'Nunito', sans-serif;
   font-size: 0.82rem;
   font-weight: 800;
-  padding: 0.4rem 0.85rem;
-  border: 2px solid #ddd;
+  padding: 0.42rem 0.85rem;
   border-radius: 8px;
-  background: #fff;
   cursor: pointer;
-  color: #555;
   white-space: nowrap;
-  transition: background 0.1s, border-color 0.1s;
+  transition: background 0.15s, color 0.15s;
 }
-.wi-back:hover,
-.wi-restart-btn:hover { background: #f5f5f5; }
+
+.wi-restart-btn {
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.85);
+}
+.wi-restart-btn:hover { background: rgba(255, 255, 255, 0.18); color: #fff; }
 
 .wi-print-btn {
-  border-color: #a855f7;
-  color: #581c87;
-  background: #f5f0ff;
+  border: 1.5px solid rgba(168, 85, 247, 0.6);
+  background: rgba(168, 85, 247, 0.2);
+  color: #e9d5ff;
 }
-.wi-print-btn:hover { background: #ede4ff; }
+.wi-print-btn:hover { background: rgba(168, 85, 247, 0.35); }
 
 .wi-done-btn {
-  border-color: #6bcb77;
-  background: #ecfdf5;
-  color: #166534;
+  border: 1.5px solid rgba(107, 203, 119, 0.6);
+  background: rgba(107, 203, 119, 0.2);
+  color: #bbf7d0;
 }
-.wi-done-btn:hover { background: #d1fae5; }
-
-.wi-title {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 0.95rem;
-  color: #1a1a2e;
-  margin: 0;
-  flex: 1;
-  text-align: center;
-}
-
-.wi-topbar-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
+.wi-done-btn:hover { background: rgba(107, 203, 119, 0.35); }
 
 /* ── Method banner — floating icons only, no boxes ────────────────────────── */
 

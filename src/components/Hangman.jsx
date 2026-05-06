@@ -2,6 +2,25 @@ import React, { useState, useEffect, useCallback } from 'react';
 import './Hangman.css';
 import { getSupportTip } from '../data/spelling/dyslexiaPatterns';
 
+const HEADER_STARS = Array.from({ length: 40 }, (_, i) => ({
+  id: i,
+  left:  (i * 37 + 13) % 100,
+  top:   (i * 53 + 7)  % 100,
+  size:  6 + (i % 4) * 3,
+  dim:   i % 3 === 0,
+}));
+
+const BRAND_LETTERS = [
+  { letter: 'S', color: '#ff6b6b' },
+  { letter: 'P', color: '#ffd93d' },
+  { letter: 'E', color: '#6bcb77' },
+  { letter: 'L', color: '#4d96ff' },
+  { letter: 'L', color: '#c77dff' },
+  { letter: 'I', color: '#ff9f43' },
+  { letter: 'F', color: '#ff6b6b' },
+  { letter: 'Y', color: '#ffd93d' },
+];
+
 const MAX_WRONG = { easy: 8, medium: 6, hard: 4 };
 const ALPHABET  = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
@@ -106,6 +125,29 @@ function Hangman({ words, difficulty = 'medium', dyslexiaMode = false, childName
     setPhase('playing');
   };
 
+  const topbar = (
+    <div className="hm-topbar">
+      <div className="hm-topbar-stars" aria-hidden="true">
+        {HEADER_STARS.map((s) => (
+          <span key={s.id} className={`hm-topbar-star${s.dim ? ' hm-topbar-star--dim' : ''}`}
+            style={{ left: `${s.left}%`, top: `${s.top}%`, fontSize: `${s.size}px` }}>★</span>
+        ))}
+      </div>
+      <button className="hm-back" onClick={onExit}>← Exit</button>
+      <div className="hm-topbar-center">
+        <span className="hm-topbar-brand" aria-label="Spellify">
+          {BRAND_LETTERS.map(({ letter, color }, i) => (
+            <span key={i} className="hm-brand-letter" style={{ color, animationDelay: `${i * 0.08}s` }}>{letter}</span>
+          ))}
+        </span>
+        <h2 className="hm-title">Hangman</h2>
+      </div>
+      <div className="hm-topbar-right">
+        <button className="hm-restart" onClick={restart} title="Restart game">↺ Restart</button>
+      </div>
+    </div>
+  );
+
   // ── Complete screen ──
   if (phase === 'complete') {
     const wins = wordResults.filter((r) => r.won).length;
@@ -118,11 +160,10 @@ function Hangman({ words, difficulty = 'medium', dyslexiaMode = false, childName
       "Awesome job!",
     ];
     const encouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
-    
+
     return (
       <div className="hm-wrap">
-        {onExit && <button className="hm-back" onClick={onExit}>← Hub</button>}
-        <button className="hm-restart" onClick={restart} title="Restart game">↺ Restart</button>
+        {topbar}
         <div className="hm-complete">
           {childCharacter && <div className="hm-complete-emoji">{childCharacter.emoji}</div>}
           <h2>Game Over!</h2>
@@ -152,8 +193,7 @@ function Hangman({ words, difficulty = 'medium', dyslexiaMode = false, childName
 
   return (
     <div className="hm-wrap">
-      {onExit && <button className="hm-back" onClick={onExit}>← Hub</button>}
-      <button className="hm-restart" onClick={restart} title="Restart game">↺ Restart</button>
+      {topbar}
 
       <p className="hm-progress">Word {wordIndex + 1} of {queue.length}</p>
 
