@@ -382,6 +382,7 @@ function WordListHub({
       {settingsOpen && (
         <Settings
           userAge={userAge}
+          year={year}
           dyslexiaMode={dyslexiaMode}
           childName={childName}
           childCharacter={childCharacter}

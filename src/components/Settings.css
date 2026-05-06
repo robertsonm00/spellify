@@ -59,6 +59,107 @@
   margin-bottom: 1rem;
 }
 
+/* ── Editable field rows ── */
+
+.settings-field-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.9rem;
+}
+
+.settings-input {
+  flex: 1;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 0.35rem 0.6rem;
+  outline: none;
+  transition: border-color 0.15s;
+  min-width: 0;
+  text-align: right;
+}
+.settings-input:focus { border-color: #4d96ff; }
+
+.settings-select {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 0.32rem 0.5rem;
+  background: #fff;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s;
+  max-width: 160px;
+}
+.settings-select:focus { border-color: #4d96ff; }
+
+/* ── Buddy trigger button ── */
+
+.settings-buddy-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.55rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  font-family: 'Nunito', sans-serif;
+}
+.settings-buddy-trigger:hover { border-color: #c77dff; background: #fdf4ff; }
+
+.settings-buddy-emoji { font-size: 1.3rem; line-height: 1; }
+
+.settings-buddy-cname {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+
+.settings-buddy-edit {
+  font-size: 0.75rem;
+  color: #aaa;
+  margin-left: 0.1rem;
+}
+
+/* ── Buddy picker grid ── */
+
+.settings-buddy-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0.6rem;
+  background: #fdf4ff;
+  border: 2px solid #e9d5ff;
+  border-radius: 10px;
+  margin-bottom: 0.9rem;
+}
+
+.settings-buddy-opt {
+  width: 36px;
+  height: 36px;
+  font-size: 1.3rem;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.1s, background 0.1s;
+}
+.settings-buddy-opt:hover { border-color: #c77dff; background: #fdf4ff; }
+.settings-buddy-opt--active { border-color: #c77dff; background: #f3e8ff; }
+
 .settings-section {
   display: flex;
   flex-direction: column;
@@ -157,6 +258,30 @@
 .settings-action-btn--danger:hover {
   background: #fff0f0;
   border-color: #ffaaaa;
+}
+
+.settings-action-btn--primary {
+  color: #fff;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-color: transparent;
+  font-weight: 800;
+  text-align: center;
+}
+.settings-action-btn--primary:hover {
+  background: linear-gradient(135deg, #5a6fd6, #6a3f94);
+  border-color: transparent;
+}
+
+.settings-coming-soon {
+  margin: 0.6rem 0 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #6b21a8;
+  background: #f3e8ff;
+  border: 1.5px solid #e9d5ff;
+  border-radius: 8px;
+  padding: 0.5rem 0.7rem;
+  line-height: 1.4;
 }
 
 /* ── Extra Support Mode toggle ─────────────────────────────────── */

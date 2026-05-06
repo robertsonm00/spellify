@@ -1,9 +1,43 @@
-import React from 'react';
+import React, { useState } from 'react';
 import './Settings.css';
 import { YEAR_LABELS, ageToYear } from '../data/ukCurriculum';
+import { YEAR_GROUPS } from '../utils/wordSelectionEngine';
+import { CHARACTERS } from './OnboardingFlow';
 
-function Settings({ userAge, dyslexiaMode = false, childName, childCharacter, onUpdate, onChangeWords, onClearProgress, onClose }) {
-  const year = ageToYear(userAge);
+function Settings({ userAge, dyslexiaMode = false, childName, childCharacter, year: yearProp, onUpdate, onChangeWords, onClearProgress, onClose }) {
+  const currentYear = yearProp ?? ageToYear(userAge);
+
+  const [editName,       setEditName]       = useState(childName || '');
+  const [editCharacter,  setEditCharacter]  = useState(childCharacter || null);
+  const [editYear,       setEditYear]       = useState(currentYear);
+  const [buddyOpen,      setBuddyOpen]      = useState(false);
+  const [comingSoon,     setComingSoon]     = useState(false);
+
+  const save = (patch) => onUpdate(patch);
+
+  const handleNameBlur = () => {
+    const trimmed = editName.trim();
+    if (trimmed && trimmed !== childName) save({ childName: trimmed });
+  };
+
+  const handleCharacterSelect = (char) => {
+    setEditCharacter(char);
+    setBuddyOpen(false);
+    save({ childCharacter: char });
+  };
+
+  const handleYearChange = (e) => {
+    const yr = Number(e.target.value);
+    setEditYear(yr);
+    const group = YEAR_GROUPS.find((g) => g.yearGroup === yr);
+    const age = group?.ageRange[0] ?? userAge;
+    save({ year: yr, age });
+  };
+
+  const handleSaveProfile = () => {
+    setComingSoon(true);
+    setTimeout(() => setComingSoon(false), 3000);
+  };
 
   return (
     <div className="settings-overlay" onClick={onClose}>
@@ -12,27 +46,67 @@ function Settings({ userAge, dyslexiaMode = false, childName, childCharacter, on
 
         <h2 className="settings-title">⚙️ Settings</h2>
 
-        {childName && (
-          <div className="settings-row">
-            <span className="settings-label">Learner</span>
-            <span className="settings-value">
-              {childCharacter?.emoji && (
-                <span className="settings-buddy-icon">{childCharacter.emoji}</span>
-              )}
-              {childName}
-            </span>
+        {/* ── Name ── */}
+        <div className="settings-field-row">
+          <label className="settings-label" htmlFor="settings-name">Name</label>
+          <input
+            id="settings-name"
+            className="settings-input"
+            type="text"
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+            onBlur={handleNameBlur}
+            placeholder="Child's name"
+          />
+        </div>
+
+        {/* ── Buddy ── */}
+        <div className="settings-field-row">
+          <span className="settings-label">Buddy</span>
+          <button
+            className="settings-buddy-trigger"
+            onClick={() => setBuddyOpen((v) => !v)}
+          >
+            <span className="settings-buddy-emoji">{editCharacter?.emoji || '⭐'}</span>
+            <span className="settings-buddy-cname">{editCharacter?.name || 'Choose one'}</span>
+            <span className="settings-buddy-edit">✎</span>
+          </button>
+        </div>
+
+        {buddyOpen && (
+          <div className="settings-buddy-grid">
+            {CHARACTERS.map((char) => (
+              <button
+                key={char.id}
+                className={`settings-buddy-opt${editCharacter?.id === char.id ? ' settings-buddy-opt--active' : ''}`}
+                onClick={() => handleCharacterSelect(char)}
+                title={char.name}
+              >
+                {char.emoji}
+              </button>
+            ))}
           </div>
         )}
 
-        <div className="settings-row">
+        {/* ── School Year ── */}
+        <div className="settings-field-row">
           <span className="settings-label">School Year</span>
-          <span className="settings-value">
-            {YEAR_LABELS[year]} <span className="settings-muted">(age {userAge})</span>
-          </span>
+          <select
+            className="settings-select"
+            value={editYear}
+            onChange={handleYearChange}
+          >
+            {YEAR_GROUPS.map((g) => (
+              <option key={g.yearGroup} value={g.yearGroup}>
+                {g.label} (age {g.ageRange[0]})
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="settings-divider" />
 
+        {/* ── Extra Support Mode ── */}
         <label className="settings-support-toggle">
           <div className="settings-support-text">
             <span className="settings-support-name">⭐ Extra Support Mode</span>
@@ -50,14 +124,34 @@ function Settings({ userAge, dyslexiaMode = false, childName, childCharacter, on
 
         <div className="settings-divider" />
 
+        {/* ── Actions ── */}
         <div className="settings-actions">
           <button className="settings-action-btn" onClick={onChangeWords}>
             📝 Change Words
           </button>
-          <button className="settings-action-btn settings-action-btn--danger" onClick={() => { onClearProgress(); onClose(); }}>
+          <button
+            className="settings-action-btn settings-action-btn--danger"
+            onClick={() => { onClearProgress(); onClose(); }}
+          >
             🔄 Reset Progress
           </button>
         </div>
+
+        <div className="settings-divider" />
+
+        {/* ── Save Profile ── */}
+        <button
+          className="settings-action-btn settings-action-btn--primary"
+          onClick={handleSaveProfile}
+        >
+          💾 Save Profile
+        </button>
+
+        {comingSoon && (
+          <p className="settings-coming-soon">
+            Coming soon — profiles will let you save your progress across devices.
+          </p>
+        )}
       </div>
     </div>
   );

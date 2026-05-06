@@ -125,15 +125,17 @@
   font-size: 0.8rem;
   font-weight: 800;
   padding: 0.42rem 0.85rem;
-  border: 1.5px solid rgba(200, 130, 255, 0.5);
+  border: 2px solid #d4aaff;
   border-radius: 8px;
-  background: rgba(199, 125, 255, 0.18);
-  color: #e8b4ff;
+  background: #f5f0ff;
+  color: #6b21a8;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.15s;
+  width: 100%;
+  text-align: left;
+  transition: background 0.15s, border-color 0.15s;
 }
-.cw-toggle-btn:hover { background: rgba(199, 125, 255, 0.3); }
+.cw-toggle-btn:hover { background: #ede9fe; border-color: #c77dff; }
 
 /* ── Body ── */
 
@@ -196,12 +198,21 @@
   transition: background 0.1s, border-color 0.1s;
 }
 
+/* Clickable pill — pointer + hover */
+.cw-word-row { cursor: pointer; }
+.cw-word-row:not(.cw-word-row--done):hover {
+  background: #fef9c3;
+  border-color: #fbbf24;
+}
+
+
 /* Match the wordsearch success state */
 .cw-word-row--done {
   opacity: 0.45;
   background: #f0fdf4;
   border-color: #86efac;
   color: #166534;
+  cursor: default;
 }
 .cw-word-row--done .cw-word-text {
   text-decoration: line-through;
@@ -220,7 +231,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   letter-spacing: 0.02em;
-  text-transform: lowercase;
+  text-transform: capitalize;
 }
 
 /* ── Grid area ── */
@@ -263,8 +274,8 @@
   min-height: 0;
 }
 
-/* Hover state for interactive squares */
-.cw-cell:not(.cw-cell--black):hover { background: #fef3c7; }
+/* Hover: skip black cells, completed-word cells, and individually-correct cells */
+.cw-cell:not(.cw-cell--black):not(.cw-cell--locked):not(.cw-cell--correct):hover { background: #fef3c7; }
 
 /* Dead squares: no border, no fill — let the page background show through */
 .cw-cell--black {
@@ -293,6 +304,9 @@
 
 /* Correct beats hint */
 .cw-cell--hint.cw-cell--correct { background: #bbf7d0; }
+
+/* Locked: word is fully correct — no hover, default cursor */
+.cw-cell--locked { cursor: default; }
 
 /* Number — top-left */
 .cw-num {

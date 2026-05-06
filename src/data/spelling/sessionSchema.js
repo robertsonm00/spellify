@@ -52,7 +52,17 @@ export function loadSession() {
   try {
     // ── 1. Current key ───────────────────────────────────────────────────────
     const v2Raw = localStorage.getItem(STORAGE_KEY);
-    if (v2Raw) return JSON.parse(v2Raw);
+    if (v2Raw) {
+      const s = JSON.parse(v2Raw);
+      // Ensure fields added after the first v2 release have safe defaults
+      // so sessions created before them still work correctly.
+      return {
+        childName:      '',
+        childCharacter: null,
+        difficulty:     'medium',
+        ...s,
+      };
+    }
 
     // ── 2 & 3. Legacy keys (v1 then bare) ───────────────────────────────────
     const legacyRaw =

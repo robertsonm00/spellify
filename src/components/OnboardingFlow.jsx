@@ -12,7 +12,7 @@ const STARS = Array.from({ length: 60 }, (_, i) => ({
   dim:   i % 3 === 0,
 }));
 
-const CHARACTERS = [
+export const CHARACTERS = [
   { id: 'lion',      emoji: '🦁', name: 'Lion' },
   { id: 'tiger',     emoji: '🐯', name: 'Tiger' },
   { id: 'elephant',  emoji: '🐘', name: 'Elephant' },
@@ -150,7 +150,7 @@ function CharacterPicker({ name, onSelect }) {
           <button
             key={char.id}
             className="ob-character-card"
-            onClick={() => onSelect(char.id)}
+            onClick={() => onSelect(char)}
           >
             <span className="ob-character-emoji">{char.emoji}</span>
             <span className="ob-character-name">{char.name}</span>

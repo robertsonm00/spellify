@@ -1,8 +1,38 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import confetti from 'canvas-confetti';
 import { generateCrossword, wordCells } from '../utils/crosswordEngine';
 import DEFINITIONS from '../data/definitions';
 import { isSafeDefinition } from '../utils/definitionSafety';
 import './Crossword.css';
+
+function playWordChime() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [[523, 0], [659, 0.1], [784, 0.2]].forEach(([freq, delay]) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'triangle';
+      osc.frequency.value = freq;
+      const t = ctx.currentTime + delay;
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.15, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+      osc.start(t);
+      osc.stop(t + 0.25);
+    });
+  } catch { /* AudioContext unavailable */ }
+}
+
+function fireWordConfetti() {
+  confetti({
+    particleCount: 55,
+    spread: 55,
+    origin: { y: 0.45 },
+    colors: ['#6bcb77', '#4d96ff', '#ffd93d', '#c77dff', '#ff6b6b'],
+  });
+}
 
 const HEADER_STARS = Array.from({ length: 40 }, (_, i) => ({
   id: i,
@@ -152,7 +182,7 @@ function isWordComplete(pw, filled) {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onExit }) {
+function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onExit, savedProgress = null, onSaveProgress }) {
   const maxWords = getMaxWords(userAge, difficulty);
   const maxHints = getMaxHints(userAge);
 
@@ -198,8 +228,18 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
       setValidation({ skipped });
       setLayout(built);
       setDefinitions(defs);
+      // Restore mid-session snapshot if one exists.
+      // Flag prevents the celebration effect firing for already-completed words.
+      if (savedProgress?.filled) {
+        restoringRef.current = true;
+        setFilled(new Map(savedProgress.filled));
+        setHints(new Map(savedProgress.hints ?? []));
+        setHintsUsed(savedProgress.hintsUsed ?? 0);
+        setRevealedWords(new Set(savedProgress.revealedWords ?? []));
+      }
     })();
     return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [words, maxWords, userAge]);
 
   useEffect(() => { containerRef.current?.focus(); }, [layout]);
@@ -221,9 +261,71 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
 
   const isGameComplete = layout && completedWords === layout.placedWords.length;
 
+  const lockedCellKeys = useMemo(() => {
+    if (!layout) return new Set();
+    const s = new Set();
+    for (const pw of layout.placedWords) {
+      if (isWordComplete(pw, filled)) {
+        for (const c of wordCells(pw.word, pw.row, pw.col, pw.direction)) {
+          s.add(cellKey(c.row, c.col));
+        }
+      }
+    }
+    return s;
+  }, [layout, filled]);
+
   useEffect(() => {
     if (isGameComplete && !endTime) setEndTime(Date.now());
   }, [isGameComplete, endTime]);
+
+  // Save progress whenever the board changes and at least one word is correct.
+  // Wipe the snapshot when the game finishes.
+  useEffect(() => {
+    if (!layout || !onSaveProgress) return;
+    if (isGameComplete) {
+      onSaveProgress(null);
+      return;
+    }
+    const doneCount = layout.placedWords.filter(pw => isWordComplete(pw, filled)).length;
+    if (doneCount === 0) return;
+    onSaveProgress({
+      filled:       Array.from(filled.entries()),
+      hints:        Array.from(hints.entries()),
+      hintsUsed,
+      revealedWords: Array.from(revealedWords),
+    });
+  }, [filled, layout, isGameComplete, onSaveProgress, hints, hintsUsed, revealedWords]);
+
+  // Celebrate each word the moment it becomes complete.
+  // restoringRef is set true when restoring saved progress so the initial
+  // batch of already-complete words does NOT trigger celebration.
+  const prevCompletedRef = useRef(new Set());
+  const restoringRef     = useRef(false);
+  useEffect(() => {
+    if (!layout) return;
+    const nowComplete = new Set(
+      layout.placedWords.filter(pw => isWordComplete(pw, filled)).map(pw => pw.id)
+    );
+    const justCompleted = [...nowComplete].filter(id => !prevCompletedRef.current.has(id));
+    if (justCompleted.length > 0 && !isGameComplete && !restoringRef.current) {
+      playWordChime();
+      fireWordConfetti();
+    }
+    restoringRef.current   = false;
+    prevCompletedRef.current = nowComplete;
+  }, [filled, layout, isGameComplete]);
+
+  // Word list — shuffled once per layout so order doesn't reveal grid positions
+  const cwWords = useMemo(() => {
+    if (!layout) return [];
+    const arr = [...layout.placedWords];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layout]);
 
   // ── Interaction ────────────────────────────────────────────────────────────
 
@@ -231,6 +333,7 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
     if (!layout) return;
     const wordsHere = getWordsAtCell(layout, row, col);
     if (!wordsHere.length) return;
+    if (wordsHere.every(pw => isWordComplete(pw, filled))) return;
     if (selectedCell?.row === row && selectedCell?.col === col) {
       const other = selDir === 'across' ? 'down' : 'across';
       if (wordsHere.some(pw => pw.direction === other)) setSelDir(other);
@@ -239,7 +342,7 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
       const hasCurrentDir = wordsHere.some(pw => pw.direction === selDir);
       if (!hasCurrentDir) setSelDir(wordsHere[0].direction);
     }
-  }, [layout, selectedCell, selDir]);
+  }, [layout, selectedCell, selDir, filled]);
 
   const advanceCell = useCallback((word, currentRow, currentCol) => {
     const cells = wordCells(word.word, word.row, word.col, word.direction);
@@ -276,6 +379,7 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
 
     if (e.key === 'Backspace' || e.key === 'Delete') {
       e.preventDefault();
+      if (selectedWord && isWordComplete(selectedWord, filled)) return;
       const key = cellKey(selectedCell.row, selectedCell.col);
       if (filled.has(key) && !filled.get(key).isHint) {
         setFilled(prev => { const m = new Map(prev); m.delete(key); return m; });
@@ -301,6 +405,7 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
 
     if (/^[a-zA-Z]$/.test(e.key)) {
       e.preventDefault();
+      if (selectedWord && isWordComplete(selectedWord, filled)) return;
       const letter = e.key.toUpperCase();
       const key    = cellKey(selectedCell.row, selectedCell.col);
       if (filled.get(key)?.isHint) return;
@@ -460,9 +565,6 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
 
   const selectedWordKeys = new Set(selectedWordCells.map(c => cellKey(c.row, c.col)));
 
-  // Word list (unique, sorted by position)
-  const cwWords = [...layout.placedWords].sort((a, b) => a.number - b.number);
-
   const hintLevel    = selectedWord ? (hints.get(selectedWord.id) || 0) : 0;
   const wordDone     = selectedWord ? isWordComplete(selectedWord, filled) : false;
   const canHint      = selectedWord && !wordDone && hintLevel < maxHints;
@@ -475,22 +577,19 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
       onKeyDown={handleKeyDown}
     >
       {/* ── Header ── */}
-      {topbar(
-        <button
-          className="cw-toggle-btn"
-          onClick={() => setWordsVisible(v => !v)}
-          title={wordsVisible ? 'Hide word list' : 'Show word list'}
-        >
-          {wordsVisible ? '🙈 Hide' : '👁 Words'}
-        </button>
-      )}
+      {topbar(null)}
 
       {/* ── Body ── */}
       <div className="cw-body">
-        {/* Word list sidebar */}
-        {wordsVisible && (
-          <aside className="cw-wordlist">
-            <p className="cw-wordlist-title">Word list</p>
+        {/* Word list sidebar — always rendered so toggle button is always visible */}
+        <aside className="cw-wordlist">
+          <button
+            className="cw-toggle-btn"
+            onClick={() => setWordsVisible(v => !v)}
+          >
+            {wordsVisible ? '🙈 Hide word list' : '👁 Show word list'}
+          </button>
+          {wordsVisible && (
             <ul className="cw-word-rows">
               {cwWords.map((pw) => {
                 const done = isWordComplete(pw, filled);
@@ -498,6 +597,28 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
                   <li
                     key={pw.id}
                     className={`cw-word-row${done ? ' cw-word-row--done' : ''}`}
+                    onClick={() => {
+                      // Fill the CURRENTLY SELECTED grid word with this pill's letters.
+                      // Does not reveal which pill belongs to which grid position.
+                      if (!selectedWord || isWordComplete(selectedWord, filled)) return;
+                      const gridCells = wordCells(
+                        selectedWord.word, selectedWord.row, selectedWord.col, selectedWord.direction
+                      );
+                      const letters = pw.word.toUpperCase();
+                      setFilled(prev => {
+                        const m = new Map(prev);
+                        gridCells.forEach((c, i) => {
+                          if (i < letters.length && !prev.get(cellKey(c.row, c.col))?.isHint) {
+                            m.set(cellKey(c.row, c.col), { letter: letters[i], isHint: false });
+                          }
+                        });
+                        return m;
+                      });
+                      // Move cursor to last filled cell
+                      const lastIdx = Math.min(letters.length, gridCells.length) - 1;
+                      setSelectedCell(gridCells[lastIdx]);
+                      containerRef.current?.focus();
+                    }}
                   >
                     {done && <span className="cw-word-check" aria-hidden="true">✓</span>}
                     <span className="cw-word-text">{pw.word.toLowerCase()}</span>
@@ -505,8 +626,8 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
                 );
               })}
             </ul>
-          </aside>
-        )}
+          )}
+        </aside>
 
         {/* Grid */}
         <div className="cw-grid-area">
@@ -527,6 +648,7 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
                 const isWrong     = letter && letter !== info.expected;
                 const isSelected  = selectedCell?.row === r && selectedCell?.col === c;
                 const isInWord    = selectedWordKeys.has(k);
+                const isLocked    = lockedCellKeys.has(k);
 
                 return (
                   <div
@@ -538,6 +660,7 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
                       isCorrect ? 'cw-cell--correct' : '',
                       isWrong   ? 'cw-cell--wrong'   : '',
                       isHintCell ? 'cw-cell--hint'   : '',
+                      isLocked  ? 'cw-cell--locked'  : '',
                     ].filter(Boolean).join(' ')}
                     onClick={() => handleCellClick(r, c)}
                   >
