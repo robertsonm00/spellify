@@ -182,7 +182,7 @@ function isWordComplete(pw, filled) {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onExit, savedProgress = null, onSaveProgress }) {
+function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onExit, savedProgress = null, onSaveProgress, hideTopbar = false }) {
   const maxWords = getMaxWords(userAge, difficulty);
   const maxHints = getMaxHints(userAge);
 
@@ -480,7 +480,7 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
   if (validation === null) {
     return (
       <div className="cw-wrap">
-        {topbar()}
+        {!hideTopbar && topbar()}
         <p className="cw-loading">📖 Checking the dictionary…</p>
       </div>
     );
@@ -490,7 +490,7 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
     const skipped = validation?.skipped ?? [];
     return (
       <div className="cw-wrap">
-        {topbar()}
+        {!hideTopbar && topbar()}
         <p className="cw-error">
           Couldn't build a crossword — need at least 2 dictionary words.
         </p>
@@ -577,7 +577,7 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
       onKeyDown={handleKeyDown}
     >
       {/* ── Header ── */}
-      {topbar(null)}
+      {!hideTopbar && topbar(null)}
 
       {/* ── Body ── */}
       <div className="cw-body">

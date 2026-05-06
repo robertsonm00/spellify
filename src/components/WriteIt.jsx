@@ -107,6 +107,7 @@ function WriteIt({
   onSaveProgress,
   onComplete,
   onExit,
+  hideTopbar = false,
 }) {
   const [rows, setRows] = useState(() => savedProgress?.rows ?? makeInitialState(words));
   const [wordsHidden,     setWordsHidden]     = useState(false);
@@ -334,7 +335,7 @@ function WriteIt({
     <div className={`wi-wrap${dyslexiaMode ? ' wi-wrap--es' : ''}`}>
 
       {/* Screen header */}
-      <div className="wi-topbar wi-no-print">
+      {!hideTopbar && <div className="wi-topbar wi-no-print">
         <div className="wi-topbar-stars" aria-hidden="true">
           {HEADER_STARS.map((s) => (
             <span
@@ -362,7 +363,7 @@ function WriteIt({
             <button className="wi-done-btn" onClick={handleComplete}>✓ Done</button>
           )}
         </div>
-      </div>
+      </div>}
 
       {/* Print-only header */}
       <div className="wi-print-header">

@@ -39,7 +39,7 @@ function getCellsBetween(start, end) {
   }));
 }
 
-export default function WordSearch({ words, savedProgress = null, onSaveProgress, onComplete, onExit, dyslexiaMode = false }) {
+export default function WordSearch({ words, savedProgress = null, onSaveProgress, onComplete, onExit, dyslexiaMode = false, hideTopbar = false }) {
   const [gameState,      setGameState]      = useState(() => savedProgress?.gameState ?? generateWordSearch(words, GRID_SIZE, { dyslexiaMode }));
   const [selectionAnchor, setSelectionAnchor] = useState(null); // click-mode anchor
   const [selectionCells,  setSelectionCells]  = useState([]);
@@ -210,6 +210,7 @@ export default function WordSearch({ words, savedProgress = null, onSaveProgress
     <div className="ws-wrap" onContextMenu={cancelSelection}>
 
       {/* ── Header ── */}
+      {!hideTopbar && (
       <div className="ws-topbar">
         <div className="ws-topbar-stars" aria-hidden="true">
           {HEADER_STARS.map((s) => (
@@ -230,6 +231,7 @@ export default function WordSearch({ words, savedProgress = null, onSaveProgress
           <button className="ws-restart-btn" onClick={() => { if (foundWords.length > 0) setConfirmRestart(true); else resetProgress(); }} title="Restart game">↺ Restart</button>
         </div>
       </div>
+      )}
 
       {/* ── Progress strip — full width, touches header border ── */}
       <div className="ws-progress-strip">

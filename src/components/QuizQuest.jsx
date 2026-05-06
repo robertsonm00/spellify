@@ -396,6 +396,7 @@ export default function QuizQuest({
   onComplete,
   onExit,
   dyslexiaMode = false,
+  hideTopbar = false,
 }) {
   // Build the quiz once per mount. useMemo ensures we don't reshuffle on
   // every state change.
@@ -499,7 +500,7 @@ export default function QuizQuest({
   if (questions.length === 0) {
     return (
       <div className={wrapClass}>
-        {topbar}
+        {!hideTopbar && topbar}
         <div className="qq-stage">
           <div className="qq-card">
             <p className="qq-prompt">No quiz questions could be built from your word list.</p>
@@ -515,7 +516,7 @@ export default function QuizQuest({
   if (phase === 'start') {
     return (
       <div className={wrapClass}>
-        {topbar}
+        {!hideTopbar && topbar}
         <div className="qq-stage">
           <div className="qq-card qq-card--start">
             {/* FUTURE: replace emoji with animated buddy character */}
@@ -548,7 +549,7 @@ export default function QuizQuest({
 
     return (
       <div className={wrapClass}>
-        {topbar}
+        {!hideTopbar && topbar}
         <div className="qq-results">
           <div className="qq-results-score">
             <span className="qq-score-emoji">{emoji}</span>

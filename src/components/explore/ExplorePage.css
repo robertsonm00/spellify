@@ -1,0 +1,323 @@
+/* ── ExplorePage ──────────────────────────────────────── */
+
+.ep-wrap {
+  min-height: calc(100vh - 56px); /* subtract TopNav height */
+  background: linear-gradient(160deg, #f0f4ff 0%, #fdf4ff 100%);
+  font-family: 'Nunito', sans-serif;
+}
+
+/* ── Guest banner ─────────────────────────────────────── */
+
+.ep-guest-banner {
+  background: #fff8e1;
+  border-bottom: 2px solid #ffd93d;
+  padding: 0.55rem 1.5rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #7a5800;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.ep-guest-signin {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #b45309;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.ep-guest-signin:hover { color: #92400e; }
+
+/* ── Content ──────────────────────────────────────────── */
+
+.ep-content {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* ── Year tabs ────────────────────────────────────────── */
+
+.ep-year-tabs {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.ep-year-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.6rem 1.1rem;
+  border-radius: 12px;
+  border: 2.5px solid #e0d9f5;
+  background: #fff;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.5rem;
+  color: #9333ea;
+  cursor: pointer;
+  transition: all 0.15s;
+  min-height: 56px;
+  box-shadow: 3px 3px 0 #e0d9f5;
+}
+
+.ep-year-tab:hover:not(.ep-year-tab--active) {
+  border-color: #c084fc;
+  box-shadow: 3px 3px 0 #c084fc;
+  color: #7e22ce;
+}
+
+.ep-year-tab--active {
+  background: linear-gradient(135deg, #9333ea, #6366f1);
+  border-color: #7e22ce;
+  color: #fff;
+  box-shadow: 3px 3px 0 #6b21a8;
+  transform: translate(1px, 1px);
+}
+
+.ep-year-age {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 700;
+  opacity: 0.75;
+}
+
+/* ── Section ──────────────────────────────────────────── */
+
+.ep-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.ep-section-heading {
+  margin: 0;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.6rem;
+  color: #1a1a2e;
+  letter-spacing: 0.06em;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.ep-section-sub {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #aaa;
+}
+
+/* ── Grid ─────────────────────────────────────────────── */
+
+.ep-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+/* ── List card ────────────────────────────────────────── */
+
+.ep-list-card {
+  background: #fff;
+  border: 2.5px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  overflow: hidden;
+  box-shadow: 3px 3px 0 #e0e0e0;
+  transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Nunito', sans-serif;
+  min-height: 44px;
+}
+
+.ep-list-card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0 #c0a0e8;
+  border-color: #a855f7;
+}
+
+.ep-list-card--done { opacity: 0.85; }
+
+/* Category top strip */
+.ep-list-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.35rem 0.75rem;
+  border-bottom: 2px solid transparent;
+}
+
+.ep-list-cat {
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.ep-list-done-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #22c55e;
+}
+
+.ep-list-progress-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #ff9f43;
+}
+
+/* Card body */
+.ep-list-card-body {
+  padding: 0.75rem 0.9rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex: 1;
+}
+
+.ep-list-name {
+  margin: 0;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.5rem;
+  color: #1a1a2e;
+  line-height: 1.7;
+}
+
+.ep-list-preview {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+
+.ep-list-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: auto;
+}
+
+.ep-list-count {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+/* Inline progress bar */
+.ep-list-pbar-wrap {
+  flex: 1;
+  height: 6px;
+  background: #f0e8ff;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.ep-list-pbar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6bcb77, #4ade80);
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+/* ── Add list card ────────────────────────────────────── */
+
+.ep-add-card {
+  border-style: dashed;
+  border-color: #d8b4fe;
+  box-shadow: none;
+  background: #faf5ff;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+  gap: 0.5rem;
+}
+
+.ep-add-card:hover:not(:disabled) {
+  border-color: #a855f7;
+  background: #f3e8ff;
+  transform: translate(-2px, -2px);
+  box-shadow: 3px 3px 0 #d8b4fe;
+}
+
+.ep-add-card--locked {
+  border-color: #e0e0e0;
+  background: #f5f5f5;
+  opacity: 0.7;
+  cursor: default;
+}
+.ep-add-card--locked:hover {
+  transform: none !important;
+  box-shadow: none !important;
+  border-color: #e0e0e0 !important;
+  background: #f5f5f5 !important;
+}
+
+.ep-add-icon {
+  font-size: 2rem;
+  color: #a855f7;
+}
+
+.ep-add-card--locked .ep-add-icon { color: #ccc; }
+
+.ep-add-label {
+  margin: 0;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.45rem;
+  color: #a855f7;
+  line-height: 1.8;
+  padding: 0 0.5rem;
+  text-align: center;
+}
+
+.ep-add-card--locked .ep-add-label { color: #bbb; }
+
+/* ── My lists hint ────────────────────────────────────── */
+
+.ep-my-lists-hint {
+  margin: 0.25rem 0 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.ep-inline-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #7f77dd;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.ep-inline-link:hover { color: #5b4dd4; }
+
+/* ── Responsive ───────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .ep-grid { grid-template-columns: 1fr 1fr; }
+  .ep-content { padding: 1rem; gap: 1.5rem; }
+  .ep-year-tabs { gap: 0.35rem; }
+  .ep-year-tab { padding: 0.5rem 0.7rem; font-size: 0.45rem; }
+}
+
+@media (max-width: 400px) {
+  .ep-grid { grid-template-columns: 1fr; }
+}

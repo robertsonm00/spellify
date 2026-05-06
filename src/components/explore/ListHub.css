@@ -1,0 +1,298 @@
+/* ── ListHub ──────────────────────────────────────────── */
+
+.lh-wrap {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: linear-gradient(160deg, #f0f4ff 0%, #fdf4ff 100%);
+  font-family: 'Nunito', sans-serif;
+}
+
+/* ── Header ───────────────────────────────────────────── */
+
+.lh-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  border-bottom: 3px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  flex-shrink: 0;
+}
+
+.lh-back {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 800;
+  padding: 0.42rem 0.85rem;
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.15s;
+  min-height: 36px;
+}
+.lh-back:hover { background: rgba(255, 255, 255, 0.18); color: #fff; }
+
+.lh-header-center {
+  flex: 1;
+}
+
+.lh-title {
+  margin: 0 0 0.3rem;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.85rem;
+  color: #fff;
+  line-height: 1.5;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.lh-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.lh-badge {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.lh-word-count,
+.lh-year {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* ── Progress strip ───────────────────────────────────── */
+
+.lh-progress-strip {
+  position: relative;
+  width: 100%;
+  height: 26px;
+  background: #e9d5ff;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.lh-progress-fill {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  background: linear-gradient(90deg, #6bcb77, #4ade80);
+  transition: width 0.4s ease;
+}
+
+.lh-progress-label {
+  position: relative;
+  z-index: 1;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #1a1a2e;
+  padding: 0 1rem;
+  white-space: nowrap;
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
+}
+
+/* ── Body layout ──────────────────────────────────────── */
+
+.lh-body {
+  display: flex;
+  gap: 1.5rem;
+  padding: 1.25rem 1.5rem 2rem;
+  flex: 1;
+  align-items: flex-start;
+}
+
+/* ── Sidebar: word list ───────────────────────────────── */
+
+.lh-sidebar {
+  width: 200px;
+  flex-shrink: 0;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  padding: 1rem;
+  max-height: calc(100vh - 160px);
+  overflow-y: auto;
+  position: sticky;
+  top: 1rem;
+}
+
+.lh-sidebar-title {
+  margin: 0 0 0.75rem;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.55rem;
+  color: #9333ea;
+  letter-spacing: 0.06em;
+}
+
+.lh-word-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.lh-word-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  background: #fafafa;
+  border: 1.5px solid #f0e8ff;
+}
+
+.lh-word-text {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #1e293b;
+  text-transform: capitalize;
+}
+
+.lh-word-def {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #94a3b8;
+  line-height: 1.3;
+}
+
+/* ── Activities grid ──────────────────────────────────── */
+
+.lh-activities {
+  flex: 1;
+  min-width: 0;
+}
+
+.lh-section-title {
+  margin: 0 0 1rem;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.6rem;
+  color: #6b7280;
+  letter-spacing: 0.08em;
+}
+
+.lh-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+/* ── Activity card ────────────────────────────────────── */
+
+.lh-card {
+  background: #fff;
+  border-radius: 10px;
+  border: 3px solid #1a1a2e;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.lh-card:not(.lh-card--locked):hover {
+  transform: translate(-2px, -2px);
+}
+
+.lh-card--locked {
+  cursor: default;
+  opacity: 0.6;
+  border-color: #e0e0e0 !important;
+}
+
+.lh-card--done {
+  opacity: 0.88;
+}
+
+.lh-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 1.1rem 1rem;
+  border-bottom: 3px solid rgba(0, 0, 0, 0.12);
+}
+
+.lh-card-icon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.lh-card-check {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.5rem;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  color: #22c55e;
+  font-size: 0.7rem;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.lh-card-body {
+  padding: 0.85rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.lh-card-name {
+  margin: 0;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.52rem;
+  color: #1a1a2e;
+  line-height: 1.7;
+}
+
+.lh-card-soon {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #aaa;
+  font-style: italic;
+}
+
+.lh-card-status {
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.lh-card-status--not_started { color: #aaa; }
+.lh-card-status--in_progress { color: #ff9f43; }
+.lh-card-status--completed   { color: #22c55e; }
+
+.lh-card-accuracy {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+/* ── Responsive ───────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .lh-body { flex-direction: column; padding: 1rem; }
+  .lh-sidebar { width: 100%; position: static; max-height: 200px; }
+  .lh-grid { grid-template-columns: 1fr 1fr; }
+}

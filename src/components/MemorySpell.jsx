@@ -171,6 +171,7 @@ export default function MemorySpell({
   onComplete,
   onExit,
   dyslexiaMode = false,
+  hideTopbar = false,
 }) {
   // Restore from a mid-session snapshot if one exists.
   const initWordIdx = savedProgress?.wordIdx ?? 0;
@@ -342,7 +343,7 @@ export default function MemorySpell({
 
     return (
       <div className={wrapClass}>
-        {topbar}
+        {!hideTopbar && topbar}
         {progressBar}
         <div className="ms-results">
           <div className="ms-results-score">

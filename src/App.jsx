@@ -11,6 +11,12 @@ import WriteIt        from './components/WriteIt';
 import MemorySpell    from './components/MemorySpell';
 import QuizQuest      from './components/QuizQuest';
 import { loadSession, saveSession, createSession, INITIAL_STATUSES, updateMastery, rebuildReviewQueue, getActivityProgress, setActivityProgress } from './data/spelling/sessionSchema';
+import TopNav         from './components/TopNav';
+import ExplorePage    from './components/explore/ExplorePage';
+import SignInModal    from './components/explore/SignInModal';
+import Settings       from './components/Settings';
+import { GeneratedWords } from './components/OnboardingFlow';
+import { useUser }    from './hooks/useUser';
 
 function hasProgress(activityStatuses) {
   return Object.values(activityStatuses || {}).some(
@@ -18,7 +24,23 @@ function hasProgress(activityStatuses) {
   );
 }
 
+const GAME_TITLES = {
+  wordsearch:  'Word Search',
+  memoryspell: 'Memory Spell',
+  hangman:     'Hangman',
+  crossword:   'Crossword',
+  writeit:     'Write It',
+  quizquest:   'Quiz Quest',
+  review:      'Spelling Quiz',
+};
+
 function App() {
+  const [section,        setSection]        = useState('myWords'); // 'myWords' | 'explore'
+  const [showSignIn,     setShowSignIn]     = useState(false);
+  const [settingsOpen,     setSettingsOpen]     = useState(false);
+  const [changeWordsOpen,  setChangeWordsOpen]  = useState(false);
+  const { user, profile, signIn, signUp, signInWithGoogle, signOut } = useUser();
+
   const [session,        setSession]        = useState(() => loadSession());
   const [screen,         setScreen]         = useState(() => {
     const s = loadSession();
@@ -132,6 +154,7 @@ function App() {
         <WordSearch
           words={words}
           dyslexiaMode={dyslexiaMode}
+          hideTopbar
           savedProgress={getActivityProgress(session, 'wordsearch')}
           onSaveProgress={(p) => handleSaveProgress('wordsearch', p)}
           onComplete={(results) => handleComplete('wordsearch', results)}
@@ -144,6 +167,7 @@ function App() {
           words={words}
           wordObjects={session.wordObjects || []}
           dyslexiaMode={dyslexiaMode}
+          hideTopbar
           savedProgress={getActivityProgress(session, 'memoryspell')}
           onSaveProgress={(p) => handleSaveProgress('memoryspell', p)}
           onComplete={(results) => handleComplete('memoryspell', results)}
@@ -156,6 +180,7 @@ function App() {
           words={words}
           difficulty={difficulty}
           dyslexiaMode={dyslexiaMode}
+          hideTopbar
           savedProgress={getActivityProgress(session, 'hangman')}
           onSaveProgress={(p) => handleSaveProgress('hangman', p)}
           onComplete={(results) => handleComplete('hangman', results)}
@@ -169,6 +194,7 @@ function App() {
           userAge={age || 8}
           difficulty={difficulty}
           dyslexiaMode={dyslexiaMode}
+          hideTopbar
           savedProgress={getActivityProgress(session, 'crossword')}
           onSaveProgress={(p) => handleSaveProgress('crossword', p)}
           onComplete={(results) => handleComplete('crossword', results || [])}
@@ -181,6 +207,7 @@ function App() {
           words={words}
           childName={session.childName || ''}
           dyslexiaMode={dyslexiaMode}
+          hideTopbar
           savedProgress={getActivityProgress(session, 'writeit')}
           onSaveProgress={(p) => handleSaveProgress('writeit', p)}
           onComplete={(results) => handleComplete('writeit', results || [])}
@@ -193,6 +220,7 @@ function App() {
           words={words}
           wordObjects={session.wordObjects || []}
           dyslexiaMode={dyslexiaMode}
+          hideTopbar
           savedProgress={getActivityProgress(session, 'quizquest')}
           onSaveProgress={(p) => handleSaveProgress('quizquest', p)}
           onComplete={(results) => handleComplete('quizquest', results || [])}
@@ -211,7 +239,21 @@ function App() {
       );
     }
 
-    if (Activity) return <AppShell hideHeader={id === 'memoryspell' || id === 'writeit' || id === 'wordsearch' || id === 'hangman' || id === 'crossword' || id === 'quizquest'}>{Activity}</AppShell>;
+    if (Activity) {
+      return (
+        <>
+          <TopNav
+            user={user}
+            profile={profile}
+            onSignInClick={() => setShowSignIn(true)}
+            onSignOut={signOut}
+            onExit={handleExit}
+            gameTitle={GAME_TITLES[id] || ''}
+          />
+          <main className="app-game-main">{Activity}</main>
+        </>
+      );
+    }
   }
 
   // ── Screen routing ───────────────────────────────────────────────────────
@@ -220,36 +262,129 @@ function App() {
   if (screen === 'onboarding') return <OnboardingFlow onComplete={handleOnboardingComplete} />;
 
   if (!session || !session.words || session.words.length === 0) {
+    // Show Explore even without a session — welcome screen not needed if they go via Explore
+    if (section === 'explore') {
+      return (
+        <>
+          <TopNav
+            section={section}
+            onSectionChange={(s) => { setSection(s); if (s === 'myWords') setScreen('welcome'); }}
+            user={user}
+            profile={profile}
+            onSignInClick={() => setShowSignIn(true)}
+            onSignOut={signOut}
+            onExit={() => setScreen('welcome')}
+          />
+          <ExplorePage
+            user={user}
+            profile={profile}
+            signIn={signIn}
+            signUp={signUp}
+            signInWithGoogle={signInWithGoogle}
+          />
+        </>
+      );
+    }
     return <OnboardingFlow onComplete={handleOnboardingComplete} />;
   }
 
   return (
     <>
-      <AppShell hideHeader>
-        <WordListHub
-          words={session.words}
+      {/* ── Top navigation ── */}
+      <TopNav
+        section={section}
+        onSectionChange={setSection}
+        user={user}
+        profile={profile}
+        onSignInClick={() => setShowSignIn(true)}
+        onSignOut={signOut}
+        onExit={handleBackToWelcome}
+        onSettings={() => setSettingsOpen(true)}
+      />
+
+      {/* ── My Words ── */}
+      {section === 'myWords' && (
+        <>
+          <AppShell hideHeader>
+            <WordListHub
+              words={session.words}
+              userAge={session.age || 8}
+              year={session.year ?? null}
+              dyslexiaMode={session.dyslexiaMode || false}
+              difficulty={session.difficulty || 'medium'}
+              activityStatuses={session.activityStatuses}
+              mastery={session.mastery || {}}
+              reviewQueue={session.reviewQueue || []}
+              childName={session.childName || ''}
+              childCharacter={session.childCharacter || null}
+              onLaunch={handleLaunch}
+              onReview={() => handleLaunch('review')}
+              onChangeWords={handleChangeWords}
+              onSettingsUpdate={handleSettingsUpdate}
+              onClearProgress={handleClearProgress}
+              onBackToWelcome={handleBackToWelcome}
+              onOpenChangeWords={() => setChangeWordsOpen(true)}
+            />
+          </AppShell>
+
+          {showExitModal && (
+            <ExitConfirmModal
+              onConfirm={confirmExit}
+              onCancel={() => setShowExitModal(false)}
+            />
+          )}
+        </>
+      )}
+
+      {/* ── Explore ── */}
+      {section === 'explore' && (
+        <ExplorePage
+          user={user}
+          profile={profile}
+          signIn={signIn}
+          signUp={signUp}
+          signInWithGoogle={signInWithGoogle}
+        />
+      )}
+
+      {/* ── Settings modal (triggered from TopNav settings button) ── */}
+      {settingsOpen && session && (
+        <Settings
           userAge={session.age || 8}
           year={session.year ?? null}
           dyslexiaMode={session.dyslexiaMode || false}
-          difficulty={session.difficulty || 'medium'}
-          activityStatuses={session.activityStatuses}
-          mastery={session.mastery || {}}
-          reviewQueue={session.reviewQueue || []}
           childName={session.childName || ''}
           childCharacter={session.childCharacter || null}
-          onLaunch={handleLaunch}
-          onReview={() => handleLaunch('review')}
-          onChangeWords={handleChangeWords}
-          onSettingsUpdate={handleSettingsUpdate}
+          onUpdate={handleSettingsUpdate}
+          onChangeWords={() => { setSettingsOpen(false); setSection('myWords'); setChangeWordsOpen(true); }}
           onClearProgress={handleClearProgress}
-          onBackToWelcome={handleBackToWelcome}
+          onClose={() => setSettingsOpen(false)}
         />
-      </AppShell>
+      )}
 
-      {showExitModal && (
-        <ExitConfirmModal
-          onConfirm={confirmExit}
-          onCancel={() => setShowExitModal(false)}
+      {/* ── Change Words modal ── */}
+      {changeWordsOpen && session?.year != null && (
+        <div className="hub-change-overlay" onClick={() => setChangeWordsOpen(false)}>
+          <div className="hub-change-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="hub-change-close" onClick={() => setChangeWordsOpen(false)} aria-label="Close">✕</button>
+            <GeneratedWords
+              yearGroup={session.year}
+              initialDyslexiaMode={session.dyslexiaMode || false}
+              showSupportToggle={false}
+              confirmLabel="Use these words ▶"
+              onConfirm={(payload) => { handleChangeWords(payload); setChangeWordsOpen(false); }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ── Global sign-in modal (triggered from TopNav) ── */}
+      {showSignIn && (
+        <SignInModal
+          onClose={() => setShowSignIn(false)}
+          signIn={signIn}
+          signUp={signUp}
+          signInWithGoogle={signInWithGoogle}
         />
       )}
     </>

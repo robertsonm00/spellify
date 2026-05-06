@@ -129,6 +129,13 @@ body {
   flex: 1;
 }
 
+/* Game wrapper — sits directly below TopNav (56px) */
+.app-game-main {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 56px);
+}
+
 /* ── Exit confirmation modal ── */
 
 .exit-overlay {

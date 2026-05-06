@@ -1,0 +1,310 @@
+/* ── Top navigation bar ───────────────────────────────── */
+
+.topnav {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0 1.25rem;
+  height: 56px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  border-bottom: 3px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  flex-shrink: 0;
+  z-index: 100;
+}
+
+/* ── Left cluster: exit + brand ───────────────────────── */
+
+.topnav-left {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-shrink: 0;
+}
+
+/* ── Exit button ──────────────────────────────────────── */
+
+.topnav-exit {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 800;
+  padding: 0.38rem 0.8rem;
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.75);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+  min-height: 34px;
+  flex-shrink: 0;
+}
+.topnav-exit:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+/* ── Brand ────────────────────────────────────────────── */
+
+.topnav-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 0;
+  flex-shrink: 0;
+}
+
+.topnav-brand-letter {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 1.1rem;
+  line-height: 1;
+  display: inline-block;
+  text-shadow:
+    0 0 16px currentColor,
+    0 0 32px currentColor,
+    2px 2px 0 rgba(0, 0, 0, 0.5);
+  animation: topnav-float 16s ease-in-out infinite;
+}
+
+@keyframes topnav-float {
+  0%      { transform: translateY(0); }
+  6.25%   { transform: translateY(-4px); }
+  12.5%   { transform: translateY(0); }
+  18.75%  { transform: translateY(-4px); }
+  25%     { transform: translateY(0); }
+  31.25%  { transform: translateY(-4px); }
+  37.5%   { transform: translateY(0); }
+  100%    { transform: translateY(0); }
+}
+
+/* ── Tabs (centre) ────────────────────────────────────── */
+
+.topnav-tabs {
+  display: flex;
+  gap: 0.35rem;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 10px;
+  padding: 4px;
+  margin: 0 auto;
+}
+
+.topnav-tab {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 800;
+  padding: 0.4rem 1.1rem;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.6);
+  background: transparent;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+  min-height: 36px;
+}
+
+.topnav-tab:hover:not(.topnav-tab--active) {
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.topnav-tab--active {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* ── Game title (centre, replaces tabs) ───────────────── */
+
+.topnav-game-title {
+  margin: 0 auto;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.65rem;
+  color: #fff;
+  letter-spacing: 0.06em;
+  text-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 260px;
+}
+
+/* ── Right cluster: settings + user ───────────────────── */
+
+.topnav-right {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-shrink: 0;
+}
+
+/* ── Settings button ──────────────────────────────────── */
+
+.topnav-settings {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 800;
+  padding: 0.38rem 0.8rem;
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.75);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+  min-height: 34px;
+  flex-shrink: 0;
+}
+.topnav-settings:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+/* ── User area ────────────────────────────────────────── */
+
+.topnav-user {
+  flex-shrink: 0;
+}
+
+.topnav-signin {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 800;
+  padding: 0.42rem 1rem;
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  min-height: 36px;
+}
+.topnav-signin:hover {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
+/* ── Avatar pill ──────────────────────────────────────── */
+
+.topnav-avatar-wrap {
+  position: relative;
+}
+
+.topnav-avatar {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.3rem 0.7rem 0.3rem 0.3rem;
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.9);
+  transition: background 0.15s;
+  min-height: 36px;
+}
+.topnav-avatar:hover { background: rgba(255, 255, 255, 0.18); }
+
+.topnav-avatar-initials {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #c77dff, #4d96ff);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.5rem;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.topnav-avatar-name {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 800;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topnav-avatar-caret {
+  font-size: 0.65rem;
+  opacity: 0.7;
+}
+
+/* ── Dropdown ─────────────────────────────────────────── */
+
+.topnav-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 160px;
+  background: #1a1a2e;
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  padding: 0.6rem 0;
+  z-index: 200;
+  animation: topnav-drop 0.12s ease;
+}
+
+@keyframes topnav-drop {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.topnav-dropdown-name {
+  padding: 0.3rem 1rem;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.topnav-dropdown-year {
+  padding: 0 1rem 0.3rem;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.topnav-dropdown-hr {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin: 0.3rem 0;
+}
+
+.topnav-dropdown-signout {
+  width: 100%;
+  text-align: left;
+  padding: 0.45rem 1rem;
+  background: none;
+  border: none;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #ff6b6b;
+  cursor: pointer;
+  transition: background 0.12s;
+  min-height: 36px;
+}
+.topnav-dropdown-signout:hover { background: rgba(255, 107, 107, 0.12); }
+
+/* ── Responsive ───────────────────────────────────────── */
+
+@media (max-width: 600px) {
+  .topnav-avatar-name  { display: none; }
+  .topnav-brand-letter { font-size: 0.75rem; }
+  .topnav-tab          { font-size: 0.72rem; padding: 0.38rem 0.6rem; }
+  .topnav-settings     { font-size: 0.72rem; padding: 0.35rem 0.6rem; }
+  .topnav-exit         { font-size: 0.72rem; padding: 0.35rem 0.6rem; }
+  .topnav-game-title   { font-size: 0.5rem; max-width: 140px; }
+}
+
+@media (max-width: 420px) {
+  .topnav-brand        { display: none; }
+  .topnav-settings span:first-child { display: none; }
+}

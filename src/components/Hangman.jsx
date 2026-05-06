@@ -84,7 +84,7 @@ function HangmanSVG({ stage }) {
   );
 }
 
-function Hangman({ words, difficulty = 'medium', dyslexiaMode = false, childName = '', childCharacter = null, savedProgress = null, onSaveProgress, onComplete, onExit }) {
+function Hangman({ words, difficulty = 'medium', dyslexiaMode = false, childName = '', childCharacter = null, savedProgress = null, onSaveProgress, onComplete, onExit, hideTopbar = false }) {
   const maxWrong = MAX_WRONG[difficulty] ?? 6;
 
   // Validate saved progress belongs to the current word list — wipe it if the list changed.
@@ -218,7 +218,7 @@ function Hangman({ words, difficulty = 'medium', dyslexiaMode = false, childName
 
     return (
       <div className="hm-wrap">
-        {topbar}
+        {!hideTopbar && topbar}
         <div className="hm-progress-strip">
           <div className="hm-bar-fill" style={{ width: '100%' }} />
           <span className="hm-count">{wordResults.filter(r => r.won).length} of {wordResults.length} words guessed</span>

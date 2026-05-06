@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import './WordListHub.css';
-import Settings from './Settings';
-import { GeneratedWords } from './OnboardingFlow';
 import { scoreWord, scoreToBand } from '../utils/difficultyEngine';
 import DEFINITIONS from '../data/definitions';
 import { isSafeDefinition } from '../utils/definitionSafety';
@@ -144,26 +142,6 @@ function WordDetailModal({ word, userAge, chipColor, onClose }) {
   );
 }
 
-const HEADER_STARS = Array.from({ length: 40 }, (_, i) => ({
-  id: i,
-  left:  (i * 37 + 13) % 100,
-  top:   (i * 53 + 7)  % 100,
-  delay: ((i * 0.31) % 3).toFixed(2),
-  size:  6 + (i % 4) * 3,
-  dim:   i % 3 === 0,
-}));
-
-const BRAND_LETTERS = [
-  { letter: 'S', color: '#ff6b6b' },
-  { letter: 'P', color: '#ffd93d' },
-  { letter: 'E', color: '#6bcb77' },
-  { letter: 'L', color: '#4d96ff' },
-  { letter: 'L', color: '#c77dff' },
-  { letter: 'I', color: '#ff9f43' },
-  { letter: 'F', color: '#ff6b6b' },
-  { letter: 'Y', color: '#ffd93d' },
-];
-
 const ACTIVITIES = [
   { id: 'wordsearch',  name: 'Word Search',   icon: '🔍', timeEstimate: '5 mins',  color: '#4d96ff', dark: '#1a5cbf' },
   { id: 'memoryspell', name: 'Memory Spell',  icon: '🧠', timeEstimate: '5 mins',  color: '#6bcb77', dark: '#1e7e34' },
@@ -214,9 +192,8 @@ function WordListHub({
   onSettingsUpdate,
   onClearProgress,
   onBackToWelcome,
+  onOpenChangeWords,
 }) {
-  const [settingsOpen,    setSettingsOpen]    = useState(false);
-  const [changeWordsOpen, setChangeWordsOpen] = useState(false);
   const [activeWord,      setActiveWord]      = useState(null); // { word, chipColor }
 
   const completedCount = ACTIVITIES.filter((a) => activityStatuses[a.id] === 'completed').length;
@@ -227,37 +204,6 @@ function WordListHub({
 
   return (
     <div className="hub-shell">
-      {/* ── Header ── */}
-      <header className="hub-header">
-        <div className="hub-header-stars" aria-hidden="true">
-          {HEADER_STARS.map((s) => (
-            <span
-              key={s.id}
-              className={`hub-header-star${s.dim ? ' hub-header-star--dim' : ''}`}
-              style={{ left: `${s.left}%`, top: `${s.top}%`, fontSize: `${s.size}px`, animationDelay: `${s.delay}s` }}
-            >★</span>
-          ))}
-        </div>
-
-        <button className="hub-exit-btn" onClick={onBackToWelcome}>
-          ← Exit
-        </button>
-
-        <div className="hub-brand" aria-label="Spellify">
-          {BRAND_LETTERS.map(({ letter, color }, i) => (
-            <span
-              key={i}
-              className="hub-brand-letter"
-              style={{ color, animationDelay: `${i * 0.08}s` }}
-            >{letter}</span>
-          ))}
-        </div>
-
-        <button className="hub-settings-trigger" onClick={() => setSettingsOpen(true)}>
-          <span className="hub-settings-trigger-icon">⚙️</span> Settings
-        </button>
-      </header>
-
     <div className="hub">
       {/* ── Welcome section ── */}
       {childName && (
@@ -270,7 +216,7 @@ function WordListHub({
       <section className="hub-words">
         <div className="hub-section-header">
           <span className="hub-section-label">YOUR WORDS ({words.length})</span>
-          <button className="hub-change-btn" onClick={() => setChangeWordsOpen(true)}>Change Words</button>
+          <button className="hub-change-btn" onClick={() => onOpenChangeWords?.()}>Change Words</button>
         </div>
         <div className="hub-chips">
           {words.map((w, i) => {
@@ -378,51 +324,7 @@ function WordListHub({
         />
       )}
 
-      {/* ── Settings modal ── */}
-      {settingsOpen && (
-        <Settings
-          userAge={userAge}
-          year={year}
-          dyslexiaMode={dyslexiaMode}
-          childName={childName}
-          childCharacter={childCharacter}
-          onUpdate={onSettingsUpdate}
-          onChangeWords={() => { setSettingsOpen(false); setChangeWordsOpen(true); }}
-          onClearProgress={() => { onClearProgress(); }}
-          onClose={() => setSettingsOpen(false)}
-        />
-      )}
-
-      {/* ── Change Words modal ── */}
-      {changeWordsOpen && year !== null && (
-        <ChangeWordsModal
-          yearGroup={year}
-          dyslexiaMode={dyslexiaMode}
-          onConfirm={(payload) => {
-            onChangeWords(payload);
-            setChangeWordsOpen(false);
-          }}
-          onClose={() => setChangeWordsOpen(false)}
-        />
-      )}
     </div>
-    </div>
-  );
-}
-
-function ChangeWordsModal({ yearGroup, dyslexiaMode, onConfirm, onClose }) {
-  return (
-    <div className="hub-change-overlay" onClick={onClose}>
-      <div className="hub-change-modal" onClick={(e) => e.stopPropagation()}>
-        <button className="hub-change-close" onClick={onClose} aria-label="Close">✕</button>
-        <GeneratedWords
-          yearGroup={yearGroup}
-          initialDyslexiaMode={dyslexiaMode}
-          showSupportToggle={false}
-          confirmLabel="Use these words ▶"
-          onConfirm={onConfirm}
-        />
-      </div>
     </div>
   );
 }
