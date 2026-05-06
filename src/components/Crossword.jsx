@@ -4,6 +4,24 @@ import DEFINITIONS from '../data/definitions';
 import { isSafeDefinition } from '../utils/definitionSafety';
 import './Crossword.css';
 
+// ── Speech ───────────────────────────────────────────────────────────────────
+
+let cachedCwVoice = null;
+function pickCwVoice() {
+  if (cachedCwVoice) return cachedCwVoice;
+  const voices = window.speechSynthesis?.getVoices?.() || [];
+  cachedCwVoice = voices.find(v => v.lang === 'en-GB') || voices.find(v => v.lang?.startsWith('en')) || null;
+  return cachedCwVoice;
+}
+function speakWord(word) {
+  if (!('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(word);
+  u.lang = 'en-GB'; u.rate = 0.85;
+  const v = pickCwVoice(); if (v) u.voice = v;
+  window.speechSynthesis.speak(u);
+}
+
 // ── Config ───────────────────────────────────────────────────────────────────
 
 function getMaxWords(userAge, difficulty) {
@@ -128,6 +146,7 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
   const [selDir,         setSelDir]         = useState('across');
   const [hints,          setHints]          = useState(new Map());
   const [hintsUsed,      setHintsUsed]      = useState(0);
+  const [revealedWords,  setRevealedWords]  = useState(new Set());
   const [startTime]      = useState(Date.now);
   const [endTime,        setEndTime]        = useState(null);
   const [wordsVisible,   setWordsVisible]   = useState(true);
@@ -299,6 +318,18 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
     }
   };
 
+  const revealAnswer = (wordId) => {
+    const pw = layout?.placedWords.find(p => p.id === wordId);
+    if (!pw) return;
+    const cells = wordCells(pw.word, pw.row, pw.col, pw.direction);
+    setFilled(prev => {
+      const m = new Map(prev);
+      cells.forEach((c, i) => m.set(cellKey(c.row, c.col), { letter: pw.word[i], isHint: true }));
+      return m;
+    });
+    setRevealedWords(prev => new Set(prev).add(wordId));
+  };
+
   // ── Loading & no-layout states ────────────────────────────────────────────
 
   if (validation === null) {
@@ -356,10 +387,17 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
             <button className="cw-done-btn cw-done-btn--secondary" onClick={() => {
               setFilled(new Map()); setHints(new Map());
               setHintsUsed(0); setSelectedCell(null); setEndTime(null);
+              setRevealedWords(new Set());
             }}>
               Try Again
             </button>
-            <button className="cw-done-btn cw-done-btn--primary" onClick={onComplete}>
+            <button className="cw-done-btn cw-done-btn--primary" onClick={() => {
+              const results = layout.placedWords.map(pw => ({
+                word: pw.word,
+                correct: !revealedWords.has(pw.id),
+              }));
+              onComplete(results);
+            }}>
               Back to Hub ▶
             </button>
           </div>
@@ -493,18 +531,28 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
               {definitions.get(selectedWord.word) ?? '…'}
             </p>
             <div className="cw-clue-bar-actions">
+              <button
+                className="cw-hear-btn"
+                onClick={() => speakWord(selectedWord.word)}
+                title="Hear the word"
+              >
+                🔊 Hear the word
+              </button>
               {canHint && (
                 <button
                   className="cw-hint-btn"
                   onClick={() => applyHint(selectedWord.id)}
                 >
-                  💡 Hint {hintLevel + 1}
+                  💡 {hintLevel === 0 ? 'Reveal a letter' : 'Reveal another letter'}
                 </button>
               )}
-              {hintLevel > 0 && (
-                <span className="cw-hint-used">
-                  {hintLevel} hint{hintLevel > 1 ? 's' : ''} used
-                </span>
+              {!canHint && !wordDone && !revealedWords.has(selectedWord.id) && (
+                <button
+                  className="cw-reveal-btn"
+                  onClick={() => revealAnswer(selectedWord.id)}
+                >
+                  👀 Reveal answer
+                </button>
               )}
             </div>
           </>

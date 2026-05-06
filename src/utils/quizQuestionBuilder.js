@@ -39,7 +39,10 @@ function makeChooseSpelling(word) {
 }
 
 function makeFixTheWord(word) {
-  const [misspelling] = generateDistractors(word, 1);
+  // Only use same-length distractors — drop-letter/double-consonant distractors
+  // change the word length and confuse children expecting matching box count.
+  const candidates = generateDistractors(word, 6);
+  const misspelling = candidates.find(d => d.length === word.length);
   if (!misspelling) return null;
   return {
     id: `fix-${word}`,

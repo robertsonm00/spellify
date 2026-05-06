@@ -304,8 +304,6 @@
 .wi-speaker:active,
 .wi-eye:active { transform: scale(0.95); }
 
-.wi-eye { opacity: 0.35; }
-.wi-eye--hidden { opacity: 1; background: #faf5ff; }
 
 .wi-word-text {
   font-size: 1.2rem;

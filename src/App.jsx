@@ -38,9 +38,11 @@ function App() {
 
   const handleWelcomeStart = () => setScreen('onboarding');
 
-  const handleOnboardingComplete = ({ year, age, words, wordObjects = [], dyslexiaMode = false, sourceMode = 'generated', difficulty }) => {
+  const handleOnboardingComplete = ({ name, character, year, age, words, wordObjects = [], dyslexiaMode = false, sourceMode = 'generated', difficulty }) => {
     setSession({
       ...createSession({ year, age, words, wordObjects, sourceMode, dyslexiaMode }),
+      childName: name || '',
+      childCharacter: character || null,
       difficulty: difficulty || 'medium',
       activityStatuses: INITIAL_STATUSES,
     });
@@ -233,6 +235,8 @@ function App() {
           activityStatuses={session.activityStatuses}
           mastery={session.mastery || {}}
           reviewQueue={session.reviewQueue || []}
+          childName={session.childName || ''}
+          childCharacter={session.childCharacter || null}
           onLaunch={handleLaunch}
           onReview={() => handleLaunch('review')}
           onChangeWords={handleChangeWords}

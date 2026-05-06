@@ -241,7 +241,19 @@ function WriteIt({
   const handleChange = (wordIdx, practiceIdx, value) => {
     const row = rows[wordIdx];
     if (!row || row.practices[practiceIdx].done) return;
-    updatePractice(wordIdx, practiceIdx, { value, status: 'idle' });
+    if (isCorrect(value, row.word)) {
+      setWordsHidden(false);
+      setRows(prev => prev.map((r, i) => {
+        if (i !== wordIdx) return r;
+        const practices = r.practices.map((p, j) =>
+          j === practiceIdx ? { ...p, value, done: true, status: 'success' } : p
+        );
+        const allThree = practices.every(p => p.done);
+        return { ...r, practices, celebrated: allThree ? true : r.celebrated };
+      }));
+    } else {
+      updatePractice(wordIdx, practiceIdx, { value, status: 'idle' });
+    }
   };
 
   const handleSubmit = (wordIdx, practiceIdx) => {
@@ -376,14 +388,16 @@ function WriteIt({
                     >
                       🔊
                     </button>
-                    <button
-                      className={`wi-eye wi-no-print${wordsHidden ? ' wi-eye--hidden' : ''}`}
-                      onClick={() => setWordsHidden(h => !h)}
-                      title={wordsHidden ? 'Show words' : 'Hide words'}
-                      aria-label={wordsHidden ? 'Show words' : 'Hide words'}
-                    >
-                      👁
-                    </button>
+                    {wordFaded && (
+                      <button
+                        className="wi-eye wi-no-print"
+                        onClick={() => setWordsHidden(false)}
+                        title="Show words"
+                        aria-label="Show words"
+                      >
+                        👁
+                      </button>
+                    )}
                     <span className={`wi-word-text${wordFaded ? ' wi-word-text--faded' : ''}`}>
                       {row.word}
                     </span>
