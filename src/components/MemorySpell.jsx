@@ -196,16 +196,13 @@ export default function MemorySpell({
       fireConfetti();
     }
     const result = { word, correct, hintsUsed: { ...hintsRef.current }, typed: value };
+    const next = [...results, result];
     setLastResult(result);
-    setResults(prev => {
-      const next = [...prev, result];
-      // Save the NEXT word index so resuming after this feedback screen starts
-      // at the correct word rather than re-showing the one just answered.
-      onSaveProgress?.({ wordIdx: wordIdx + 1, results: next });
-      return next;
-    });
+    setResults(next);
+    // Save outside any updater function to avoid setState-during-render warning.
+    onSaveProgress?.({ wordIdx: wordIdx + 1, results: next });
     setPhase('feedback');
-  }, [word, wordIdx, onSaveProgress]);
+  }, [word, wordIdx, results, onSaveProgress]);
 
   // ── Input handlers ─────────────────────────────────────────────────────────
 

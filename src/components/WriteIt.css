@@ -22,6 +22,7 @@
 }
 
 .wi-back,
+.wi-restart-btn,
 .wi-print-btn,
 .wi-done-btn {
   font-family: 'Nunito', sans-serif;
@@ -36,7 +37,8 @@
   white-space: nowrap;
   transition: background 0.1s, border-color 0.1s;
 }
-.wi-back:hover { background: #f5f5f5; }
+.wi-back:hover,
+.wi-restart-btn:hover { background: #f5f5f5; }
 
 .wi-print-btn {
   border-color: #a855f7;
@@ -67,14 +69,14 @@
   gap: 0.5rem;
 }
 
-/* ── Method banner ────────────────────────────────────────────────────────── */
+/* ── Method banner — floating icons only, no boxes ────────────────────────── */
 
 .wi-steps {
   display: flex;
-  align-items: stretch;
+  align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  padding: 0.85rem 1rem;
+  gap: 1.25rem;
+  padding: 0.65rem 1rem;
   flex-wrap: wrap;
 }
 
@@ -82,13 +84,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.2rem;
-  background: #fff;
-  border: 2px solid #c4a8f5;
-  border-radius: 12px;
-  padding: 0.5rem 0.85rem;
-  min-width: 64px;
-  box-shadow: 2px 2px 0 #a855f7;
+  gap: 0.15rem;
 }
 
 .wi-step-icon {
@@ -99,28 +95,51 @@
 .wi-step-label {
   font-size: 0.7rem;
   font-weight: 800;
-  color: #581c87;
+  color: #6b21a8;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
-/* ── Table layout ─────────────────────────────────────────────────────────── */
+/* Reveal words button — appears when words are faded */
+.wi-reveal-words-btn {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.3rem 0.8rem;
+  border: 1.5px solid #c4a8f5;
+  border-radius: 8px;
+  background: #fff;
+  color: #6b21a8;
+  cursor: pointer;
+  transition: background 0.1s;
+  margin-left: 0.5rem;
+}
+.wi-reveal-words-btn:hover { background: #f5f0ff; }
 
-.wi-table {
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
+/* ── Table outer — provides horizontal scroll ─────────────────────────────── */
+
+.wi-table-outer {
+  overflow-x: auto;
   padding: 0 1rem;
   max-width: 1100px;
   width: 100%;
   margin: 0 auto;
 }
 
+/* ── Table inner ──────────────────────────────────────────────────────────── */
+
+.wi-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-width: max-content;
+  width: 100%;
+}
+
 .wi-thead,
 .wi-row {
   display: grid;
-  grid-template-columns: minmax(200px, 1.4fr) repeat(3, minmax(0, 1fr));
-  gap: 0.55rem;
+  gap: 0.45rem;
   align-items: stretch;
 }
 
@@ -130,28 +149,27 @@
 
 .wi-th {
   font-family: 'Press Start 2P', monospace;
-  font-size: 0.55rem;
+  font-size: 0.52rem;
   text-transform: uppercase;
   color: #6b21a8;
   letter-spacing: 0.06em;
-  padding: 0.4rem 0.6rem;
+  padding: 0.4rem 0.5rem;
   text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.wi-th--word { text-align: left; }
+.wi-th--word  { text-align: left; }
+.wi-th--done  { color: #16a34a; }
+.wi-th--active { color: #6b21a8; }
+.wi-th--locked { color: #9ca3af; }
+
+/* ── Row — no border ──────────────────────────────────────────────────────── */
 
 .wi-row {
   position: relative;
-  background: rgba(255, 255, 255, 0.5);
-  border: 1.5px solid #e0d5f5;
-  border-radius: 12px;
-  padding: 0.5rem;
-  transition: background 0.2s, border-color 0.2s;
-}
-
-.wi-row--done {
-  background: #f0fdf4;
-  border-color: #86efac;
+  transition: background 0.2s;
 }
 
 .wi-row--celebrate { animation: rowGlow 1.5s ease-out; }
@@ -171,6 +189,7 @@
   pointer-events: none;
   animation: burst 1.5s ease-out forwards;
   white-space: nowrap;
+  z-index: 10;
 }
 
 @keyframes burst {
@@ -194,15 +213,44 @@
   min-width: 0;
 }
 
+/* Word cell — sticky so it freezes during horizontal scroll */
 .wi-cell--word {
   background: #faf5ff;
   border-color: #d8b4fe;
+  position: sticky;
+  left: 0;
+  z-index: 2;
 }
 
+/* Completed tick cell */
+.wi-cell--tick {
+  background: #f0fdf4;
+  border-color: #86efac;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem;
+}
+
+.wi-tick {
+  font-size: 1.1rem;
+  color: #16a34a;
+  font-weight: 900;
+  line-height: 1;
+}
+
+/* Locked future cell */
 .wi-cell--locked {
-  background: #f3f4f6;
+  background: #f9fafb;
   border-color: #e5e7eb;
-  opacity: 0.55;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.45;
+  padding: 0.4rem;
+}
+
+.wi-lock-icon {
+  font-size: 0.95rem;
+  line-height: 1;
 }
 
 .wi-cell--success {
@@ -245,7 +293,7 @@
   flex-shrink: 0;
   transition: transform 0.1s, background 0.1s;
 }
-.wi-speaker:hover { background: #f5f0ff; transform: scale(1.05); }
+.wi-speaker:hover  { background: #f5f0ff; transform: scale(1.05); }
 .wi-speaker:active { transform: scale(0.95); }
 
 .wi-word-text {
@@ -260,17 +308,23 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   flex: 1;
+  transition: opacity 2s ease;
 }
 
-/* Cover the word on screen — DOM still holds the real text so print can
-   render it. Pseudo-element overlays the dots while the text is masked. */
-.wi-word-text--hidden {
+/* P1 focus fade — smooth 2-second opacity transition */
+.wi-word-text--faded {
+  opacity: 0;
+}
+
+/* Round > 0 cover — dots overlay, word stays in DOM for print */
+.wi-word-text--covered {
   position: relative;
   color: transparent;
   text-shadow: none;
   user-select: none;
+  transition: none; /* no transition — instant cover between rounds */
 }
-.wi-word-text--hidden::before {
+.wi-word-text--covered::before {
   content: '· · · · ·';
   position: absolute;
   inset: 0;
@@ -316,7 +370,6 @@
   transition: border-color 0.1s, background 0.1s;
 }
 .wi-input:focus { border-color: #a855f7; background: #faf5ff; }
-
 .wi-input:disabled {
   background: #f9fafb;
   color: #9ca3af;
@@ -324,16 +377,8 @@
   cursor: not-allowed;
 }
 
-.wi-cell--success .wi-input {
-  border-color: #6bcb77;
-  background: #f0fdf4;
-  color: #166534;
-}
-
-.wi-cell--retry .wi-input {
-  border-color: #f59e0b;
-  background: #fffbeb;
-}
+.wi-cell--success .wi-input { border-color: #6bcb77; background: #f0fdf4; color: #166534; }
+.wi-cell--retry   .wi-input { border-color: #f59e0b; background: #fffbeb; }
 
 .wi-check-btn {
   background: #a855f7;
@@ -373,7 +418,6 @@
   font-weight: 700;
   text-align: center;
 }
-
 .wi-feedback--retry { color: #b45309; }
 
 .wi-helper {
@@ -396,7 +440,29 @@
   letter-spacing: 0.05em;
 }
 
-/* ── Full-list completion ─────────────────────────────────────────────────── */
+/* ── Add Practice button ──────────────────────────────────────────────────── */
+
+.wi-add-practice-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 0.75rem 1rem 0;
+}
+
+.wi-add-practice-btn {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 800;
+  padding: 0.5rem 1.25rem;
+  border: 2px dashed #a855f7;
+  border-radius: 10px;
+  background: #faf5ff;
+  color: #6b21a8;
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s;
+}
+.wi-add-practice-btn:hover { background: #f0e8ff; border-color: #7c3aed; }
+
+/* ── Full-list completion overlay ─────────────────────────────────────────── */
 
 .wi-complete {
   position: fixed;
@@ -482,15 +548,14 @@
     color: #000;
   }
 
-  .wi-table {
-    max-width: 100%;
-    padding: 0 1rem;
-    gap: 0;
-  }
+  .wi-table-outer { overflow: visible; padding: 0 1rem; max-width: 100%; }
+
+  .wi-table { gap: 0; min-width: auto; }
 
   .wi-thead,
   .wi-row {
-    grid-template-columns: minmax(120px, 1fr) repeat(3, 1fr);
+    /* Print: equal columns */
+    grid-template-columns: minmax(120px, 1fr) repeat(3, 1fr) !important;
     gap: 0;
     page-break-inside: avoid;
   }
@@ -506,15 +571,13 @@
     -webkit-print-color-adjust: exact;
   }
 
-  .wi-row {
-    background: #fff !important;
-    border: none;
-    padding: 0;
-  }
+  .wi-row { background: #fff !important; padding: 0; }
 
   .wi-cell,
   .wi-cell--success,
-  .wi-cell--retry {
+  .wi-cell--retry,
+  .wi-cell--tick,
+  .wi-cell--locked {
     background: #fff !important;
     border: 1px solid #000;
     border-top: none;
@@ -525,25 +588,26 @@
     box-shadow: none !important;
     color: #000 !important;
     animation: none !important;
+    opacity: 1 !important;
+    position: static !important;
   }
   .wi-row .wi-cell:first-child { border-left: 1px solid #000; }
 
-  .wi-cell--word {
-    font-weight: 800;
-  }
-
-  /* Print: word column always shows the word, practice cells always blank */
+  /* Print: word column always shows the word */
   .wi-word-text,
-  .wi-word-text--hidden {
+  .wi-word-text--faded,
+  .wi-word-text--covered {
     color: #000 !important;
+    opacity: 1 !important;
     letter-spacing: 0.03em;
     font-size: 1rem;
     text-shadow: none !important;
+    transition: none !important;
   }
-  .wi-word-text--hidden::before { content: none !important; }
+  .wi-word-text--covered::before { content: none !important; }
 
+  /* Print: practice cells show blank input areas */
   .wi-input-wrap { display: block; }
-
   .wi-input {
     border: none !important;
     background: transparent !important;
@@ -552,7 +616,7 @@
     padding: 0;
     height: 1.2rem;
   }
-  .wi-input:disabled { color: transparent !important; }
+  .wi-input:disabled    { color: transparent !important; }
   .wi-input::placeholder { color: transparent !important; }
 
   .wi-helper,

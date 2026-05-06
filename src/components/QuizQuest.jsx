@@ -402,15 +402,13 @@ export default function QuizQuest({
         fireConfetti();
       }
       const result = { word: question.word, correct, given };
+      const next = [...results, result];
       setLastResult(result);
-      setResults((prev) => {
-        const next = [...prev, result];
-        onSaveProgress?.({ qIdx: qIdx + 1, results: next });
-        return next;
-      });
+      setResults(next);
+      onSaveProgress?.({ qIdx: qIdx + 1, results: next });
       setPhase('feedback');
     },
-    [question, qIdx, onSaveProgress]
+    [question, qIdx, results, onSaveProgress]
   );
 
   const handleNext = () => {

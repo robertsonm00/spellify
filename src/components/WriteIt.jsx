@@ -36,23 +36,22 @@ const STEPS = [
   { icon: '✅', label: 'Check' },
 ];
 
-const PRACTICE_LABELS = ['1st Practice', '2nd Practice', '3rd Practice'];
-const NUM_PRACTICES   = 3;
+const NUM_BASE = 3; // base practices that count toward 100%
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function makeInitialState(words) {
   return words.map(w => ({
-    word:        w,
-    practices:   Array.from({ length: NUM_PRACTICES }, () => ({
-      value:       '',
-      done:        false,
-      attempts:    0,    // failed attempts in this cell so far
-      revealHint:  false, // show the answer above the input after 2 misses
-      status:      'idle', // idle | trying | success
+    word:       w,
+    practices:  Array.from({ length: NUM_BASE }, () => ({
+      value:      '',
+      done:       false,
+      attempts:   0,
+      revealHint: false,
+      status:     'idle',
     })),
-    revealed:    false,    // manual show-word toggle for 2nd/3rd practice
-    celebrated:  false,    // small per-row celebration shown
+    revealed:   false,
+    celebrated: false,
   }));
 }
 
@@ -60,14 +59,63 @@ function isCorrect(input, target) {
   return input.trim().toLowerCase() === target.trim().toLowerCase();
 }
 
+function getPracticeLabel(i) {
+  if (i === 0) return '1st Practice';
+  if (i === 1) return '2nd Practice';
+  if (i === 2) return '3rd Practice';
+  return `Extra ${i - 2}`;
+}
+
 // ── Component ────────────────────────────────────────────────────────────────
 
-function WriteIt({ words, childName = '', dyslexiaMode = false, onComplete, onExit }) {
-  const [rows, setRows] = useState(() => makeInitialState(words));
-  const [allDone, setAllDone] = useState(false);
-  const inputRefs = useRef({});
+function WriteIt({
+  words,
+  childName = '',
+  dyslexiaMode = false,
+  savedProgress = null,
+  onSaveProgress,
+  onComplete,
+  onExit,
+}) {
+  const [rows, setRows] = useState(() => savedProgress?.rows ?? makeInitialState(words));
+  const [wordsHidden,  setWordsHidden]  = useState(false);
+  const [justCompleted, setJustCompleted] = useState(false);
+  const [confettiFired, setConfettiFired] = useState(() => {
+    if (!savedProgress?.rows) return false;
+    return savedProgress.rows.every(r =>
+      r.practices.slice(0, NUM_BASE).every(p => p.done)
+    );
+  });
 
-  // Warm up speech voices (Chrome populates voices async)
+  const inputRefs        = useRef({});
+  const onSaveRef        = useRef(onSaveProgress);
+  onSaveRef.current      = onSaveProgress;
+  const prevRoundRef     = useRef(null);
+
+  // ── Derived ────────────────────────────────────────────────────────────────
+
+  const numPractices = rows[0]?.practices.length ?? NUM_BASE;
+
+  const currentRound = (() => {
+    for (let r = 0; r < numPractices; r++) {
+      if (rows.some(row => !row.practices[r]?.done)) return r;
+    }
+    return numPractices; // all done
+  })();
+
+  const baseAllDone = currentRound >= NUM_BASE;
+
+  const gridTemplate = [
+    'minmax(120px, 200px)',
+    ...Array.from({ length: numPractices }, (_, i) => {
+      if (i < currentRound || currentRound >= numPractices) return '52px';
+      if (i === currentRound) return 'minmax(150px, 1fr)';
+      return '72px';
+    }),
+  ].join(' ');
+
+  // ── Warm up voices ─────────────────────────────────────────────────────────
+
   useEffect(() => {
     if (!('speechSynthesis' in window)) return;
     pickUkVoice();
@@ -76,11 +124,19 @@ function WriteIt({ words, childName = '', dyslexiaMode = false, onComplete, onEx
     return () => window.speechSynthesis.removeEventListener?.('voiceschanged', onChange);
   }, []);
 
-  // Detect full-list completion → fire confetti, fade celebration
+  // ── Save progress whenever rows change (if any work done) ──────────────────
+
   useEffect(() => {
-    const everyDone = rows.every(r => r.practices.every(p => p.done));
-    if (everyDone && !allDone) {
-      setAllDone(true);
+    const anyDone = rows.some(r => r.practices.some(p => p.done));
+    if (anyDone) onSaveRef.current?.({ rows });
+  }, [rows]);
+
+  // ── Completion celebration ─────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (baseAllDone && !confettiFired) {
+      setConfettiFired(true);
+      setJustCompleted(true);
       const end = Date.now() + 3000;
       const tick = () => {
         confetti({
@@ -88,13 +144,45 @@ function WriteIt({ words, childName = '', dyslexiaMode = false, onComplete, onEx
           startVelocity: 35,
           spread: 60,
           origin: { x: Math.random(), y: Math.random() * 0.5 },
-          colors: ['#ff6b6b', '#ffd93d', '#6bcb77', '#4d96ff', '#c77dff', '#ff9f43'],
+          colors: ['#ff6b6b', '#ffd93d', '#6bcb77', '#4d96ff', '#c77dff'],
         });
         if (Date.now() < end) requestAnimationFrame(tick);
       };
       tick();
+      setTimeout(() => setJustCompleted(false), 3500);
     }
-  }, [rows, allDone]);
+  }, [baseAllDone, confettiFired]);
+
+  // ── Reset revealed flags when round advances ───────────────────────────────
+
+  useEffect(() => {
+    if (prevRoundRef.current !== null && prevRoundRef.current !== currentRound) {
+      setRows(prev => prev.map(r => ({ ...r, revealed: false })));
+      setWordsHidden(false);
+    }
+    prevRoundRef.current = currentRound;
+  }, [currentRound]);
+
+  // ── Per-word celebrate auto-fade ───────────────────────────────────────────
+
+  useEffect(() => {
+    const stillCelebrating = rows.some(r => r.celebrated);
+    if (!stillCelebrating) return;
+    const t = setTimeout(() => {
+      setRows(prev => prev.map(r => r.celebrated ? { ...r, celebrated: false } : r));
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [rows]);
+
+  // ── Handlers ───────────────────────────────────────────────────────────────
+
+  const handleRestart = () => {
+    onSaveRef.current?.(null);
+    setRows(makeInitialState(words));
+    setWordsHidden(false);
+    setJustCompleted(false);
+    setConfettiFired(false);
+  };
 
   const updatePractice = useCallback((wordIdx, practiceIdx, patch) => {
     setRows(prev => prev.map((r, i) => {
@@ -119,12 +207,9 @@ function WriteIt({ words, childName = '', dyslexiaMode = false, onComplete, onEx
     if (cell.done) return;
 
     if (isCorrect(cell.value, row.word)) {
-      updatePractice(wordIdx, practiceIdx, {
-        done:   true,
-        status: 'success',
-      });
+      // Reveal words if this was a P1 submission
+      if (currentRound === 0) setWordsHidden(false);
 
-      // Check whether all 3 practices for this word are done — small reward
       setRows(prev => prev.map((r, i) => {
         if (i !== wordIdx) return r;
         const practices = r.practices.map((p, j) =>
@@ -133,13 +218,6 @@ function WriteIt({ words, childName = '', dyslexiaMode = false, onComplete, onEx
         const allThree = practices.every(p => p.done);
         return { ...r, practices, celebrated: allThree ? true : r.celebrated };
       }));
-
-      // Auto-advance focus to the next practice cell for the same word
-      setTimeout(() => {
-        if (practiceIdx < NUM_PRACTICES - 1) {
-          inputRefs.current[`${wordIdx}-${practiceIdx + 1}`]?.focus();
-        }
-      }, 200);
     } else {
       const next = cell.attempts + 1;
       updatePractice(wordIdx, practiceIdx, {
@@ -157,47 +235,45 @@ function WriteIt({ words, childName = '', dyslexiaMode = false, onComplete, onEx
     }
   };
 
+  const handleInputFocus = () => {
+    if (currentRound === 0) setWordsHidden(true);
+  };
+
   const toggleReveal = (wordIdx) => {
     setRows(prev => prev.map((r, i) =>
       i === wordIdx ? { ...r, revealed: !r.revealed } : r
     ));
   };
 
-  // ── Per-word celebration auto-fade ─────────────────────────────────────────
+  const addPractice = () => {
+    setRows(prev => prev.map(r => ({
+      ...r,
+      practices: [
+        ...r.practices,
+        { value: '', done: false, attempts: 0, revealHint: false, status: 'idle' },
+      ],
+    })));
+  };
 
-  useEffect(() => {
-    const stillCelebrating = rows.some(r => r.celebrated);
-    if (!stillCelebrating) return;
-    const t = setTimeout(() => {
-      setRows(prev => prev.map(r => r.celebrated ? { ...r, celebrated: false } : r));
-    }, 1500);
-    return () => clearTimeout(t);
-  }, [rows]);
-
-  // Determine the active practice index for a word (first not-done, else 3 = all done)
-  const activeIndex = (row) =>
-    row.practices.findIndex(p => !p.done) === -1 ? NUM_PRACTICES : row.practices.findIndex(p => !p.done);
+  const handleComplete = () => {
+    onSaveRef.current?.(null);
+    onComplete(rows.map(r => ({ word: r.word, correct: r.practices.slice(0, NUM_BASE).every(p => p.done) })));
+  };
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <div className={`wi-wrap${dyslexiaMode ? ' wi-wrap--es' : ''}`}>
-      {/* On-screen header */}
+
+      {/* Screen header */}
       <div className="wi-topbar wi-no-print">
         <button className="wi-back" onClick={onExit}>← Hub</button>
         <h2 className="wi-title">Write It</h2>
         <div className="wi-topbar-actions">
-          <button
-            className="wi-print-btn"
-            onClick={() => window.print()}
-            title="Print as a worksheet"
-          >
-            🖨 Print
-          </button>
-          {allDone && (
-            <button className="wi-done-btn" onClick={() => onComplete(rows.map(r => ({ word: r.word, correct: true })))}>
-              Back to Hub ▶
-            </button>
+          <button className="wi-restart-btn" onClick={handleRestart} title="Restart">↺ Restart</button>
+          <button className="wi-print-btn" onClick={() => window.print()} title="Print as worksheet">🖨 Print</button>
+          {baseAllDone && (
+            <button className="wi-done-btn" onClick={handleComplete}>Back to Hub ▶</button>
           )}
         </div>
       </div>
@@ -211,7 +287,7 @@ function WriteIt({ words, childName = '', dyslexiaMode = false, onComplete, onEx
         </p>
       </div>
 
-      {/* Method banner */}
+      {/* Method banner — no boxes, just floating steps */}
       <div className="wi-steps wi-no-print">
         {STEPS.map((s) => (
           <div key={s.label} className="wi-step">
@@ -219,116 +295,155 @@ function WriteIt({ words, childName = '', dyslexiaMode = false, onComplete, onEx
             <span className="wi-step-label">{s.label}</span>
           </div>
         ))}
+        {wordsHidden && currentRound === 0 && (
+          <button className="wi-reveal-words-btn" onClick={() => setWordsHidden(false)}>
+            👁 Show words
+          </button>
+        )}
       </div>
 
-      {/* Column headers */}
-      <div className="wi-table">
-        <div className="wi-thead">
-          <div className="wi-th wi-th--word">Word</div>
-          {PRACTICE_LABELS.map((label) => (
-            <div key={label} className="wi-th">{label}</div>
-          ))}
-        </div>
+      {/* Table */}
+      <div className="wi-table-outer">
+        <div className="wi-table">
 
-        {/* Rows */}
-        {rows.map((row, wordIdx) => {
-          const active        = activeIndex(row);
-          const allWordDone   = active === NUM_PRACTICES;
-          const showWordChip  = active === 0 || row.revealed || allWordDone;
+          {/* Column headers */}
+          <div className="wi-thead" style={{ gridTemplateColumns: gridTemplate }}>
+            <div className="wi-th wi-th--word">Word</div>
+            {Array.from({ length: numPractices }, (_, i) => {
+              if (i < currentRound || currentRound >= numPractices)
+                return <div key={i} className="wi-th wi-th--done">✓</div>;
+              if (i === currentRound)
+                return <div key={i} className="wi-th wi-th--active">{getPracticeLabel(i)}</div>;
+              return <div key={i} className="wi-th wi-th--locked">P{i + 1}</div>;
+            })}
+          </div>
 
-          return (
-            <div
-              key={row.word}
-              className={`wi-row${allWordDone ? ' wi-row--done' : ''}${row.celebrated ? ' wi-row--celebrate' : ''}`}
-            >
-              {row.celebrated && (
-                <div className="wi-row-burst" aria-hidden="true">⭐ ✨ 🌟 ✨ ⭐</div>
-              )}
+          {/* Word rows */}
+          {rows.map((row, wordIdx) => {
+            const allRowDone = row.practices.every(p => p.done);
+            const wordFaded   = wordsHidden && currentRound === 0;
+            const wordCovered = currentRound > 0 && !row.revealed && !allRowDone;
 
-              {/* Word column */}
-              <div className="wi-cell wi-cell--word">
-                <div className="wi-word-display">
-                  <button
-                    className="wi-speaker wi-no-print"
-                    onClick={() => speak(row.word)}
-                    title="Hear this word"
-                    aria-label={`Hear ${row.word}`}
-                  >
-                    🔊
-                  </button>
-                  <span className={`wi-word-text${showWordChip ? '' : ' wi-word-text--hidden'}`}>
-                    {row.word}
-                  </span>
-                </div>
-                {active > 0 && !allWordDone && (
-                  <button
-                    className="wi-reveal-btn wi-no-print"
-                    onClick={() => toggleReveal(wordIdx)}
-                  >
-                    {row.revealed ? 'Hide word' : 'Show word'}
-                  </button>
+            return (
+              <div
+                key={row.word}
+                className={`wi-row${allRowDone ? ' wi-row--done' : ''}${row.celebrated ? ' wi-row--celebrate' : ''}`}
+                style={{ gridTemplateColumns: gridTemplate }}
+              >
+                {row.celebrated && (
+                  <div className="wi-row-burst" aria-hidden="true">⭐ ✨ 🌟 ✨ ⭐</div>
                 )}
-              </div>
 
-              {/* Practice cells */}
-              {row.practices.map((cell, practiceIdx) => {
-                const locked  = practiceIdx > active;
-                const isDone  = cell.done;
-                const stateClass =
-                  isDone           ? 'wi-cell--success' :
-                  cell.status === 'trying' ? 'wi-cell--retry'  : '';
+                {/* Word cell — sticky */}
+                <div className="wi-cell wi-cell--word">
+                  <div className="wi-word-display">
+                    <button
+                      className="wi-speaker wi-no-print"
+                      onClick={() => speak(row.word)}
+                      title="Hear this word"
+                      aria-label={`Hear ${row.word}`}
+                    >
+                      🔊
+                    </button>
+                    <span className={`wi-word-text${wordFaded ? ' wi-word-text--faded' : ''}${wordCovered ? ' wi-word-text--covered' : ''}`}>
+                      {row.word}
+                    </span>
+                  </div>
+                  {currentRound > 0 && !allRowDone && (
+                    <button
+                      className="wi-reveal-btn wi-no-print"
+                      onClick={() => toggleReveal(wordIdx)}
+                    >
+                      {row.revealed ? 'Hide' : 'Peek'}
+                    </button>
+                  )}
+                </div>
 
-                return (
-                  <div
-                    key={practiceIdx}
-                    className={`wi-cell wi-cell--practice ${stateClass}${locked ? ' wi-cell--locked' : ''}`}
-                  >
-                    {cell.revealHint && !isDone && (
-                      <div className="wi-helper">
-                        Here it is — give it another go 💪
-                        <strong className="wi-helper-word">{row.word}</strong>
+                {/* Practice cells */}
+                {row.practices.map((cell, practiceIdx) => {
+                  // Completed column
+                  if (practiceIdx < currentRound || currentRound >= numPractices) {
+                    return (
+                      <div key={practiceIdx} className="wi-cell wi-cell--tick">
+                        <span className="wi-tick">✓</span>
                       </div>
-                    )}
+                    );
+                  }
 
-                    <div className="wi-input-wrap">
-                      <input
-                        ref={(el) => { inputRefs.current[`${wordIdx}-${practiceIdx}`] = el; }}
-                        type="text"
-                        className="wi-input"
-                        value={cell.value}
-                        onChange={(e) => handleChange(wordIdx, practiceIdx, e.target.value)}
-                        onKeyDown={(e) => handleKeyDown(e, wordIdx, practiceIdx)}
-                        disabled={locked || isDone}
-                        placeholder={locked ? '🔒' : 'Type here…'}
-                        autoComplete="off"
-                        autoCorrect="off"
-                        autoCapitalize="off"
-                        spellCheck="false"
-                      />
-                      {!locked && !isDone && (
-                        <button
-                          className="wi-check-btn wi-no-print"
-                          onClick={() => handleSubmit(wordIdx, practiceIdx)}
-                        >
-                          Check
-                        </button>
+                  // Locked future column
+                  if (practiceIdx > currentRound) {
+                    return (
+                      <div key={practiceIdx} className="wi-cell wi-cell--locked">
+                        <span className="wi-lock-icon">🔒</span>
+                      </div>
+                    );
+                  }
+
+                  // Active column
+                  const isDone      = cell.done;
+                  const stateClass  =
+                    isDone              ? ' wi-cell--success' :
+                    cell.status === 'trying' ? ' wi-cell--retry' : '';
+
+                  return (
+                    <div key={practiceIdx} className={`wi-cell wi-cell--practice${stateClass}`}>
+                      {cell.revealHint && !isDone && (
+                        <div className="wi-helper">
+                          Here it is — give it another go 💪
+                          <strong className="wi-helper-word">{row.word}</strong>
+                        </div>
+                      )}
+
+                      <div className="wi-input-wrap">
+                        <input
+                          ref={(el) => { inputRefs.current[`${wordIdx}-${practiceIdx}`] = el; }}
+                          type="text"
+                          className="wi-input"
+                          value={cell.value}
+                          onChange={(e) => handleChange(wordIdx, practiceIdx, e.target.value)}
+                          onKeyDown={(e) => handleKeyDown(e, wordIdx, practiceIdx)}
+                          onFocus={handleInputFocus}
+                          disabled={isDone}
+                          placeholder="Type here…"
+                          autoComplete="off"
+                          autoCorrect="off"
+                          autoCapitalize="off"
+                          spellCheck="false"
+                        />
+                        {!isDone && (
+                          <button
+                            className="wi-check-btn wi-no-print"
+                            onClick={() => handleSubmit(wordIdx, practiceIdx)}
+                          >
+                            Check
+                          </button>
+                        )}
+                      </div>
+
+                      {isDone && <span className="wi-success-badge wi-no-print">✨</span>}
+                      {cell.status === 'trying' && !isDone && cell.attempts === 1 && (
+                        <p className="wi-feedback wi-feedback--retry">Try again!</p>
                       )}
                     </div>
-
-                    {isDone && <span className="wi-success-badge wi-no-print">✨</span>}
-                    {cell.status === 'trying' && !isDone && cell.attempts === 1 && (
-                      <p className="wi-feedback wi-feedback--retry">Try again!</p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })}
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Full-list completion message */}
-      {allDone && (
+      {/* Add Practice button — appears once all base practices complete */}
+      {baseAllDone && (
+        <div className="wi-add-practice-wrap wi-no-print">
+          <button className="wi-add-practice-btn" onClick={addPractice}>
+            + Add Practice
+          </button>
+        </div>
+      )}
+
+      {/* Brief completion celebration overlay */}
+      {justCompleted && (
         <div className="wi-complete wi-no-print" role="status">
           <span className="wi-complete-emoji">⭐</span>
           <span>You're a spelling star! ⭐</span>
