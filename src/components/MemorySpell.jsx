@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import confetti from 'canvas-confetti';
 import { chunkWord } from '../utils/wordChunking';
+import { letterBoxSize } from '../utils/letterBoxSize';
 import './MemorySpell.css';
 
 // ── Speech (en-GB) ───────────────────────────────────────────────────────────
@@ -80,7 +81,7 @@ const BUDDY_LINES = [
 // Live colour: green = correct position, red = wrong position.
 
 function LetterBoxes({ value, target, inputRef, onChange, onKeyDown }) {
-  const boxSize = Math.max(28, Math.min(44, Math.floor(320 / target.length)));
+  const boxSize = letterBoxSize(target.length);
   return (
     <div
       className="ms-letter-boxes-wrap"

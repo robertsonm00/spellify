@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import confetti from 'canvas-confetti';
 import { buildQuiz } from '../utils/quizQuestionBuilder';
 import DEFINITIONS from '../data/definitions.js';
+import { letterBoxSize } from '../utils/letterBoxSize';
 import './QuizQuest.css';
 
 // ── Speech (en-GB) ───────────────────────────────────────────────────────────
@@ -84,7 +85,7 @@ function FixWordBoxes({ question, onAnswer }) {
   const [input, setInput] = useState('');
   const inputRef = useRef(null);
   const target = question.answer;
-  const boxSize = Math.max(28, Math.min(44, Math.floor(320 / target.length)));
+  const boxSize = letterBoxSize(target.length);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -169,7 +170,7 @@ function MissingLettersBoxes({ question, onAnswer }) {
     return out;
   }, [display]);
 
-  const boxSize = Math.max(28, Math.min(44, Math.floor(320 / display.length)));
+  const boxSize = letterBoxSize(display.length);
 
   useEffect(() => {
     // Pre-focus the first blank so the child can start typing immediately.

@@ -174,6 +174,75 @@ export default function OcrReview({ candidates, onConfirm, onBack }) {
   const canAdd     = counts.total < MAX_WORDS && !showAdd;
   const canConfirm = counts.total >= 1;
 
+  // Bucket items: confident (no decision needed) vs. review (needs a choice).
+  // Order is preserved within each bucket so the user can still scan top→bottom.
+  const confidentItems = items.filter((it) => it.status === STATUS.CONFIDENT);
+  const reviewItems    = items.filter((it) => it.status !== STATUS.CONFIDENT);
+
+  // Shared chip renderer — used by both the cloud and the review list.
+  const renderChip = (item) => {
+    const editing = editingId === item.id;
+    const isReview = item.status === STATUS.NEEDS_REVIEW;
+
+    return (
+      <div
+        key={item.id}
+        className={[
+          'ocr-chip',
+          `ocr-chip--${item.status}`,
+          editing ? 'ocr-chip--editing' : '',
+        ].filter(Boolean).join(' ')}
+        title={
+          isReview
+            ? `OCR confidence ${Math.round(item.confidence)}% — please check`
+            : `OCR confidence ${Math.round(item.confidence)}%`
+        }
+      >
+        <span className="ocr-chip-status" aria-hidden="true">
+          {item.status === STATUS.CONFIDENT    ? '✓' : ''}
+          {item.status === STATUS.NEEDS_REVIEW ? '⚠' : ''}
+        </span>
+
+        {editing ? (
+          <input
+            ref={editInputRef}
+            className="ocr-chip-input"
+            value={editValue}
+            size={Math.max(editValue.length + 1, 4)}
+            onChange={(e) => setEditValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter')  { e.preventDefault(); commitEdit(); }
+              if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
+            }}
+            onBlur={commitEdit}
+            maxLength={20}
+            spellCheck={false}
+            autoComplete="off"
+            autoCorrect="off"
+          />
+        ) : (
+          <span
+            className="ocr-chip-text"
+            onClick={() => startEdit(item.id, item.confirmedText)}
+          >
+            {item.confirmedText}
+          </span>
+        )}
+
+        <button
+          className="ocr-chip-delete"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={(e) => deleteItem(item.id, e)}
+          type="button"
+          tabIndex={-1}
+          aria-label={`Remove ${item.confirmedText}`}
+        >
+          ✕
+        </button>
+      </div>
+    );
+  };
+
   // ── Header copy ───────────────────────────────────────────────────────────
 
   let headerTitle, headerSub, headerIcon;
@@ -219,135 +288,98 @@ export default function OcrReview({ candidates, onConfirm, onBack }) {
         </div>
       )}
 
-      {/* Chip list */}
+      {/* Chip area — split into a confident cloud and a review list */}
       {(counts.total > 0 || showAdd) && (
         <div className="ocr-chip-area">
-          {items.map((item) => {
-            const editing = editingId === item.id;
-            const isReview = item.status === STATUS.NEEDS_REVIEW;
-            const showSuggestion =
-              !editing &&
-              item.suggestedText &&
-              item.suggestedText !== item.confirmedText;
 
-            return (
-              <div
-                key={item.id}
-                className={[
-                  'ocr-chip',
-                  `ocr-chip--${item.status}`,
-                  editing ? 'ocr-chip--editing' : '',
-                ].filter(Boolean).join(' ')}
-                title={
-                  isReview
-                    ? `OCR confidence ${Math.round(item.confidence)}% — please check`
-                    : `OCR confidence ${Math.round(item.confidence)}%`
-                }
-              >
-                <span className="ocr-chip-status" aria-hidden="true">
-                  {item.status === STATUS.CONFIDENT    ? '✓' : ''}
-                  {item.status === STATUS.NEEDS_REVIEW ? '⚠' : ''}
-                </span>
+          {/* Confident cloud (no decisions needed) */}
+          {(confidentItems.length > 0 || showAdd || canAdd) && (
+            <div className="ocr-confident-cloud">
+              {confidentItems.map((item) => renderChip(item))}
 
-                {editing ? (
+              {showAdd && (
+                <div className="ocr-chip ocr-chip--adding">
                   <input
-                    ref={editInputRef}
+                    ref={addInputRef}
                     className="ocr-chip-input"
-                    value={editValue}
-                    size={Math.max(editValue.length + 1, 4)}
-                    onChange={(e) => setEditValue(e.target.value)}
+                    value={addValue}
+                    size={Math.max(addValue.length + 1, 6)}
+                    placeholder="new word…"
+                    onChange={(e) => setAddValue(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter')  { e.preventDefault(); commitEdit(); }
-                      if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
+                      if (e.key === 'Enter')  { e.preventDefault(); commitAdd(); }
+                      if (e.key === 'Escape') { e.preventDefault(); cancelAdd(); }
                     }}
-                    onBlur={commitEdit}
+                    onBlur={commitAdd}
                     maxLength={20}
                     spellCheck={false}
                     autoComplete="off"
                     autoCorrect="off"
                   />
-                ) : (
-                  <span
-                    className="ocr-chip-text"
-                    onClick={() => startEdit(item.id, item.confirmedText)}
+                  <button
+                    className="ocr-chip-delete"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={cancelAdd}
+                    type="button"
+                    tabIndex={-1}
+                    aria-label="Cancel add"
                   >
-                    {item.confirmedText}
-                  </span>
-                )}
+                    ✕
+                  </button>
+                </div>
+              )}
 
-                <button
-                  className="ocr-chip-delete"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={(e) => deleteItem(item.id, e)}
-                  type="button"
-                  tabIndex={-1}
-                  aria-label={`Remove ${item.confirmedText}`}
-                >
-                  ✕
+              {canAdd && (
+                <button className="ocr-add-btn" onClick={openAdd} type="button">
+                  + Add word
                 </button>
-
-                {/* Suggestion bubble — under the chip */}
-                {showSuggestion && (
-                  <div className="ocr-chip-suggest">
-                    Did you mean
-                    <button
-                      className="ocr-chip-suggest-yes"
-                      onClick={() => acceptSuggestion(item.id)}
-                      type="button"
-                    >
-                      “{item.suggestedText}”?
-                    </button>
-                    <button
-                      className="ocr-chip-suggest-no"
-                      onClick={() => dismissSuggestion(item.id)}
-                      type="button"
-                      aria-label="Keep my version"
-                    >
-                      no, keep
-                    </button>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-
-          {/* Add input */}
-          {showAdd && (
-            <div className="ocr-chip ocr-chip--adding">
-              <input
-                ref={addInputRef}
-                className="ocr-chip-input"
-                value={addValue}
-                size={Math.max(addValue.length + 1, 6)}
-                placeholder="new word…"
-                onChange={(e) => setAddValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter')  { e.preventDefault(); commitAdd(); }
-                  if (e.key === 'Escape') { e.preventDefault(); cancelAdd(); }
-                }}
-                onBlur={commitAdd}
-                maxLength={20}
-                spellCheck={false}
-                autoComplete="off"
-                autoCorrect="off"
-              />
-              <button
-                className="ocr-chip-delete"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={cancelAdd}
-                type="button"
-                tabIndex={-1}
-                aria-label="Cancel add"
-              >
-                ✕
-              </button>
+              )}
             </div>
           )}
 
-          {canAdd && (
-            <button className="ocr-add-btn" onClick={openAdd} type="button">
-              + Add word
-            </button>
+          {/* Review list — one row per word that needs a decision */}
+          {reviewItems.length > 0 && (
+            <div
+              className="ocr-review-list"
+              role="list"
+              aria-label="Words that need checking"
+            >
+              {reviewItems.map((item) => {
+                const editing = editingId === item.id;
+                const showSuggestion =
+                  !editing &&
+                  item.suggestedText &&
+                  item.suggestedText !== item.confirmedText;
+
+                return (
+                  <div className="ocr-review-row" role="listitem" key={item.id}>
+                    {renderChip(item)}
+                    {showSuggestion ? (
+                      <div className="ocr-review-suggest">
+                        <span className="ocr-review-suggest-label">Did you mean</span>
+                        <button
+                          className="ocr-chip-suggest-yes"
+                          onClick={() => acceptSuggestion(item.id)}
+                          type="button"
+                        >
+                          “{item.suggestedText}”?
+                        </button>
+                        <button
+                          className="ocr-chip-suggest-no"
+                          onClick={() => dismissSuggestion(item.id)}
+                          type="button"
+                          aria-label="Keep my version"
+                        >
+                          no, keep
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="ocr-review-hint">Tap to edit</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
       )}
