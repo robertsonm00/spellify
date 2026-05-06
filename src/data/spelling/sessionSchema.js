@@ -29,6 +29,7 @@ export function createSession({ year, age, words = [], wordObjects = [], sourceM
     words,           // string[]
     wordObjects,     // { word, year, difficulty }[]
     activityStatuses: { ...INITIAL_STATUSES },
+    activityProgress: {},  // keyed by activity id — mid-session snapshots
     mastery:     {},
     reviewQueue: [],
   };
@@ -145,6 +146,32 @@ export function getMasteryRate(session, word) {
   const entry = session?.mastery?.[word.toLowerCase()];
   if (!entry || entry.attempts === 0) return null;
   return entry.correct / entry.attempts;
+}
+
+/**
+ * Return the saved mid-session progress for an activity, or null.
+ * @param {object} session
+ * @param {string} id  activity key, e.g. 'memoryspell'
+ */
+export function getActivityProgress(session, id) {
+  return session?.activityProgress?.[id] ?? null;
+}
+
+/**
+ * Return a new session with the progress snapshot stored for an activity.
+ * Pass null as progress to clear it.
+ * @param {object} session
+ * @param {string} id
+ * @param {object|null} progress
+ */
+export function setActivityProgress(session, id, progress) {
+  const next = { ...(session?.activityProgress || {}) };
+  if (progress == null) {
+    delete next[id];
+  } else {
+    next[id] = progress;
+  }
+  return { ...session, activityProgress: next };
 }
 
 /**

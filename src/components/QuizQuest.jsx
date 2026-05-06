@@ -372,6 +372,8 @@ function QuestionCard({ question, onAnswer, dyslexiaMode }) {
 export default function QuizQuest({
   words,
   wordObjects = [],
+  savedProgress = null,
+  onSaveProgress,
   onComplete,
   onExit,
   dyslexiaMode = false,
@@ -380,9 +382,9 @@ export default function QuizQuest({
   // every state change.
   const questions = useMemo(() => buildQuiz(words, { count: 10 }), [words]);
 
-  const [phase,      setPhase]      = useState('start');
-  const [qIdx,       setQIdx]       = useState(0);
-  const [results,    setResults]    = useState([]); // { word, correct, given }
+  const [phase,      setPhase]      = useState(savedProgress ? 'question' : 'start');
+  const [qIdx,       setQIdx]       = useState(savedProgress?.qIdx ?? 0);
+  const [results,    setResults]    = useState(savedProgress?.results ?? []);
   const [lastResult, setLastResult] = useState(null);
 
   const question = questions[qIdx] ?? null;
@@ -401,10 +403,14 @@ export default function QuizQuest({
       }
       const result = { word: question.word, correct, given };
       setLastResult(result);
-      setResults((prev) => [...prev, result]);
+      setResults((prev) => {
+        const next = [...prev, result];
+        onSaveProgress?.({ qIdx: qIdx + 1, results: next });
+        return next;
+      });
       setPhase('feedback');
     },
-    [question]
+    [question, qIdx, onSaveProgress]
   );
 
   const handleNext = () => {
@@ -417,15 +423,15 @@ export default function QuizQuest({
   };
 
   const handlePlayAgain = () => {
+    onSaveProgress?.(null);
     setQIdx(0);
     setResults([]);
     setLastResult(null);
-    // Fresh quiz next mount — we keep the same `questions` instance for now
-    // since useMemo locks them in. To regenerate, force a key reset upstream.
     setPhase('start');
   };
 
   const handleComplete = () => {
+    onSaveProgress?.(null);
     // Collapse multiple results-per-word into a single { word, correct } per
     // unique word so mastery tracking sees the right outcome.
     const byWord = {};
@@ -445,6 +451,7 @@ export default function QuizQuest({
     <div className="qq-topbar">
       <button className="qq-back" onClick={onExit}>← Hub</button>
       <h2 className="qq-title">Quiz Quest</h2>
+      <button className="qq-restart" onClick={handlePlayAgain} title="Restart quiz">↺ Restart</button>
     </div>
   );
 

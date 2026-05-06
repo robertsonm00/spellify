@@ -146,14 +146,23 @@ function LetterDiff({ typed, target }) {
 export default function MemorySpell({
   words,
   wordObjects = [],
+  savedProgress = null,
+  onSaveProgress,
   onComplete,
   onExit,
   dyslexiaMode = false,
 }) {
-  const [phase,      setPhase]      = useState('intro');
-  const [wordIdx,    setWordIdx]    = useState(0);
+  // Restore from a mid-session snapshot if one exists.
+  const initWordIdx = savedProgress?.wordIdx ?? 0;
+  const initResults = savedProgress?.results ?? [];
+  const initPhase   = !savedProgress               ? 'intro'
+                    : initWordIdx >= words.length  ? 'results'
+                    : 'reveal';
+
+  const [phase,      setPhase]      = useState(initPhase);
+  const [wordIdx,    setWordIdx]    = useState(initWordIdx);
   const [input,      setInput]      = useState('');
-  const [results,    setResults]    = useState([]);
+  const [results,    setResults]    = useState(initResults);
   const [hints,      setHints]      = useState({ ...INITIAL_HINTS });
   const [lastResult, setLastResult] = useState(null);
   const inputRef  = useRef(null);
@@ -188,9 +197,15 @@ export default function MemorySpell({
     }
     const result = { word, correct, hintsUsed: { ...hintsRef.current }, typed: value };
     setLastResult(result);
-    setResults(prev => [...prev, result]);
+    setResults(prev => {
+      const next = [...prev, result];
+      // Save the NEXT word index so resuming after this feedback screen starts
+      // at the correct word rather than re-showing the one just answered.
+      onSaveProgress?.({ wordIdx: wordIdx + 1, results: next });
+      return next;
+    });
     setPhase('feedback');
-  }, [word]);
+  }, [word, wordIdx, onSaveProgress]);
 
   // ── Input handlers ─────────────────────────────────────────────────────────
 
@@ -238,6 +253,7 @@ export default function MemorySpell({
   };
 
   const handlePlayAgain = () => {
+    onSaveProgress?.(null); // wipe snapshot
     setWordIdx(0);
     setResults([]);
     setLastResult(null);
@@ -247,6 +263,7 @@ export default function MemorySpell({
   };
 
   const handleComplete = () => {
+    onSaveProgress?.(null); // wipe snapshot — activity is fully done
     onComplete(results.map(r => ({ word: r.word, correct: r.correct })));
   };
 

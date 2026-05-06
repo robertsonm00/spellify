@@ -10,7 +10,7 @@ import Crossword      from './components/Crossword';
 import WriteIt        from './components/WriteIt';
 import MemorySpell    from './components/MemorySpell';
 import QuizQuest      from './components/QuizQuest';
-import { loadSession, saveSession, createSession, INITIAL_STATUSES, updateMastery, rebuildReviewQueue } from './data/spelling/sessionSchema';
+import { loadSession, saveSession, createSession, INITIAL_STATUSES, updateMastery, rebuildReviewQueue, getActivityProgress, setActivityProgress } from './data/spelling/sessionSchema';
 
 function hasProgress(activityStatuses) {
   return Object.values(activityStatuses || {}).some(
@@ -66,6 +66,8 @@ function App() {
       let next = id === 'review'
         ? { ...prev }
         : { ...prev, activityStatuses: { ...prev.activityStatuses, [id]: 'completed' } };
+      // Clear any mid-session snapshot now the activity is finished
+      next = setActivityProgress(next, id, null);
       // Apply mastery updates for every word result
       for (const { word, correct } of results) {
         next = updateMastery(next, word, correct);
@@ -96,7 +98,10 @@ function App() {
   };
 
   const handleSettingsUpdate = (updates) => setSession((prev) => ({ ...prev, ...updates }));
-  const handleClearProgress  = () => setSession((prev) => ({ ...prev, activityStatuses: INITIAL_STATUSES, mastery: {}, reviewQueue: [] }));
+  const handleClearProgress  = () => setSession((prev) => ({ ...prev, activityStatuses: INITIAL_STATUSES, activityProgress: {}, mastery: {}, reviewQueue: [] }));
+
+  const handleSaveProgress = (id, progress) =>
+    setSession((prev) => setActivityProgress(prev, id, progress));
 
   const handleBackToWelcome = () => {
     if (session && hasProgress(session.activityStatuses)) {
@@ -124,8 +129,9 @@ function App() {
       Activity = (
         <WordSearch
           words={words}
-          initialDifficulty={difficulty}
           dyslexiaMode={dyslexiaMode}
+          savedProgress={getActivityProgress(session, 'wordsearch')}
+          onSaveProgress={(p) => handleSaveProgress('wordsearch', p)}
           onComplete={(results) => handleComplete('wordsearch', results)}
           onExit={handleExit}
         />
@@ -136,6 +142,8 @@ function App() {
           words={words}
           wordObjects={session.wordObjects || []}
           dyslexiaMode={dyslexiaMode}
+          savedProgress={getActivityProgress(session, 'memoryspell')}
+          onSaveProgress={(p) => handleSaveProgress('memoryspell', p)}
           onComplete={(results) => handleComplete('memoryspell', results)}
           onExit={handleExit}
         />
@@ -146,6 +154,8 @@ function App() {
           words={words}
           difficulty={difficulty}
           dyslexiaMode={dyslexiaMode}
+          savedProgress={getActivityProgress(session, 'hangman')}
+          onSaveProgress={(p) => handleSaveProgress('hangman', p)}
           onComplete={(results) => handleComplete('hangman', results)}
           onExit={handleExit}
         />
@@ -157,6 +167,8 @@ function App() {
           userAge={age || 8}
           difficulty={difficulty}
           dyslexiaMode={dyslexiaMode}
+          savedProgress={getActivityProgress(session, 'crossword')}
+          onSaveProgress={(p) => handleSaveProgress('crossword', p)}
           onComplete={(results) => handleComplete('crossword', results || [])}
           onExit={handleExit}
         />
@@ -167,6 +179,8 @@ function App() {
           words={words}
           childName={session.childName || ''}
           dyslexiaMode={dyslexiaMode}
+          savedProgress={getActivityProgress(session, 'writeit')}
+          onSaveProgress={(p) => handleSaveProgress('writeit', p)}
           onComplete={(results) => handleComplete('writeit', results || [])}
           onExit={handleExit}
         />
@@ -177,6 +191,8 @@ function App() {
           words={words}
           wordObjects={session.wordObjects || []}
           dyslexiaMode={dyslexiaMode}
+          savedProgress={getActivityProgress(session, 'quizquest')}
+          onSaveProgress={(p) => handleSaveProgress('quizquest', p)}
           onComplete={(results) => handleComplete('quizquest', results || [])}
           onExit={handleExit}
         />

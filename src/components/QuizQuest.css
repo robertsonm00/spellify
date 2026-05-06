@@ -35,6 +35,22 @@
 }
 .qq-back:hover { background: #f5f5f5; }
 
+.qq-restart {
+  margin-left: auto;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 800;
+  padding: 0.4rem 0.85rem;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  color: #555;
+  white-space: nowrap;
+  transition: background 0.1s;
+}
+.qq-restart:hover { background: #f5f5f5; }
+
 .qq-title {
   font-family: 'Press Start 2P', monospace;
   font-size: 0.85rem;

@@ -23,7 +23,8 @@ function getMaxHints(userAge) {
 
 // Walk the API meanings in noun → verb → other order, returning the first
 // safe primary-sense definition. This biases toward concrete, kid-friendly
-// senses (e.g. "mouse" = animal, not "a shy person").
+// senses (e.g. "mouse" = animal, not "a shy person"). Short definitions
+// (e.g. "An enemy.") are kept — kid-friendly clues are often terse.
 function pickKidFriendly(meanings) {
   const PART_ORDER = { noun: 0, verb: 1 };
   const ordered = [...meanings].sort((a, b) =>
@@ -32,7 +33,7 @@ function pickKidFriendly(meanings) {
   for (const meaning of ordered) {
     for (const def of (meaning.definitions || [])) {
       const text = def.definition;
-      if (!text || text.startsWith('(') || text.length < 12) continue;
+      if (!text || text.startsWith('(') || text.length < 5) continue;
       if (!isSafeDefinition(text)) continue;
       return text;
     }
@@ -52,8 +53,12 @@ async function lookupApi(word) {
     if (res.status === 404) return { found: false };
     if (!res.ok)            return { found: 'unknown' };
     const data = await res.json();
-    if (!Array.isArray(data) || !data[0]?.meanings?.length) return { found: false };
-    return { found: true, definition: pickKidFriendly(data[0].meanings) };
+    if (!Array.isArray(data) || data.length === 0) return { found: false };
+    // Some words (e.g. "foe") have a kid-safe sense in entry 0 and an
+    // obscure-but-longer sense in entry 1 — flatten so we don't miss either.
+    const allMeanings = data.flatMap(entry => entry?.meanings || []);
+    if (allMeanings.length === 0) return { found: false };
+    return { found: true, definition: pickKidFriendly(allMeanings) };
   } catch {
     return { found: 'unknown' };
   }
@@ -62,14 +67,17 @@ async function lookupApi(word) {
 // Validates a single word and resolves a kid-friendly definition.
 //   - Local DEFINITIONS map always wins (curated, safe by construction).
 //   - Otherwise the dictionary API decides validity.
+//   - Words confirmed to exist but with no usable kid-safe clue are
+//     marked invalid so they're excluded from the crossword.
 //   - Network/server failures keep the word but leave the clue blank.
 async function validateWord(word) {
   const key = word.toLowerCase();
   if (DEFINITIONS[key]) return { word, valid: true, definition: DEFINITIONS[key] };
 
   const api = await lookupApi(key);
-  if (api.found === false)   return { word, valid: false };
+  if (api.found === false)     return { word, valid: false, reason: 'not_a_word' };
   if (api.found === 'unknown') return { word, valid: true,  definition: null };
+  if (!api.definition)         return { word, valid: false, reason: 'no_clue' };
   return { word, valid: true, definition: api.definition };
 }
 

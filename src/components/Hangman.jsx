@@ -34,13 +34,13 @@ function HangmanSVG({ stage }) {
   );
 }
 
-function Hangman({ words, difficulty = 'medium', dyslexiaMode = false, childName = '', childCharacter = null, onComplete, onExit }) {
+function Hangman({ words, difficulty = 'medium', dyslexiaMode = false, childName = '', childCharacter = null, savedProgress = null, onSaveProgress, onComplete, onExit }) {
   const maxWrong = MAX_WRONG[difficulty] ?? 6;
 
-  const [queue]          = useState(() => [...words].sort(() => Math.random() - 0.5));
-  const [wordIndex,      setWordIndex]      = useState(0);
-  const [guessed,        setGuessed]        = useState(new Set());
-  const [wordResults,    setWordResults]    = useState([]);
+  const [queue]          = useState(() => savedProgress?.queue ?? [...words].sort(() => Math.random() - 0.5));
+  const [wordIndex,      setWordIndex]      = useState(savedProgress?.wordIndex ?? 0);
+  const [guessed,        setGuessed]        = useState(() => new Set(savedProgress?.guessed ?? []));
+  const [wordResults,    setWordResults]    = useState(savedProgress?.wordResults ?? []);
   const [phase,          setPhase]          = useState('playing'); // playing | word-result | complete
 
   const currentWord  = queue[wordIndex].toUpperCase();
@@ -92,7 +92,14 @@ function Hangman({ words, difficulty = 'medium', dyslexiaMode = false, childName
     return () => window.removeEventListener('keydown', onKey);
   }, [handleGuess]);
 
+  // Persist mid-game state after the first guess so hub-exit → resume works.
+  useEffect(() => {
+    if (wordResults.length === 0 && guessed.size === 0) return;
+    onSaveProgress?.({ queue, wordIndex, wordResults, guessed: [...guessed] });
+  }, [wordResults, wordIndex, guessed]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const restart = () => {
+    onSaveProgress?.(null);
     setWordIndex(0);
     setGuessed(new Set());
     setWordResults([]);
@@ -115,6 +122,7 @@ function Hangman({ words, difficulty = 'medium', dyslexiaMode = false, childName
     return (
       <div className="hm-wrap">
         {onExit && <button className="hm-back" onClick={onExit}>← Hub</button>}
+        <button className="hm-restart" onClick={restart} title="Restart game">↺ Restart</button>
         <div className="hm-complete">
           {childCharacter && <div className="hm-complete-emoji">{childCharacter.emoji}</div>}
           <h2>Game Over!</h2>
@@ -130,7 +138,7 @@ function Hangman({ words, difficulty = 'medium', dyslexiaMode = false, childName
           </ul>
           <div className="hm-done-actions">
             <button onClick={restart}>Play Again</button>
-            <button onClick={() => onComplete(wordResults.map(r => ({ word: r.word, correct: r.won })))}>Back to Hub</button>
+            <button onClick={() => { onSaveProgress?.(null); onComplete(wordResults.map(r => ({ word: r.word, correct: r.won }))); }}>Back to Hub</button>
           </div>
         </div>
       </div>
@@ -145,6 +153,7 @@ function Hangman({ words, difficulty = 'medium', dyslexiaMode = false, childName
   return (
     <div className="hm-wrap">
       {onExit && <button className="hm-back" onClick={onExit}>← Hub</button>}
+      <button className="hm-restart" onClick={restart} title="Restart game">↺ Restart</button>
 
       <p className="hm-progress">Word {wordIndex + 1} of {queue.length}</p>
 
