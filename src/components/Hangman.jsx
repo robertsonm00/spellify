@@ -1,6 +1,33 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import confetti from 'canvas-confetti';
 import './Hangman.css';
 import { getSupportTip } from '../data/spelling/dyslexiaPatterns';
+import DEFINITIONS from '../data/definitions';
+
+function playWordChime() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [523.25, 659.25, 783.99].forEach((freq, i) => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'triangle';
+      osc.frequency.value = freq;
+      const t = ctx.currentTime + i * 0.15;
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.28, t + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+      osc.start(t);
+      osc.stop(t + 0.45);
+    });
+  } catch {}
+}
+
+function fireWordConfetti() {
+  confetti({ particleCount: 90, spread: 65, origin: { y: 0.4 },
+    colors: ['#22c55e', '#86efac', '#ffd93d', '#c77dff', '#4d96ff'] });
+}
 
 const HEADER_STARS = Array.from({ length: 40 }, (_, i) => ({
   id: i,
@@ -22,7 +49,11 @@ const BRAND_LETTERS = [
 ];
 
 const MAX_WRONG = { easy: 8, medium: 6, hard: 4 };
-const ALPHABET  = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+
+const KEYBOARD_ROWS = [
+  ['A','B','C','D','E','F','G','H','I','J','K','L','M'],
+  ['N','O','P','Q','R','S','T','U','V','W','X','Y','Z'],
+];
 
 // Map wrong-guess count to 0-6 SVG body stages proportionally
 function bodyStage(wrongCount, maxWrong) {
@@ -56,11 +87,24 @@ function HangmanSVG({ stage }) {
 function Hangman({ words, difficulty = 'medium', dyslexiaMode = false, childName = '', childCharacter = null, savedProgress = null, onSaveProgress, onComplete, onExit }) {
   const maxWrong = MAX_WRONG[difficulty] ?? 6;
 
-  const [queue]          = useState(() => savedProgress?.queue ?? [...words].sort(() => Math.random() - 0.5));
-  const [wordIndex,      setWordIndex]      = useState(savedProgress?.wordIndex ?? 0);
-  const [guessed,        setGuessed]        = useState(() => new Set(savedProgress?.guessed ?? []));
-  const [wordResults,    setWordResults]    = useState(savedProgress?.wordResults ?? []);
+  // Validate saved progress belongs to the current word list — wipe it if the list changed.
+  const savedIsValid = (() => {
+    if (!savedProgress?.queue) return false;
+    const savedSet   = new Set(savedProgress.queue.map(w => w.toLowerCase()));
+    const currentSet = new Set(words.map(w => w.toLowerCase()));
+    return savedSet.size === currentSet.size && [...savedSet].every(w => currentSet.has(w));
+  })();
+
+  const [queue]          = useState(() => savedIsValid ? savedProgress.queue : [...words].sort(() => Math.random() - 0.5));
+  const [wordIndex,      setWordIndex]      = useState(savedIsValid ? (savedProgress.wordIndex ?? 0) : 0);
+  const [guessed,        setGuessed]        = useState(() => new Set(savedIsValid ? (savedProgress.guessed ?? []) : []));
+  const [wordResults,    setWordResults]    = useState(savedIsValid ? (savedProgress.wordResults ?? []) : []);
   const [phase,          setPhase]          = useState('playing'); // playing | word-result | complete
+
+  // Clear stale savedProgress from the hub if the word list has changed.
+  useEffect(() => {
+    if (savedProgress != null && !savedIsValid) onSaveProgress?.(null);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const currentWord  = queue[wordIndex].toUpperCase();
   const wordLetters  = new Set(currentWord.split(''));
@@ -93,6 +137,17 @@ function Hangman({ words, difficulty = 'medium', dyslexiaMode = false, childName
     }, hasTip ? 4500 : 2000);
     return () => clearTimeout(id);
   }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Celebration on correct word
+  const celebratedRef = useRef(false);
+  useEffect(() => {
+    if (phase === 'playing') { celebratedRef.current = false; return; }
+    if (phase === 'word-result' && won && !celebratedRef.current) {
+      celebratedRef.current = true;
+      playWordChime();
+      fireWordConfetti();
+    }
+  }, [phase, won]);
 
   const handleGuess = useCallback(
     (letter) => {
@@ -164,6 +219,10 @@ function Hangman({ words, difficulty = 'medium', dyslexiaMode = false, childName
     return (
       <div className="hm-wrap">
         {topbar}
+        <div className="hm-progress-strip">
+          <div className="hm-bar-fill" style={{ width: '100%' }} />
+          <span className="hm-count">{wordResults.filter(r => r.won).length} of {wordResults.length} words guessed</span>
+        </div>
         <div className="hm-complete">
           {childCharacter && <div className="hm-complete-emoji">{childCharacter.emoji}</div>}
           <h2>Game Over!</h2>
@@ -188,32 +247,49 @@ function Hangman({ words, difficulty = 'medium', dyslexiaMode = false, childName
 
   // ── Playing / word-result screen ──
   const blanks = currentWord.split('').map((l) =>
-    guessed.has(l) || (phase === 'word-result' && lost) ? l : '_'
+    guessed.has(l) || (phase === 'word-result' && lost) ? l : null
   );
+
+  const clue = DEFINITIONS[currentWord.toLowerCase()] ?? null;
 
   return (
     <div className="hm-wrap">
       {topbar}
 
-      <p className="hm-progress">Word {wordIndex + 1} of {queue.length}</p>
+      {/* ── Progress strip ── */}
+      {(() => {
+        const progress = queue.length > 0 ? Math.round((wordResults.length / queue.length) * 100) : 0;
+        return (
+          <div className="hm-progress-strip">
+            <div className="hm-bar-fill" style={{ width: `${progress}%` }} />
+            <span className="hm-count">{wordResults.length} of {queue.length} words done</span>
+          </div>
+        );
+      })()}
 
-      <div className="hm-main">
+      {/* ── Game area: hangman left, clue + word right ── */}
+      <div className="hm-game-area">
         <div className="hm-left">
           <HangmanSVG stage={phase === 'word-result' && lost ? 6 : stage} />
           <p className="hm-wrong-count">{wrongCount} / {maxWrong} wrong</p>
         </div>
 
         <div className="hm-right">
-          {/* Word blanks */}
+          {clue && (
+            <div className="hm-clue">
+              <p className="hm-clue-label">Clue</p>
+              <p className="hm-clue-text">{clue}</p>
+            </div>
+          )}
+
           <div className="hm-blanks">
             {blanks.map((ch, i) => (
-              <span key={i} className={`hm-letter${ch !== '_' ? ' revealed' : ''}`}>
-                {ch}
-              </span>
+              <div key={i} className={`hm-letter-box${ch ? ' revealed' : ''}`}>
+                {ch ?? ''}
+              </div>
             ))}
           </div>
 
-          {/* Inline result banner */}
           {phase === 'word-result' && (
             <div className={`hm-word-result ${won ? 'won' : 'lost'}`}>
               {won ? '🎉 Nice one!' : `The word was ${currentWord}`}
@@ -228,10 +304,15 @@ function Hangman({ words, difficulty = 'medium', dyslexiaMode = false, childName
               })()}
             </div>
           )}
+        </div>
+      </div>
 
-          {/* Letter keyboard */}
-          <div className="hm-keyboard">
-            {ALPHABET.map((letter) => {
+      {/* ── A–Z keyboard at the bottom ── */}
+      <div className="hm-keyboard-area">
+        <p className="hm-keyboard-label">Choose your next letter</p>
+        {KEYBOARD_ROWS.map((row, ri) => (
+          <div key={ri} className="hm-key-row">
+            {row.map((letter) => {
               const isGuessed = guessed.has(letter);
               const isWrong   = isGuessed && !wordLetters.has(letter);
               const isRight   = isGuessed && wordLetters.has(letter);
@@ -247,7 +328,7 @@ function Hangman({ words, difficulty = 'medium', dyslexiaMode = false, childName
               );
             })}
           </div>
-        </div>
+        ))}
       </div>
     </div>
   );
