@@ -1,8 +1,148 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './WordListHub.css';
 import Settings from './Settings';
 import { GeneratedWords } from './OnboardingFlow';
 import { scoreWord, scoreToBand } from '../utils/difficultyEngine';
+import DEFINITIONS from '../data/definitions';
+import { isSafeDefinition } from '../utils/definitionSafety';
+
+// ── Speech ────────────────────────────────────────────────────────────────────
+
+let cachedHubVoice = null;
+function pickHubVoice() {
+  if (cachedHubVoice) return cachedHubVoice;
+  const voices = window.speechSynthesis?.getVoices?.() || [];
+  cachedHubVoice = voices.find(v => v.lang === 'en-GB') || voices.find(v => v.lang?.startsWith('en')) || null;
+  return cachedHubVoice;
+}
+function speakHubWord(word) {
+  if (!('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(word);
+  u.lang = 'en-GB'; u.rate = 0.85;
+  const v = pickHubVoice(); if (v) u.voice = v;
+  window.speechSynthesis.speak(u);
+}
+
+// ── Word info fetch (with module-level cache) ─────────────────────────────────
+
+const wordInfoCache = {};
+
+function pickDefinitionForAge(meanings, userAge) {
+  const PART_ORDER = { noun: 0, verb: 1 };
+  const ordered = [...meanings].sort((a, b) => (PART_ORDER[a.partOfSpeech] ?? 2) - (PART_ORDER[b.partOfSpeech] ?? 2));
+  for (const meaning of ordered) {
+    for (const def of (meaning.definitions || [])) {
+      const text = def.definition;
+      if (!text || text.startsWith('(') || text.length < 5) continue;
+      if (!isSafeDefinition(text)) continue;
+      if (userAge < 7  && text.length > 80)  return text.slice(0, 77) + '…';
+      if (userAge < 10 && text.length > 160) return text.slice(0, 157) + '…';
+      return text;
+    }
+  }
+  return null;
+}
+
+async function fetchWordInfo(word, userAge) {
+  const key = word.toLowerCase();
+  if (wordInfoCache[key]) return wordInfoCache[key];
+
+  const localDef = DEFINITIONS[key];
+  if (localDef) {
+    const result = { definition: localDef, phonetic: null, partOfSpeech: null, example: null };
+    wordInfoCache[key] = result;
+    return result;
+  }
+
+  try {
+    const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(key)}`);
+    if (!res.ok) return { definition: null, phonetic: null, partOfSpeech: null, example: null };
+    const data = await res.json();
+    if (!Array.isArray(data) || !data[0]) return { definition: null, phonetic: null, partOfSpeech: null, example: null };
+
+    const phonetic = data[0].phonetic || data[0].phonetics?.find(p => p.text)?.text || null;
+    const allMeanings = data.flatMap(e => e?.meanings || []);
+    const definition  = pickDefinitionForAge(allMeanings, userAge);
+    const partOfSpeech = allMeanings[0]?.partOfSpeech || null;
+
+    let example = null;
+    outer: for (const meaning of allMeanings) {
+      for (const def of meaning.definitions || []) {
+        if (def.example && isSafeDefinition(def.example)) { example = def.example; break outer; }
+      }
+    }
+
+    const result = { definition, phonetic, partOfSpeech, example };
+    wordInfoCache[key] = result;
+    return result;
+  } catch {
+    return { definition: null, phonetic: null, partOfSpeech: null, example: null };
+  }
+}
+
+// ── WordDetailModal ───────────────────────────────────────────────────────────
+
+function WordDetailModal({ word, userAge, chipColor, onClose }) {
+  const [info, setInfo] = useState({ loading: true, definition: null, phonetic: null, partOfSpeech: null, example: null });
+
+  useEffect(() => {
+    let cancelled = false;
+    setInfo({ loading: true, definition: null, phonetic: null, partOfSpeech: null, example: null });
+    fetchWordInfo(word, userAge).then(result => { if (!cancelled) setInfo({ loading: false, ...result }); });
+    return () => { cancelled = true; };
+  }, [word, userAge]);
+
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div className="hub-word-overlay" onClick={onClose} role="dialog" aria-modal="true">
+      <div className="hub-word-modal" onClick={e => e.stopPropagation()}>
+        <button className="hub-word-modal-close" onClick={onClose} aria-label="Close">✕</button>
+
+        <div className="hub-word-modal-header" style={{ borderBottomColor: chipColor }}>
+          <h2 className="hub-word-modal-word" style={{ color: chipColor }}>{word}</h2>
+          {!info.loading && info.phonetic && (
+            <p className="hub-word-modal-phonetic">{info.phonetic}</p>
+          )}
+          {!info.loading && info.partOfSpeech && (
+            <span className="hub-word-modal-pos">{info.partOfSpeech}</span>
+          )}
+        </div>
+
+        <div className="hub-word-modal-actions">
+          <button className="hub-word-modal-speak" onClick={() => speakHubWord(word)}>
+            🔊 Hear it
+          </button>
+          <button className="hub-word-modal-teacher" disabled title="Coming in a future update">
+            🎤 Teacher's Recording
+          </button>
+        </div>
+
+        <div className="hub-word-modal-body">
+          {info.loading ? (
+            <p className="hub-word-modal-loading">Looking it up…</p>
+          ) : info.definition ? (
+            <>
+              <p className="hub-word-modal-def">{info.definition}</p>
+              {info.example && (
+                <p className="hub-word-modal-example">
+                  <em className="hub-word-modal-example-label">e.g. </em>"{info.example}"
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="hub-word-modal-nodef">No definition available</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const ACTIVITIES = [
   { id: 'wordsearch',  name: 'Word Search',   icon: '🔍', timeEstimate: '5 mins',  color: '#4d96ff', dark: '#1a5cbf' },
@@ -57,6 +197,7 @@ function WordListHub({
 }) {
   const [settingsOpen,    setSettingsOpen]    = useState(false);
   const [changeWordsOpen, setChangeWordsOpen] = useState(false);
+  const [activeWord,      setActiveWord]      = useState(null); // { word, chipColor }
 
   const completedCount = ACTIVITIES.filter((a) => activityStatuses[a.id] === 'completed').length;
   const progressPct    = Math.round((completedCount / ACTIVITIES.length) * 100);
@@ -107,11 +248,16 @@ function WordListHub({
             const entry = mastery[w.toLowerCase()];
             const rate  = entry && entry.attempts > 0 ? entry.correct / entry.attempts : null;
             return (
-              <span key={w} className="hub-chip" style={{ background: bg, borderColor: border }}>
+              <button
+                key={w}
+                className="hub-chip"
+                style={{ background: bg, borderColor: border }}
+                onClick={() => setActiveWord({ word: w, chipColor: border })}
+              >
                 <MasteryDot rate={rate} />
                 {w}
                 <span className={`hub-diff-star hub-diff-star--${band}`} title={band}>★</span>
-              </span>
+              </button>
             );
           })}
         </div>
@@ -190,6 +336,16 @@ function WordListHub({
           })}
         </div>
       </section>
+
+      {/* ── Word detail modal ── */}
+      {activeWord && (
+        <WordDetailModal
+          word={activeWord.word}
+          userAge={userAge}
+          chipColor={activeWord.chipColor}
+          onClose={() => setActiveWord(null)}
+        />
+      )}
 
       {/* ── Settings modal ── */}
       {settingsOpen && (
