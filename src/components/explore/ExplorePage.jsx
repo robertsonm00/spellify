@@ -4,6 +4,7 @@ import { useCustomLists } from '../../hooks/useCustomLists';
 import { useProgress }    from '../../hooks/useProgress';
 import ListHub            from './ListHub';
 import ListHubV2          from './ListHubV2';
+import ListHubV3          from './ListHubV3';
 import CreateListModal    from './CreateListModal';
 import SignInModal        from './SignInModal';
 import './ExplorePage.css';
@@ -129,6 +130,9 @@ export default function ExplorePage({ user, profile, signIn, signUp, signInWithG
 
     if (selectedList.list.id === 'y1-ow-words') {
       return <ListHubV2 {...sharedProps} />;
+    }
+    if (selectedList.list.id === 'y1-ck-words') {
+      return <ListHubV3 {...sharedProps} />;
     }
 
     return <ListHub {...sharedProps} />;

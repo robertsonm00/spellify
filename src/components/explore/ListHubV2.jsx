@@ -21,27 +21,10 @@ import QuizQuest   from '../QuizQuest';
 import { scoreWord, scoreToBand } from '../../utils/difficultyEngine';
 import DEFINITIONS from '../../data/definitions';
 import { isSafeDefinition } from '../../utils/definitionSafety';
+import { speakWord } from '../../utils/speech';
 import '../WordListHub.css';
 import './ListHub.css';
 import './ListHubV2.css';
-
-// ── Speech (identical to WordListHub) ─────────────────────────────────────────
-
-let cachedVoice = null;
-function pickVoice() {
-  if (cachedVoice) return cachedVoice;
-  const voices = window.speechSynthesis?.getVoices?.() || [];
-  cachedVoice = voices.find(v => v.lang === 'en-GB') || voices.find(v => v.lang?.startsWith('en')) || null;
-  return cachedVoice;
-}
-function speakWord(word) {
-  if (!('speechSynthesis' in window)) return;
-  window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(word);
-  u.lang = 'en-GB'; u.rate = 0.85;
-  const v = pickVoice(); if (v) u.voice = v;
-  window.speechSynthesis.speak(u);
-}
 
 // ── Word info fetch with module-level cache (identical to WordListHub) ────────
 

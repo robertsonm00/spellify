@@ -1,6 +1,38 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import confetti from 'canvas-confetti';
 import { generateWordSearch, checkWord } from '../utils/wordSearchEngine';
 import './WordSearch.css';
+
+// ── Word-found celebration (same as Crossword / Hangman) ─────────────────────
+
+function playWordChime() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [[523, 0], [659, 0.1], [784, 0.2]].forEach(([freq, delay]) => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'triangle';
+      osc.frequency.value = freq;
+      const t = ctx.currentTime + delay;
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.15, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+      osc.start(t);
+      osc.stop(t + 0.25);
+    });
+  } catch { /* AudioContext unavailable */ }
+}
+
+function fireWordConfetti() {
+  confetti({
+    particleCount: 55,
+    spread: 55,
+    origin: { y: 0.45 },
+    colors: ['#6bcb77', '#4d96ff', '#ffd93d', '#c77dff', '#ff6b6b'],
+  });
+}
 
 // Fixed 10×10 max
 const GRID_SIZE = 10;
@@ -98,6 +130,8 @@ export default function WordSearch({ words, savedProgress = null, onSaveProgress
       setFoundCells(newFoundCells);
       onSaveProgress?.({ gameState, foundWords: newFoundWords, foundCells: newFoundCells });
       showToast(`✓ ${matched.word.toLowerCase()}`);
+      playWordChime();
+      fireWordConfetti();
       return true;
     }
     return false;

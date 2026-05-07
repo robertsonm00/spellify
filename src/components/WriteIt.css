@@ -241,10 +241,7 @@
   position: sticky;
   left: 0;
   z-index: 3;
-  background: linear-gradient(160deg, #f5f0ff 0%, #fdf4ff 100%);
   padding-right: 1.25rem;
-  border-right: 2px solid #d8b4fe;
-  box-shadow: 3px 0 8px rgba(0, 0, 0, 0.06);
 }
 .wi-th--done  { color: #16a34a; }
 .wi-th--active { color: #6b21a8; }
@@ -365,27 +362,46 @@
   align-items: center;
   gap: 0.55rem;
   min-width: 0;
+  width: 100%;
+}
+
+/* Icon cluster — always at the far right of the word cell */
+.wi-word-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .wi-speaker,
-.wi-eye {
+.wi-eye,
+.wi-define {
   background: #fff;
   border: 2px solid #c4a8f5;
   border-radius: 50%;
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 1rem;
+  font-size: 0.95rem;
   flex-shrink: 0;
-  transition: transform 0.1s, background 0.1s, opacity 0.15s;
+  transition: transform 0.1s, background 0.1s;
+}
+.wi-define {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.55rem;
+  color: #9333ea;
+  border-color: #c4a8f5;
 }
 .wi-speaker:hover,
-.wi-eye:hover  { background: #f5f0ff; transform: scale(1.05); }
+.wi-eye:hover,
+.wi-define:hover  { background: #f5f0ff; transform: scale(1.08); }
 .wi-speaker:active,
-.wi-eye:active { transform: scale(0.95); }
+.wi-eye:active,
+.wi-define:active { transform: scale(0.93); }
 
 
 .wi-word-text {

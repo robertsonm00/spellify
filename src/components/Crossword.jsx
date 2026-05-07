@@ -4,6 +4,7 @@ import { generateCrossword, wordCells } from '../utils/crosswordEngine';
 import DEFINITIONS from '../data/definitions';
 import { isSafeDefinition } from '../utils/definitionSafety';
 import './Crossword.css';
+import { speakWord } from '../utils/speech';
 
 function playWordChime() {
   try {
@@ -53,23 +54,6 @@ const BRAND_LETTERS = [
   { letter: 'Y', color: '#ffd93d' },
 ];
 
-// ── Speech ───────────────────────────────────────────────────────────────────
-
-let cachedCwVoice = null;
-function pickCwVoice() {
-  if (cachedCwVoice) return cachedCwVoice;
-  const voices = window.speechSynthesis?.getVoices?.() || [];
-  cachedCwVoice = voices.find(v => v.lang === 'en-GB') || voices.find(v => v.lang?.startsWith('en')) || null;
-  return cachedCwVoice;
-}
-function speakWord(word) {
-  if (!('speechSynthesis' in window)) return;
-  window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(word);
-  u.lang = 'en-GB'; u.rate = 0.85;
-  const v = pickCwVoice(); if (v) u.voice = v;
-  window.speechSynthesis.speak(u);
-}
 
 // ── Config ───────────────────────────────────────────────────────────────────
 

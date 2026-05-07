@@ -3,6 +3,7 @@ import confetti from 'canvas-confetti';
 import { chunkWord } from '../utils/wordChunking';
 import { letterBoxSize } from '../utils/letterBoxSize';
 import './MemorySpell.css';
+import { speakWord as speak } from '../utils/speech';
 
 const HEADER_STARS = Array.from({ length: 40 }, (_, i) => ({
   id: i,
@@ -23,30 +24,6 @@ const BRAND_LETTERS = [
   { letter: 'F', color: '#ff6b6b' },
   { letter: 'Y', color: '#ffd93d' },
 ];
-
-// ── Speech (en-GB) ───────────────────────────────────────────────────────────
-
-let cachedUkVoice = null;
-function pickUkVoice() {
-  if (cachedUkVoice) return cachedUkVoice;
-  const voices = window.speechSynthesis?.getVoices?.() || [];
-  cachedUkVoice =
-    voices.find(v => v.lang === 'en-GB') ||
-    voices.find(v => v.lang?.startsWith('en-GB')) ||
-    null;
-  return cachedUkVoice;
-}
-
-function speak(word) {
-  if (!('speechSynthesis' in window)) return;
-  window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(word);
-  u.lang = 'en-GB';
-  u.rate = 0.85;
-  const v = pickUkVoice();
-  if (v) u.voice = v;
-  window.speechSynthesis.speak(u);
-}
 
 // ── Success fanfare ───────────────────────────────────────────────────────────
 
@@ -193,14 +170,6 @@ export default function MemorySpell({
   const word  = words[wordIdx] ?? '';
   const chunk = chunkWord(word);
 
-  // Warm up speech voices (Chrome loads them asynchronously).
-  useEffect(() => {
-    if (!('speechSynthesis' in window)) return;
-    pickUkVoice();
-    const onChange = () => { cachedUkVoice = null; pickUkVoice(); };
-    window.speechSynthesis.addEventListener?.('voiceschanged', onChange);
-    return () => window.speechSynthesis.removeEventListener?.('voiceschanged', onChange);
-  }, []);
 
   useEffect(() => {
     if (phase === 'recall') inputRef.current?.focus();

@@ -1,0 +1,749 @@
+/* ── ListHubV3 — Arcade Dashboard ──────────────────────────────────────────────
+   Retro arcade neon aesthetics fused with modern dashboard structure.
+   Dark circuit-board bg, neon glows, pixel font headers, clean card layout.
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* ── Page wrapper ── */
+.lhv3-wrap {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 56px);
+  background-color: #0d0d1a;
+  background-image:
+    linear-gradient(rgba(99, 102, 241, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99, 102, 241, 0.045) 1px, transparent 1px);
+  background-size: 36px 36px;
+  font-family: 'Nunito', sans-serif;
+}
+
+/* ── Sub-header ── */
+.lhv3-subheader {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.9rem 1.5rem;
+  background: linear-gradient(135deg, #080818 0%, #10102a 50%, #180a28 100%);
+  border-bottom: 1px solid rgba(168, 85, 247, 0.25);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.6),
+    0 0 60px rgba(168, 85, 247, 0.08);
+  flex-shrink: 0;
+}
+
+/* Subtle scanline texture on the sub-header */
+.lhv3-subheader::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(0, 0, 0, 0.08) 3px,
+    rgba(0, 0, 0, 0.08) 4px
+  );
+  pointer-events: none;
+}
+
+/* ── Back button ── */
+.lhv3-back {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.52rem;
+  padding: 0.55rem 1rem;
+  border: 2px solid rgba(168, 85, 247, 0.55);
+  border-radius: 6px;
+  background: rgba(168, 85, 247, 0.08);
+  color: rgba(210, 180, 255, 0.9);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  letter-spacing: 0.06em;
+  min-height: 36px;
+  transition: all 0.15s;
+  text-shadow: 0 0 10px rgba(168, 85, 247, 0.7);
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.15), inset 0 0 8px rgba(168, 85, 247, 0.05);
+}
+.lhv3-back:hover {
+  background: rgba(168, 85, 247, 0.2);
+  border-color: rgba(168, 85, 247, 0.9);
+  color: #fff;
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.45), inset 0 0 12px rgba(168, 85, 247, 0.1);
+  text-shadow: 0 0 14px rgba(168, 85, 247, 1);
+}
+
+.lhv3-header-center { flex: 1; min-width: 0; }
+
+/* ── List title ── */
+.lhv3-title {
+  margin: 0 0 0.35rem;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.82rem;
+  color: #e8e0ff;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  text-shadow:
+    0 0 18px rgba(168, 85, 247, 0.75),
+    0 0 36px rgba(168, 85, 247, 0.35);
+}
+
+/* ── Meta row ── */
+.lhv3-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.lhv3-badge {
+  display: inline-block;
+  padding: 0.18rem 0.65rem;
+  border-radius: 4px;
+  border: 1.5px solid;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: transparent;
+}
+
+.lhv3-word-count {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.45rem;
+  color: rgba(200, 190, 255, 0.45);
+  letter-spacing: 0.08em;
+}
+
+.lhv3-year {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.45rem;
+  color: rgba(200, 190, 255, 0.3);
+  letter-spacing: 0.08em;
+}
+
+/* ── Page content ── */
+.lhv3-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 1.5rem 1.25rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ── Two-column body ── */
+.lhv3-body {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+/* ═══════════════════════════════════════════════════════
+   LEFT: Word panel
+   ═══════════════════════════════════════════════════════ */
+
+.lhv3-words-panel {
+  width: 220px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  position: sticky;
+  top: 76px;
+  max-height: calc(100vh - 160px);
+  overflow-y: auto;
+  /* Custom scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(168, 85, 247, 0.3) transparent;
+}
+.lhv3-words-panel::-webkit-scrollbar { width: 4px; }
+.lhv3-words-panel::-webkit-scrollbar-track { background: transparent; }
+.lhv3-words-panel::-webkit-scrollbar-thumb {
+  background: rgba(168, 85, 247, 0.3);
+  border-radius: 2px;
+}
+
+/* Panel header */
+.lhv3-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.8rem;
+  background: rgba(168, 85, 247, 0.07);
+  border: 1px solid rgba(168, 85, 247, 0.2);
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.lhv3-panel-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.45rem;
+  color: rgba(168, 85, 247, 0.85);
+  letter-spacing: 0.1em;
+  text-shadow: 0 0 8px rgba(168, 85, 247, 0.5);
+}
+
+.lhv3-panel-count {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.6rem;
+  color: #ffd93d;
+  text-shadow: 0 0 8px rgba(255, 217, 61, 0.7);
+}
+
+/* Word list */
+.lhv3-words-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+/* Word pill */
+.lhv3-word-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.45rem 0.8rem 0.45rem 0.65rem;
+  background: #111128;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-left: 3px solid var(--neon, #c77dff);
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.14s, box-shadow 0.14s, border-color 0.14s;
+  font-family: 'Nunito', sans-serif;
+}
+.lhv3-word-pill:hover {
+  background: rgba(255, 255, 255, 0.055);
+  box-shadow:
+    inset 3px 0 0 var(--neon, #c77dff),
+    0 0 12px rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.1);
+  border-left-color: var(--neon, #c77dff);
+}
+
+/* LED mastery indicator */
+.lhv3-led {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: box-shadow 0.2s;
+}
+.lhv3-led--new      { background: #333358; box-shadow: none; }
+.lhv3-led--learning { background: #ff9f43; box-shadow: 0 0 6px #ff9f43, 0 0 12px rgba(255,159,67,0.4); }
+.lhv3-led--mastered { background: #39ff14; box-shadow: 0 0 8px #39ff14, 0 0 16px rgba(57,255,20,0.4); }
+
+/* Pill word text */
+.lhv3-pill-word {
+  flex: 1;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #ccc8f0;
+  text-transform: capitalize;
+}
+.lhv3-word-pill:hover .lhv3-pill-word { color: #fff; }
+
+/* Difficulty star */
+.lhv3-star {
+  margin-left: auto;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+  transition: text-shadow 0.15s;
+}
+.lhv3-star--easy   { color: #39ff14; text-shadow: 0 0 6px rgba(57,255,20,0.6);   }
+.lhv3-star--medium { color: #ffd93d; text-shadow: 0 0 6px rgba(255,217,61,0.6);  }
+.lhv3-star--hard   { color: #ff6b6b; text-shadow: 0 0 6px rgba(255,107,107,0.6); }
+.lhv3-word-pill:hover .lhv3-star--easy   { text-shadow: 0 0 10px #39ff14; }
+.lhv3-word-pill:hover .lhv3-star--medium { text-shadow: 0 0 10px #ffd93d; }
+.lhv3-word-pill:hover .lhv3-star--hard   { text-shadow: 0 0 10px #ff6b6b; }
+
+/* ═══════════════════════════════════════════════════════
+   RIGHT: Games column
+   ═══════════════════════════════════════════════════════ */
+
+.lhv3-games-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+}
+
+/* ── Score / progress panel ── */
+.lhv3-score-panel {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 0.95rem 1.4rem;
+  background: #0e0e22;
+  border: 1.5px solid rgba(99, 102, 241, 0.2);
+  border-radius: 10px;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.4);
+}
+
+.lhv3-score-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex-shrink: 0;
+}
+
+.lhv3-score-label {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.4rem;
+  color: rgba(168, 85, 247, 0.65);
+  letter-spacing: 0.12em;
+}
+
+.lhv3-score-value {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 1.05rem;
+  color: #ffd93d;
+  text-shadow: 0 0 14px rgba(255, 217, 61, 0.85), 0 0 28px rgba(255, 217, 61, 0.4);
+  line-height: 1;
+}
+
+.lhv3-score-denom {
+  font-size: 0.55rem;
+  color: rgba(255, 217, 61, 0.45);
+}
+
+/* Pixel progress blocks */
+.lhv3-pixel-bar {
+  flex: 1;
+  display: flex;
+  gap: 5px;
+}
+
+.lhv3-pixel-block {
+  flex: 1;
+  height: 20px;
+  border-radius: 3px;
+  background: #1a1a34;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background 0.35s, box-shadow 0.35s;
+}
+
+.lhv3-pixel-block--on {
+  background: var(--act-neon, #39ff14);
+  box-shadow:
+    0 0 8px var(--act-neon, #39ff14),
+    0 0 20px var(--act-glow, rgba(57,255,20,0.4));
+  border-color: transparent;
+}
+
+.lhv3-score-pct {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.52rem;
+  color: rgba(200, 195, 255, 0.4);
+  flex-shrink: 0;
+}
+
+/* ── Section label ── */
+.lhv3-section-label {
+  margin: 0 0 -0.25rem;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.45rem;
+  color: rgba(168, 85, 247, 0.55);
+  letter-spacing: 0.12em;
+}
+
+/* ═══════════════════════════════════════════════════════
+   GAME CARDS
+   ═══════════════════════════════════════════════════════ */
+
+.lhv3-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1.25rem;
+}
+
+.lhv3-card {
+  background: #111128;
+  border-radius: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.07);
+  border-top: 4px solid var(--neon, #c77dff);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.13s, box-shadow 0.13s;
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.5),
+    0 0 0px var(--glow, transparent);
+}
+
+.lhv3-card:hover {
+  transform: translate(-3px, -5px);
+  box-shadow:
+    8px 10px 0 rgba(0, 0, 0, 0.5),
+    0 0 28px var(--glow, transparent);
+}
+
+.lhv3-card--done {
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.4),
+    0 0 20px var(--glow, transparent);
+}
+.lhv3-card--done:hover {
+  box-shadow:
+    8px 10px 0 rgba(0, 0, 0, 0.4),
+    0 0 36px var(--glow, transparent);
+}
+
+/* Card face (icon area) */
+.lhv3-card-face {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2.25rem 1rem 2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Large emoji icon with neon glow */
+.lhv3-card-icon {
+  font-size: 3.8rem;
+  line-height: 1;
+  filter: drop-shadow(0 0 10px var(--neon, #c77dff));
+  transition: filter 0.15s;
+}
+.lhv3-card:hover .lhv3-card-icon {
+  filter:
+    drop-shadow(0 0 16px var(--neon, #c77dff))
+    drop-shadow(0 0 36px var(--neon, #c77dff));
+}
+
+/* Completed checkmark badge */
+.lhv3-checkmark {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.7rem;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #39ff14;
+  color: #000;
+  font-size: 0.72rem;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 12px #39ff14, 0 0 24px rgba(57,255,20,0.5);
+}
+
+/* Card body */
+.lhv3-card-body {
+  padding: 1rem 1.15rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.lhv3-card-name {
+  margin: 0;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.58rem;
+  color: #ddd8ff;
+  line-height: 1.75;
+  text-shadow: 0 0 10px var(--neon, #c77dff);
+}
+
+/* Status badge */
+.lhv3-status {
+  display: inline-block;
+  align-self: flex-start;
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 0.18rem 0.55rem;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
+}
+
+.lhv3-status--not-started {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(200, 195, 255, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.lhv3-status--in-progress {
+  background: rgba(255, 159, 67, 0.12);
+  color: #ff9f43;
+  border: 1px solid rgba(255, 159, 67, 0.35);
+  text-shadow: 0 0 8px rgba(255, 159, 67, 0.5);
+}
+
+.lhv3-status--completed {
+  background: rgba(57, 255, 20, 0.1);
+  color: #39ff14;
+  border: 1px solid rgba(57, 255, 20, 0.35);
+  text-shadow: 0 0 8px rgba(57, 255, 20, 0.5);
+}
+
+.lhv3-time {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: rgba(200, 195, 255, 0.35);
+}
+
+.lhv3-accuracy {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #ffd93d;
+  text-shadow: 0 0 8px rgba(255, 217, 61, 0.5);
+}
+
+/* ═══════════════════════════════════════════════════════
+   THEME TOGGLE BUTTON
+   ═══════════════════════════════════════════════════════ */
+
+.lhv3-theme-toggle {
+  font-size: 1.1rem;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 2px solid rgba(168, 85, 247, 0.55);
+  background: rgba(168, 85, 247, 0.08);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.15);
+  line-height: 1;
+}
+.lhv3-theme-toggle:hover {
+  background: rgba(168, 85, 247, 0.22);
+  border-color: rgba(168, 85, 247, 0.9);
+  box-shadow: 0 0 18px rgba(168, 85, 247, 0.45);
+}
+
+/* ═══════════════════════════════════════════════════════
+   LIGHT MODE  (.lhv3-wrap--light)
+   All overrides are scoped under this modifier so the
+   dark theme (default) remains fully untouched.
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Page ── */
+.lhv3-wrap--light {
+  background-color: #f7f8fc;
+  background-image:
+    linear-gradient(rgba(99, 102, 241, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99, 102, 241, 0.055) 1px, transparent 1px);
+}
+
+/* ── Sub-header ── */
+.lhv3-wrap--light .lhv3-subheader {
+  background: linear-gradient(135deg, #ffffff 0%, #faf8ff 60%, #f3eeff 100%);
+  border-bottom-color: rgba(139, 92, 246, 0.18);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(139, 92, 246, 0.06);
+}
+.lhv3-wrap--light .lhv3-subheader::after { display: none; } /* remove scanlines */
+
+/* ── Back button ── */
+.lhv3-wrap--light .lhv3-back {
+  background: #f5f0ff;
+  border-color: #c4b5fd;
+  color: #5b21b6;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  text-shadow: none;
+}
+.lhv3-wrap--light .lhv3-back:hover {
+  background: #ede9fe;
+  border-color: #7c3aed;
+  color: #3b0764;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.2);
+  text-shadow: none;
+}
+
+/* ── Title ── */
+.lhv3-wrap--light .lhv3-title {
+  color: #1a1a2e;
+  text-shadow: none;
+}
+
+/* ── Meta text ── */
+.lhv3-wrap--light .lhv3-word-count { color: #9ca3af; }
+.lhv3-wrap--light .lhv3-year       { color: #d1d5db; }
+
+/* ── Theme toggle (light variant) ── */
+.lhv3-wrap--light .lhv3-theme-toggle {
+  background: #f5f0ff;
+  border-color: #c4b5fd;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07);
+}
+.lhv3-wrap--light .lhv3-theme-toggle:hover {
+  background: #ede9fe;
+  border-color: #7c3aed;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.18);
+}
+
+/* ── Words panel ── */
+.lhv3-wrap--light .lhv3-words-panel {
+  scrollbar-color: rgba(139, 92, 246, 0.2) rgba(0, 0, 0, 0.04);
+}
+.lhv3-wrap--light .lhv3-words-panel::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.2);
+}
+.lhv3-wrap--light .lhv3-words-panel::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.lhv3-wrap--light .lhv3-panel-header {
+  background: rgba(139, 92, 246, 0.06);
+  border-color: rgba(139, 92, 246, 0.15);
+}
+.lhv3-wrap--light .lhv3-panel-title {
+  color: #6d28d9;
+  text-shadow: none;
+}
+.lhv3-wrap--light .lhv3-panel-count {
+  color: #b45309;
+  text-shadow: none;
+}
+
+/* ── Word pills ── */
+.lhv3-wrap--light .lhv3-word-pill {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+.lhv3-wrap--light .lhv3-word-pill:hover {
+  background: #fafafe;
+  border-color: rgba(0, 0, 0, 0.09);
+  box-shadow: inset 3px 0 0 var(--neon, #c77dff), 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+.lhv3-wrap--light .lhv3-pill-word       { color: #1e1b4b; }
+.lhv3-wrap--light .lhv3-word-pill:hover .lhv3-pill-word { color: #0f0a23; }
+
+/* ── LED dots (new stays grey; learning/mastered keep their colours) ── */
+.lhv3-wrap--light .lhv3-led--new { background: #d1d5db; }
+
+/* ── Difficulty stars (drop the glow on light bg) ── */
+.lhv3-wrap--light .lhv3-star--easy   { color: #16a34a; text-shadow: none; }
+.lhv3-wrap--light .lhv3-star--medium { color: #d97706; text-shadow: none; }
+.lhv3-wrap--light .lhv3-star--hard   { color: #dc2626; text-shadow: none; }
+.lhv3-wrap--light .lhv3-word-pill:hover .lhv3-star--easy   { text-shadow: 0 0 6px rgba(22,163,74,0.4); }
+.lhv3-wrap--light .lhv3-word-pill:hover .lhv3-star--medium { text-shadow: 0 0 6px rgba(217,119,6,0.4); }
+.lhv3-wrap--light .lhv3-word-pill:hover .lhv3-star--hard   { text-shadow: 0 0 6px rgba(220,38,38,0.4); }
+
+/* ── Score / progress panel ── */
+.lhv3-wrap--light .lhv3-score-panel {
+  background: #ffffff;
+  border-color: rgba(99, 102, 241, 0.14);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+}
+.lhv3-wrap--light .lhv3-score-label { color: #6d28d9; }
+.lhv3-wrap--light .lhv3-score-value {
+  color: #b45309;
+  text-shadow: none;
+}
+.lhv3-wrap--light .lhv3-score-denom { color: rgba(180, 83, 9, 0.45); }
+.lhv3-wrap--light .lhv3-pixel-block {
+  background: #e9d5ff;
+  border-color: rgba(124, 58, 237, 0.08);
+}
+.lhv3-wrap--light .lhv3-pixel-block--on {
+  /* Keep the neon fill colour, just dial back the outer glow */
+  box-shadow: 0 0 5px var(--act-neon, #39ff14);
+}
+.lhv3-wrap--light .lhv3-score-pct { color: #9ca3af; }
+
+/* ── Section label ── */
+.lhv3-wrap--light .lhv3-section-label { color: #6d28d9; }
+
+/* ── Game cards ── */
+.lhv3-wrap--light .lhv3-card {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.06);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.07), 0 0 0px var(--glow, transparent);
+}
+.lhv3-wrap--light .lhv3-card:hover {
+  box-shadow: 6px 8px 0 rgba(0, 0, 0, 0.1), 0 0 14px var(--glow, transparent);
+}
+.lhv3-wrap--light .lhv3-card--done {
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06), 0 0 12px var(--glow, transparent);
+}
+.lhv3-wrap--light .lhv3-card--done:hover {
+  box-shadow: 6px 8px 0 rgba(0, 0, 0, 0.08), 0 0 20px var(--glow, transparent);
+}
+
+/* card face — bg is set inline per-card; just update the divider */
+.lhv3-wrap--light .lhv3-card-face {
+  border-bottom-color: rgba(0, 0, 0, 0.05);
+}
+
+/* icon: no heavy glow at rest; softer glow on hover */
+.lhv3-wrap--light .lhv3-card-icon {
+  filter: none;
+}
+.lhv3-wrap--light .lhv3-card:hover .lhv3-card-icon {
+  filter: drop-shadow(0 0 8px var(--neon, #c77dff));
+}
+
+/* ── Card text & badges ── */
+.lhv3-wrap--light .lhv3-card-name {
+  color: #1a1a2e;
+  text-shadow: none;
+}
+.lhv3-wrap--light .lhv3-status--not-started {
+  background: #f3f4f6;
+  color: #9ca3af;
+  border-color: #e5e7eb;
+}
+.lhv3-wrap--light .lhv3-status--in-progress {
+  background: rgba(217, 119, 6, 0.1);
+  color: #b45309;
+  border-color: rgba(217, 119, 6, 0.3);
+  text-shadow: none;
+}
+.lhv3-wrap--light .lhv3-status--completed {
+  background: rgba(22, 163, 74, 0.08);
+  color: #16a34a;
+  border-color: rgba(22, 163, 74, 0.3);
+  text-shadow: none;
+}
+.lhv3-wrap--light .lhv3-time     { color: #9ca3af; }
+.lhv3-wrap--light .lhv3-accuracy { color: #b45309; text-shadow: none; }
+
+/* ── Completed checkmark — keep it green but without the massive outer glow ── */
+.lhv3-wrap--light .lhv3-checkmark {
+  box-shadow: 0 0 6px rgba(22, 163, 74, 0.4);
+}
+
+/* ═══════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════ */
+
+@media (max-width: 700px) {
+  .lhv3-body { flex-direction: column; }
+
+  .lhv3-words-panel {
+    width: 100%;
+    position: static;
+    max-height: none;
+  }
+  .lhv3-words-list { flex-direction: row; flex-wrap: wrap; }
+  .lhv3-word-pill {
+    width: auto;
+    border-left: none;
+    border-bottom: 3px solid var(--neon, #c77dff);
+    border-radius: 6px;
+  }
+  .lhv3-word-pill:hover { box-shadow: 0 3px 0 var(--neon, #c77dff); }
+  .lhv3-grid { grid-template-columns: 1fr 1fr; }
+  .lhv3-score-panel { flex-direction: column; gap: 0.75rem; align-items: flex-start; }
+  .lhv3-pixel-bar { width: 100%; }
+}
+
+@media (max-width: 440px) {
+  .lhv3-grid { grid-template-columns: 1fr; }
+}

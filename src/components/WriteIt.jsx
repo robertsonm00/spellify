@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import confetti from 'canvas-confetti';
 import './WriteIt.css';
+import './WordListHub.css';
+import { speakWord as speak } from '../utils/speech';
+import DEFINITIONS from '../data/definitions';
+import { isSafeDefinition } from '../utils/definitionSafety';
 
 const HEADER_STARS = Array.from({ length: 40 }, (_, i) => ({
   id: i,
@@ -21,28 +25,111 @@ const BRAND_LETTERS = [
   { letter: 'Y', color: '#ffd93d' },
 ];
 
-// ── Speech (en-GB) ───────────────────────────────────────────────────────────
 
-let cachedUkVoice = null;
-function pickUkVoice() {
-  if (cachedUkVoice) return cachedUkVoice;
-  const voices = window.speechSynthesis?.getVoices?.() || [];
-  cachedUkVoice =
-    voices.find(v => v.lang === 'en-GB') ||
-    voices.find(v => v.lang?.startsWith('en-GB')) ||
-    null;
-  return cachedUkVoice;
+// ── Word info cache + fetch ───────────────────────────────────────────────────
+
+const wordInfoCache = {};
+
+function pickDefForAge(meanings, userAge) {
+  const ORDER = { noun: 0, verb: 1 };
+  const sorted = [...meanings].sort((a, b) => (ORDER[a.partOfSpeech] ?? 2) - (ORDER[b.partOfSpeech] ?? 2));
+  for (const m of sorted) {
+    for (const d of m.definitions || []) {
+      const t = d.definition;
+      if (!t || t.startsWith('(') || t.length < 5) continue;
+      if (!isSafeDefinition(t)) continue;
+      if (userAge < 7  && t.length > 80)  return t.slice(0, 77) + '…';
+      if (userAge < 10 && t.length > 160) return t.slice(0, 157) + '…';
+      return t;
+    }
+  }
+  return null;
 }
 
-function speak(word) {
-  if (!('speechSynthesis' in window)) return;
-  window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(word);
-  u.lang = 'en-GB';
-  u.rate = 0.85;
-  const v = pickUkVoice();
-  if (v) u.voice = v;
-  window.speechSynthesis.speak(u);
+async function fetchWordInfo(word, userAge = 7) {
+  const key = word.toLowerCase();
+  if (wordInfoCache[key]) return wordInfoCache[key];
+  const local = DEFINITIONS[key];
+  if (local) {
+    const r = { definition: local, phonetic: null, partOfSpeech: null, example: null };
+    wordInfoCache[key] = r;
+    return r;
+  }
+  try {
+    const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(key)}`);
+    if (!res.ok) return { definition: null, phonetic: null, partOfSpeech: null, example: null };
+    const data = await res.json();
+    if (!Array.isArray(data) || !data[0]) return { definition: null, phonetic: null, partOfSpeech: null, example: null };
+    const phonetic     = data[0].phonetic || data[0].phonetics?.find(p => p.text)?.text || null;
+    const allMeanings  = data.flatMap(e => e?.meanings || []);
+    const definition   = pickDefForAge(allMeanings, userAge);
+    const partOfSpeech = allMeanings[0]?.partOfSpeech || null;
+    let example = null;
+    outer: for (const m of allMeanings) {
+      for (const d of m.definitions || []) {
+        if (d.example && isSafeDefinition(d.example)) { example = d.example; break outer; }
+      }
+    }
+    const r = { definition, phonetic, partOfSpeech, example };
+    wordInfoCache[key] = r;
+    return r;
+  } catch {
+    return { definition: null, phonetic: null, partOfSpeech: null, example: null };
+  }
+}
+
+// ── Word detail modal ─────────────────────────────────────────────────────────
+
+function WordDetailModal({ word, userAge, onClose }) {
+  const [info, setInfo] = useState({ loading: true, definition: null, phonetic: null, partOfSpeech: null, example: null });
+
+  useEffect(() => {
+    let cancelled = false;
+    setInfo({ loading: true, definition: null, phonetic: null, partOfSpeech: null, example: null });
+    fetchWordInfo(word, userAge).then(r => { if (!cancelled) setInfo({ loading: false, ...r }); });
+    return () => { cancelled = true; };
+  }, [word, userAge]);
+
+  useEffect(() => {
+    const h = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [onClose]);
+
+  const ACCENT = '#c77dff';
+
+  return (
+    <div className="hub-word-overlay" onClick={onClose} role="dialog" aria-modal="true">
+      <div className="hub-word-modal" onClick={e => e.stopPropagation()}>
+        <button className="hub-word-modal-close" onClick={onClose} aria-label="Close">✕</button>
+        <div className="hub-word-modal-header" style={{ borderBottomColor: ACCENT }}>
+          <h2 className="hub-word-modal-word" style={{ color: ACCENT }}>{word}</h2>
+          {!info.loading && info.phonetic     && <p className="hub-word-modal-phonetic">{info.phonetic}</p>}
+          {!info.loading && info.partOfSpeech && <span className="hub-word-modal-pos">{info.partOfSpeech}</span>}
+        </div>
+        <div className="hub-word-modal-actions">
+          <button className="hub-word-modal-speak" onClick={() => speak(word)}>🔊 Hear it</button>
+          <button className="hub-word-modal-teacher" disabled title="Coming in a future update">🎤 Teacher's Recording</button>
+        </div>
+        <div className="hub-word-modal-body">
+          {info.loading ? (
+            <p className="hub-word-modal-loading">Looking it up…</p>
+          ) : info.definition ? (
+            <>
+              <p className="hub-word-modal-def">{info.definition}</p>
+              {info.example && (
+                <p className="hub-word-modal-example">
+                  <em className="hub-word-modal-example-label">e.g. </em>"{info.example}"
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="hub-word-modal-nodef">No definition available</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -101,6 +188,7 @@ function getCompletedLabel(i) {
 
 function WriteIt({
   words,
+  wordObjects = [],
   childName = '',
   dyslexiaMode = false,
   savedProgress = null,
@@ -112,6 +200,7 @@ function WriteIt({
   const [rows, setRows] = useState(() => savedProgress?.rows ?? makeInitialState(words));
   const [wordsHidden,     setWordsHidden]     = useState(false);
   const [confirmRestart,  setConfirmRestart]  = useState(false);
+  const [activeWord,      setActiveWord]      = useState(null);
   const [justCompleted, setJustCompleted] = useState(false);
   const [celebrate, setCelebrate] = useState(null); // { emoji, text, hiding }
   const [confettiFired, setConfettiFired] = useState(() => {
@@ -119,6 +208,14 @@ function WriteIt({
     return savedProgress.rows.every(r =>
       r.practices.slice(0, NUM_BASE).every(p => p.done)
     );
+  });
+
+  // Pre-seed definition cache with any list-provided definitions
+  wordObjects.forEach(({ word, definition }) => {
+    const key = word.toLowerCase();
+    if (!wordInfoCache[key] && definition) {
+      wordInfoCache[key] = { definition, phonetic: null, partOfSpeech: null, example: null };
+    }
   });
 
   const inputRefs          = useRef({});
@@ -149,15 +246,6 @@ function WriteIt({
     }),
   ].join(' ');
 
-  // ── Warm up voices ─────────────────────────────────────────────────────────
-
-  useEffect(() => {
-    if (!('speechSynthesis' in window)) return;
-    pickUkVoice();
-    const onChange = () => { cachedUkVoice = null; pickUkVoice(); };
-    window.speechSynthesis.addEventListener?.('voiceschanged', onChange);
-    return () => window.speechSynthesis.removeEventListener?.('voiceschanged', onChange);
-  }, []);
 
   // ── Save progress whenever rows change (if any work done) ──────────────────
 
@@ -418,27 +506,31 @@ function WriteIt({
                 {/* Word cell — sticky */}
                 <div className="wi-cell wi-cell--word">
                   <div className="wi-word-display">
-                    <button
-                      className="wi-speaker wi-no-print"
-                      onClick={() => speak(row.word)}
-                      title="Hear this word"
-                      aria-label={`Hear ${row.word}`}
-                    >
-                      🔊
-                    </button>
-                    {wordFaded && (
-                      <button
-                        className="wi-eye wi-no-print"
-                        onClick={() => setWordsHidden(false)}
-                        title="Show words"
-                        aria-label="Show words"
-                      >
-                        👁
-                      </button>
-                    )}
                     <span className={`wi-word-text${wordFaded ? ' wi-word-text--faded' : ''}`}>
                       {row.word}
                     </span>
+                    <div className="wi-word-actions wi-no-print">
+                      {wordFaded && (
+                        <button
+                          className="wi-eye"
+                          onClick={() => setWordsHidden(false)}
+                          title="Show words"
+                          aria-label="Show words"
+                        >👁</button>
+                      )}
+                      <button
+                        className="wi-speaker"
+                        onClick={() => speak(row.word)}
+                        title="Hear this word"
+                        aria-label={`Hear ${row.word}`}
+                      >👂</button>
+                      <button
+                        className="wi-define"
+                        onClick={() => setActiveWord(row.word)}
+                        title="Definition"
+                        aria-label={`Definition of ${row.word}`}
+                      >?</button>
+                    </div>
                   </div>
                 </div>
 
@@ -560,6 +652,15 @@ function WriteIt({
           <span className="wi-complete-emoji">⭐</span>
           <span>You're a spelling star! ⭐</span>
         </div>
+      )}
+
+      {/* Word definition modal */}
+      {activeWord && (
+        <WordDetailModal
+          word={activeWord}
+          userAge={7}
+          onClose={() => setActiveWord(null)}
+        />
       )}
     </div>
   );

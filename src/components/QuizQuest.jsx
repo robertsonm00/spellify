@@ -4,30 +4,7 @@ import { buildQuiz } from '../utils/quizQuestionBuilder';
 import DEFINITIONS from '../data/definitions.js';
 import { letterBoxSize } from '../utils/letterBoxSize';
 import './QuizQuest.css';
-
-// ── Speech (en-GB) ───────────────────────────────────────────────────────────
-
-let cachedUkVoice = null;
-function pickUkVoice() {
-  if (cachedUkVoice) return cachedUkVoice;
-  const voices = window.speechSynthesis?.getVoices?.() || [];
-  cachedUkVoice =
-    voices.find((v) => v.lang === 'en-GB') ||
-    voices.find((v) => v.lang?.startsWith('en-GB')) ||
-    null;
-  return cachedUkVoice;
-}
-
-function speak(word) {
-  if (!('speechSynthesis' in window)) return;
-  window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(word);
-  u.lang = 'en-GB';
-  u.rate = 0.85;
-  const v = pickUkVoice();
-  if (v) u.voice = v;
-  window.speechSynthesis.speak(u);
-}
+import { speakWord as speak } from '../utils/speech';
 
 // ── Success fanfare ──────────────────────────────────────────────────────────
 

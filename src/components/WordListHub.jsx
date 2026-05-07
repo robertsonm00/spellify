@@ -3,24 +3,7 @@ import './WordListHub.css';
 import { scoreWord, scoreToBand } from '../utils/difficultyEngine';
 import DEFINITIONS from '../data/definitions';
 import { isSafeDefinition } from '../utils/definitionSafety';
-
-// ── Speech ────────────────────────────────────────────────────────────────────
-
-let cachedHubVoice = null;
-function pickHubVoice() {
-  if (cachedHubVoice) return cachedHubVoice;
-  const voices = window.speechSynthesis?.getVoices?.() || [];
-  cachedHubVoice = voices.find(v => v.lang === 'en-GB') || voices.find(v => v.lang?.startsWith('en')) || null;
-  return cachedHubVoice;
-}
-function speakHubWord(word) {
-  if (!('speechSynthesis' in window)) return;
-  window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(word);
-  u.lang = 'en-GB'; u.rate = 0.85;
-  const v = pickHubVoice(); if (v) u.voice = v;
-  window.speechSynthesis.speak(u);
-}
+import { speakWord as speakHubWord } from '../utils/speech';
 
 // ── Word info fetch (with module-level cache) ─────────────────────────────────
 

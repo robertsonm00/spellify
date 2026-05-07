@@ -3,6 +3,7 @@
 .welcome {
   position: relative;
   min-height: 100vh;
+  margin-top: -56px; /* cancel the global body padding-top added for the fixed TopNav */
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
   display: flex;
   align-items: center;
