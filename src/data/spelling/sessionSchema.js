@@ -19,7 +19,7 @@ export const INITIAL_STATUSES = {
  * @param {{ year, age, words, wordObjects, sourceMode, dyslexiaMode }} opts
  * @returns {object}
  */
-export function createSession({ year, age, words = [], wordObjects = [], sourceMode = 'generated', dyslexiaMode = false }) {
+export function createSession({ year, age, words = [], wordObjects = [], sourceMode = 'generated', dyslexiaMode = false, ruleKey = null, ruleLabel = null }) {
   return {
     _version: 2,
     year,
@@ -28,6 +28,8 @@ export function createSession({ year, age, words = [], wordObjects = [], sourceM
     dyslexiaMode,    // boolean
     words,           // string[]
     wordObjects,     // { word, year, difficulty }[]
+    ruleKey,         // RULE_BUCKET_PICKER — null or e.g. 'splitDigraphs'
+    ruleLabel,       // RULE_BUCKET_PICKER — null or e.g. 'Split digraphs (a-e / i-e / o-e)'
     activityStatuses: { ...INITIAL_STATUSES },
     activityProgress: {},  // keyed by activity id — mid-session snapshots
     mastery:     {},

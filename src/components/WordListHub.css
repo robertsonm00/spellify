@@ -583,3 +583,16 @@
   font-weight: 600;
   font-style: italic;
 }
+
+/* ── RULE_BUCKET_PICKER ── hub subtitle showing current rule bucket ────── */
+/* To remove: delete this entire block. */
+.hub-rule-subtitle {
+  text-align: center;
+  margin: -0.25rem 0 1rem;
+  font-size: 0.95rem;
+  color: #555;
+}
+.hub-rule-subtitle strong {
+  color: #1a1a2e;
+}
+/* ── END RULE_BUCKET_PICKER ───────────────────────────────────────────── */
