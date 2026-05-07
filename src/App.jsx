@@ -10,6 +10,9 @@ import Crossword      from './components/Crossword';
 import WriteIt        from './components/WriteIt';
 import MemorySpell    from './components/MemorySpell';
 import QuizQuest      from './components/QuizQuest';
+import SyllableTap    from './components/activities/SyllableTap';
+import WordForge      from './components/activities/WordForge';
+import WeakSpot       from './components/activities/WeakSpot';
 import { loadSession, saveSession, createSession, INITIAL_STATUSES, updateMastery, rebuildReviewQueue, getActivityProgress, setActivityProgress } from './data/spelling/sessionSchema';
 import TopNav         from './components/TopNav';
 import ExplorePage    from './components/explore/ExplorePage';
@@ -28,9 +31,12 @@ const GAME_TITLES = {
   wordsearch:  'Word Search',
   memoryspell: 'Memory Spell',
   hangman:     'Hangman',
+  syllabletap: 'Syllable Tap',
   crossword:   'Crossword',
   writeit:     'Write It',
+  weakspot:    'Weak Spot',
   quizquest:   'Quiz Quest',
+  wordforge:   'Word Forge',
   review:      'Spelling Quiz',
 };
 
@@ -226,6 +232,33 @@ function App() {
           savedProgress={getActivityProgress(session, 'quizquest')}
           onSaveProgress={(p) => handleSaveProgress('quizquest', p)}
           onComplete={(results) => handleComplete('quizquest', results || [])}
+          onExit={handleExit}
+        />
+      );
+    } else if (id === 'syllabletap') {
+      Activity = (
+        <SyllableTap
+          words={words}
+          dyslexiaMode={dyslexiaMode}
+          onComplete={(results) => handleComplete('syllabletap', results || [])}
+          onExit={handleExit}
+        />
+      );
+    } else if (id === 'wordforge') {
+      Activity = (
+        <WordForge
+          words={words}
+          dyslexiaMode={dyslexiaMode}
+          onComplete={(results) => handleComplete('wordforge', results || [])}
+          onExit={handleExit}
+        />
+      );
+    } else if (id === 'weakspot') {
+      Activity = (
+        <WeakSpot
+          words={words}
+          dyslexiaMode={dyslexiaMode}
+          onComplete={(results) => handleComplete('weakspot', results || [])}
           onExit={handleExit}
         />
       );

@@ -9,9 +9,12 @@ export const INITIAL_STATUSES = {
   wordsearch:   'not-started',
   memoryspell:  'not-started',
   hangman:      'not-started',
-  crossword:    'not-started',
+  syllabletap:  'not-started',
   writeit:      'not-started',
+  weakspot:     'not-started',
+  crossword:    'not-started',
   quizquest:    'not-started',
+  wordforge:    'not-started',
 };
 
 /**

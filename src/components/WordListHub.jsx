@@ -132,9 +132,12 @@ const ACTIVITIES = [
   { id: 'wordsearch',  name: 'Word Search',   icon: '🔍', timeEstimate: '5 mins',  color: '#4d96ff', dark: '#1a5cbf', phase: 'warmup' },
   { id: 'memoryspell', name: 'Memory Spell',  icon: '🧠', timeEstimate: '5 mins',  color: '#6bcb77', dark: '#1e7e34', phase: 'warmup' },
   { id: 'hangman',     name: 'Hangman',       icon: '🎯', timeEstimate: '5 mins',  color: '#ff9f43', dark: '#c05700', phase: 'warmup' },
+  { id: 'syllabletap', name: 'Syllable Tap',  icon: '👂', timeEstimate: '5 mins',  color: '#34d399', dark: '#0e7c52', phase: 'warmup' },
   { id: 'writeit',     name: 'Write It',      icon: '✏️', timeEstimate: '10 mins', color: '#a855f7', dark: '#581c87', phase: 'explore' },
+  { id: 'weakspot',    name: 'Weak Spot',     icon: '🎯', timeEstimate: '5 mins',  color: '#fbbf24', dark: '#92400e', phase: 'explore' },
   { id: 'crossword',   name: 'Crossword',     icon: '✏️', timeEstimate: '10 mins', color: '#c77dff', dark: '#6b21a8', phase: 'explore' },
   { id: 'quizquest',   name: 'Quiz Quest',    icon: '🏆', timeEstimate: '5 mins',  color: '#ec4899', dark: '#9d174d', phase: 'consolidate' },
+  { id: 'wordforge',   name: 'Word Forge',    icon: '🔨', timeEstimate: '5 mins',  color: '#f97316', dark: '#9a3412', phase: 'consolidate' },
 ];
 
 const PHASES = [

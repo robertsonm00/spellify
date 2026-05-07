@@ -1,0 +1,120 @@
+.st-shell {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.st-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+.st-exit {
+  border: none;
+  background: transparent;
+  font-size: 1rem;
+  cursor: pointer;
+  color: #555;
+}
+.st-progress {
+  font-size: 0.9rem;
+  color: #777;
+}
+.st-title {
+  font-size: 1.6rem;
+  margin: 0.5rem 0;
+}
+.st-instructions {
+  color: #555;
+  margin: 0 0 1.25rem;
+  max-width: 360px;
+}
+.st-play {
+  border: 2px solid #4d96ff;
+  background: #fff;
+  color: #1a5cbf;
+  border-radius: 999px;
+  padding: 0.6rem 1.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 1.5rem;
+}
+.st-tap-btn {
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, #6bcb77, #1e7e34);
+  color: #fff;
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  box-shadow: 0 6px 0 #145e27;
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+.st-tap-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 3px 0 #145e27;
+}
+.st-tap-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.st-tap-count {
+  margin: 1rem 0;
+  font-size: 1.1rem;
+  color: #1a1a2e;
+}
+.st-cta {
+  border: none;
+  background: #1a1a2e;
+  color: #fff;
+  padding: 0.75rem 1.75rem;
+  font-size: 1rem;
+  font-weight: 700;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.st-cta-row {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+.st-result {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+.st-result-ok { color: #1e7e34; font-size: 1.15rem; }
+.st-result-bad { color: #c0392b; font-size: 1.05rem; }
+.st-complete .st-score {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0.5rem 0 1.5rem;
+}
+.st-summary {
+  list-style: none;
+  padding: 0;
+  width: 100%;
+  max-width: 380px;
+  margin: 0 0 1.5rem;
+}
+.st-summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  margin-bottom: 0.4rem;
+}
+.st-summary-row--ok  { background: #e8f6ec; color: #1e7e34; }
+.st-summary-row--bad { background: #fdecec; color: #c0392b; }
+.st-summary-counts { font-size: 0.85rem; opacity: 0.85; }
