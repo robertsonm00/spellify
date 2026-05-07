@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import './OnboardingFlow.css';
-import { YEAR_GROUPS, selectWords } from '../utils/wordSelectionEngine';
+import { YEAR_GROUPS, selectWords, getRuleGroups } from '../utils/wordSelectionEngine';
 import AddWordsManual from './AddWordsManual';
 
 const STARS = Array.from({ length: 60 }, (_, i) => ({
@@ -243,20 +243,45 @@ export function GeneratedWords({
 }) {
   const [count,        setCount]        = useState(10);
   const [extraSupport, setExtraSupport] = useState(initialDyslexiaMode);
-  // Pre-fetch 20 so the 10/20 toggle is instant; re-run on mode or shuffle change
+
+  // RULE_BUCKET_PICKER ── Y1/Y2 can practise by phonics rule instead of by year
+  const ruleBuckets   = getRuleGroups(yearGroup);
+  const [groupBy,     setGroupBy] = useState('year');             // 'year' | 'rule'
+  const [ruleKey,     setRuleKey] = useState(ruleBuckets[0]?.key || null);
+  const ruleLabel     = ruleBuckets.find((b) => b.key === ruleKey)?.label || null;
+
+  const buildArgs = (overrides = {}) => ({
+    yearGroup,
+    count: 20,
+    dyslexiaMode: extraSupport,
+    groupBy,
+    rule: groupBy === 'rule' ? ruleKey : null,
+    ...overrides,
+  });
+
   const [result, setResult] = useState(() =>
-    selectWords({ yearGroup, count: 20, dyslexiaMode: initialDyslexiaMode })
+    selectWords(buildArgs({ dyslexiaMode: initialDyslexiaMode, groupBy: 'year', rule: null }))
   );
 
   const words       = result.words.slice(0, count);
   const wordObjects = result.wordObjects.slice(0, count);
 
   const reshuffle = () =>
-    setResult(selectWords({ yearGroup, count: 20, dyslexiaMode: extraSupport }));
+    setResult(selectWords(buildArgs()));
 
   const handleExtraSupportToggle = (val) => {
     setExtraSupport(val);
-    setResult(selectWords({ yearGroup, count: 20, dyslexiaMode: val }));
+    setResult(selectWords(buildArgs({ dyslexiaMode: val })));
+  };
+
+  const handleGroupByChange = (mode) => {
+    setGroupBy(mode);
+    setResult(selectWords(buildArgs({ groupBy: mode, rule: mode === 'rule' ? ruleKey : null })));
+  };
+
+  const handleRuleChange = (key) => {
+    setRuleKey(key);
+    setResult(selectWords(buildArgs({ groupBy: 'rule', rule: key })));
   };
 
   const groupMeta = YEAR_GROUPS.find((g) => g.yearGroup === yearGroup) || YEAR_GROUPS[1];
@@ -268,6 +293,39 @@ export function GeneratedWords({
         <h2 className="ob-step-title">Your words!</h2>
         <p className="ob-step-sub">{groupMeta.label} · {words.length} words ready</p>
       </div>
+
+      {/* RULE_BUCKET_PICKER ── By year / By rule (Y1 & Y2 only) */}
+      {ruleBuckets.length > 0 && (
+        <div className="ob-rule-picker">
+          <div className="ob-rule-toggle">
+            <button
+              className={`ob-rule-toggle-btn${groupBy === 'year' ? ' ob-rule-toggle-btn--active' : ''}`}
+              onClick={() => handleGroupByChange('year')}
+            >
+              By year
+            </button>
+            <button
+              className={`ob-rule-toggle-btn${groupBy === 'rule' ? ' ob-rule-toggle-btn--active' : ''}`}
+              onClick={() => handleGroupByChange('rule')}
+            >
+              By spelling rule
+            </button>
+          </div>
+          {groupBy === 'rule' && (
+            <div className="ob-rule-chips">
+              {ruleBuckets.map(({ key, label }) => (
+                <button
+                  key={key}
+                  className={`ob-rule-chip${ruleKey === key ? ' ob-rule-chip--active' : ''}`}
+                  onClick={() => handleRuleChange(key)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 10 / 20 toggle */}
       <div className="ob-count-toggle">
@@ -322,7 +380,14 @@ export function GeneratedWords({
         <button className="ob-reshuffle-btn" onClick={reshuffle}>🔀 Shuffle</button>
         <button
           className="ob-play-btn"
-          onClick={() => onConfirm({ words, wordObjects, dyslexiaMode: extraSupport, sourceMode: 'generated' })}
+          onClick={() => onConfirm({
+            words,
+            wordObjects,
+            dyslexiaMode: extraSupport,
+            sourceMode: 'generated',
+            ruleKey:   groupBy === 'rule' ? ruleKey   : null,
+            ruleLabel: groupBy === 'rule' ? ruleLabel : null,
+          })}
         >
           {confirmLabel}
         </button>
@@ -343,12 +408,12 @@ function OnboardingFlow({ onComplete, initialName = '', initialCharacter = null,
   const handleCharacter = (c) => { setCharacter(c); setStep('year'); };
   const handleYear = (y) => { setYear(y); setStep('source'); };
 
-  // Called by GeneratedWords with { words, wordObjects, dyslexiaMode, sourceMode }
+  // Called by GeneratedWords with { words, wordObjects, dyslexiaMode, sourceMode, ruleKey?, ruleLabel? }
   // and by AddWordsManual (wrapped below) with sourceMode: 'manual'
-  const handleConfirmWords = ({ words, wordObjects = [], dyslexiaMode = false, sourceMode = 'generated' }) => {
+  const handleConfirmWords = ({ words, wordObjects = [], dyslexiaMode = false, sourceMode = 'generated', ruleKey = null, ruleLabel = null }) => {
     const group = YEAR_GROUPS.find((g) => g.yearGroup === year);
     const age   = group?.ageRange[0] ?? 8;
-    onComplete({ name, character, year, age, words, wordObjects, dyslexiaMode, sourceMode, difficulty: 'medium' });
+    onComplete({ name, character, year, age, words, wordObjects, dyslexiaMode, sourceMode, ruleKey, ruleLabel, difficulty: 'medium' });
   };
 
   const back = () => {

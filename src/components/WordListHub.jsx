@@ -162,6 +162,7 @@ function WordListHub({
   words,
   userAge = 8,
   year = null,
+  ruleLabel = null,
   dyslexiaMode = false,
   difficulty = 'medium',
   activityStatuses,
@@ -193,6 +194,13 @@ function WordListHub({
         <h1 className="hub-welcome-heading">
           Welcome {childName} &amp; {childCharacter?.emoji || '⭐'}!
         </h1>
+      )}
+
+      {/* RULE_BUCKET_PICKER ── show which rule bucket is being practised */}
+      {ruleLabel && (
+        <p className="hub-rule-subtitle">
+          Practising: <strong>{ruleLabel}</strong>
+        </p>
       )}
 
       {/* ── Word list ── */}

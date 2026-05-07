@@ -345,6 +345,44 @@ const DEFINITIONS = {
   vegetable:    'A plant or part of a plant that we eat',
   vehicle:      'Something used to carry people or goods',
   yacht:        'A large sailing boat used for racing or cruising',
+
+  // ── Year 1 Common Exception Words (NC 2014) ─────────────────────
+  i:        'The word you use when talking about yourself',
+  go:       'To move from one place to another',
+  so:       'For this reason; very',
+  where:    'In or to what place',
+  love:     'A strong feeling of caring deeply for someone',
+  once:     'One single time; a long time ago',
+  ask:      'To say something because you want an answer',
+  friend:   'Someone you like and enjoy spending time with',
+  school:   'A place where children go to learn',
+  push:     'To press something away from you',
+  pull:     'To bring something closer to you',
+  full:     'Holding as much as it can; not empty',
+  house:    'A building where people live',
+  our:      'Belonging to us',
+
+  // ── Year 3 & 4 statutory list — additions ───────────────────────
+  accidentally: 'In a way that was not on purpose',
+  actual:       'Real; truly existing',
+  although:     'Even though; despite the fact that',
+  answer:       'A reply to a question',
+  business:     'Work people do to earn money; a company',
+  eight:        'The number 8',
+  eighth:       'Coming after the seventh; in 8th place',
+  forwards:     'Towards the front; in the direction ahead',
+  occasionally: 'Sometimes but not very often',
+  possess:      'To own or have something',
+  possession:   'Something that belongs to you',
+
+  // ── Year 5 & 6 statutory list — additions ───────────────────────
+  according:   'Following or matching what someone said or wrote',
+  achieve:     'To succeed in doing something through effort',
+  equipped:    'Having the things needed for a particular purpose',
+  equipment:   'The tools or items needed for a particular activity',
+  immediately: 'Right away, without any delay',
+  opportunity: 'A chance to do something good',
+  sincerely:   'In a truly honest and genuine way',
 };
 
 export default DEFINITIONS;

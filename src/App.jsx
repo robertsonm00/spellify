@@ -60,9 +60,9 @@ function App() {
 
   const handleWelcomeStart = () => setScreen('onboarding');
 
-  const handleOnboardingComplete = ({ name, character, year, age, words, wordObjects = [], dyslexiaMode = false, sourceMode = 'generated', difficulty }) => {
+  const handleOnboardingComplete = ({ name, character, year, age, words, wordObjects = [], dyslexiaMode = false, sourceMode = 'generated', ruleKey = null, ruleLabel = null, difficulty }) => {
     setSession({
-      ...createSession({ year, age, words, wordObjects, sourceMode, dyslexiaMode }),
+      ...createSession({ year, age, words, wordObjects, sourceMode, dyslexiaMode, ruleKey, ruleLabel }),
       childName: name || '',
       childCharacter: character || null,
       difficulty: difficulty || 'medium',
@@ -105,7 +105,7 @@ function App() {
 
   const handleExit = () => setActiveActivity(null);
 
-  const handleChangeWords = ({ words, wordObjects = [], dyslexiaMode, sourceMode = 'generated' } = {}) => {
+  const handleChangeWords = ({ words, wordObjects = [], dyslexiaMode, sourceMode = 'generated', ruleKey = null, ruleLabel = null } = {}) => {
     setSession((prev) => {
       if (!prev) return prev;
       const next = {
@@ -114,6 +114,8 @@ function App() {
         wordObjects,
         sourceMode,
         dyslexiaMode: dyslexiaMode ?? prev.dyslexiaMode ?? false,
+        ruleKey,
+        ruleLabel,
         activityStatuses: { ...INITIAL_STATUSES },
       };
       return rebuildReviewQueue(next);
@@ -310,6 +312,7 @@ function App() {
               words={session.words}
               userAge={session.age || 8}
               year={session.year ?? null}
+              ruleLabel={session.ruleLabel || null}
               dyslexiaMode={session.dyslexiaMode || false}
               difficulty={session.difficulty || 'medium'}
               activityStatuses={session.activityStatuses}
