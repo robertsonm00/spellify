@@ -94,12 +94,18 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* ── Global offset for fixed TopNav ── */
+/* Every top-level page wrapper sits 56px below the fixed nav */
+body {
+  padding-top: 56px;
+}
+
 /* ── App shell ── */
 
 .app-shell {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  min-height: calc(100vh - 56px);
   background: #f7f8fc;
 }
 

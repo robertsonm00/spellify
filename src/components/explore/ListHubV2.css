@@ -1,0 +1,141 @@
+/* ── ListHubV2 layout ─────────────────────────────────────────────────────────
+   lh-* classes (sub-header, back btn, badge, meta) come from ListHub.css.
+   hub-* classes (chips, progress bar, badges, modal) come from WordListHub.css.
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* ── Outer wrapper ── */
+.lhv2-wrap {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 56px); /* 56px = TopNav */
+}
+
+/* ── Sub-header: fix it directly below the TopNav ── */
+.lhv2-subheader {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  /* lh-header already supplies the dark gradient, padding, shadow */
+}
+
+/* ── Scrollable content area ── */
+.lhv2-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 1.5rem 1.25rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  font-family: 'Nunito', sans-serif;
+}
+
+/* ── Two-column body ── */
+.lhv2-body {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+/* ── Left: word pills column ── */
+.lhv2-words-col {
+  width: 210px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  position: sticky;
+  top: 76px; /* TopNav 56px + sub-header ~76px, adjust if needed */
+  max-height: calc(100vh - 160px);
+  overflow-y: auto;
+}
+
+/* Vertically stacked pills */
+.lhv2-chips-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+/* Override hub-chip so each pill fills the column width */
+.lhv2-chip {
+  width: 100%;
+  justify-content: flex-start;
+  font-size: 0.92rem;
+  padding: 0.45rem 0.85rem;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+.lhv2-chip:hover { background: rgba(0, 0, 0, 0.06); }
+
+/* ── Right: progress + games column ── */
+.lhv2-games-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ── Big game card grid ── */
+.lhv2-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.25rem;
+}
+
+/* ── Big game card ── */
+.lhv2-card {
+  background: #fff;
+  border-radius: 14px;
+  border: 3px solid #1a1a2e;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.lhv2-card:hover { transform: translate(-3px, -3px); }
+.hub-card--completed.lhv2-card { opacity: 0.88; }
+
+.lhv2-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  border-bottom: 3px solid rgba(0, 0, 0, 0.12);
+}
+.lhv2-card-icon { font-size: 3.5rem; line-height: 1; }
+
+.lhv2-card-body {
+  padding: 1.1rem 1.2rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+.lhv2-card-name {
+  margin: 0;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.62rem;
+  color: #1a1a2e;
+  line-height: 1.7;
+}
+.lhv2-card-time { font-size: 0.8rem; font-weight: 700; color: #94a3b8; margin: 0; }
+.lhv2-accuracy  { font-size: 0.78rem; font-weight: 700; color: #94a3b8; margin: 0; }
+
+/* ── Responsive ── */
+@media (max-width: 700px) {
+  .lhv2-body { flex-direction: column; }
+  .lhv2-words-col {
+    width: 100%;
+    position: static;
+    max-height: none;
+  }
+  .lhv2-chips-stack { flex-direction: row; flex-wrap: wrap; }
+  .lhv2-chip { width: auto; }
+  .lhv2-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 440px) {
+  .lhv2-grid { grid-template-columns: 1fr; }
+}

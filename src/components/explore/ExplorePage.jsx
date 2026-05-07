@@ -3,6 +3,7 @@ import { YEAR_GROUPS, getListsForYear } from '../../data/curriculumLists';
 import { useCustomLists } from '../../hooks/useCustomLists';
 import { useProgress }    from '../../hooks/useProgress';
 import ListHub            from './ListHub';
+import ListHubV2          from './ListHubV2';
 import CreateListModal    from './CreateListModal';
 import SignInModal        from './SignInModal';
 import './ExplorePage.css';
@@ -116,16 +117,21 @@ export default function ExplorePage({ user, profile, signIn, signUp, signInWithG
 
   // ── ListHub view ──────────────────────────────────────────────────────────
   if (view === 'listHub' && selectedList) {
-    return (
-      <ListHub
-        list={selectedList.list}
-        listType={selectedList.listType}
-        user={user}
-        getListProgress={getListProgress}
-        markComplete={handleMarkComplete}
-        onBack={() => { setView('yearHub'); setSelectedList(null); }}
-      />
-    );
+    const backToYearHub = () => { setView('yearHub'); setSelectedList(null); };
+    const sharedProps = {
+      list:            selectedList.list,
+      listType:        selectedList.listType,
+      user,
+      getListProgress,
+      markComplete:    handleMarkComplete,
+      onBack:          backToYearHub,
+    };
+
+    if (selectedList.list.id === 'y1-ow-words') {
+      return <ListHubV2 {...sharedProps} />;
+    }
+
+    return <ListHub {...sharedProps} />;
   }
 
   // ── Year Hub view ─────────────────────────────────────────────────────────
