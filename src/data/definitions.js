@@ -375,6 +375,17 @@ const DEFINITIONS = {
   possess:      'To own or have something',
   possession:   'Something that belongs to you',
 
+  // ── Year 2 Common Exception Words — additions ───────────────────
+  even:    'Smooth and level; equal; also a number that divides by 2',
+  steak:   'A thick slice of meat or fish for cooking',
+  pass:    'To go past someone or something; to succeed in a test',
+  place:   'A particular spot or area',
+  race:    'A contest of speed; a group of people sharing a heritage',
+  mr:      'A title used before a man’s name (short for Mister)',
+  mrs:     'A title used before a married woman’s name',
+  oh:      'A word used to express surprise or to start a sentence',
+  their:   'Belonging to them',
+
   // ── Year 5 & 6 statutory list — additions ───────────────────────
   according:   'Following or matching what someone said or wrote',
   achieve:     'To succeed in doing something through effort',
