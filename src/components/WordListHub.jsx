@@ -125,13 +125,22 @@ function WordDetailModal({ word, userAge, chipColor, onClose }) {
   );
 }
 
+// Phase ordering follows the Warm-Up → Explore → Consolidate lesson structure.
+// 'warmup' = recognition (low stakes), 'explore' = active production (cued),
+// 'consolidate' = generative / creative recall.
 const ACTIVITIES = [
-  { id: 'wordsearch',  name: 'Word Search',   icon: '🔍', timeEstimate: '5 mins',  color: '#4d96ff', dark: '#1a5cbf' },
-  { id: 'memoryspell', name: 'Memory Spell',  icon: '🧠', timeEstimate: '5 mins',  color: '#6bcb77', dark: '#1e7e34' },
-  { id: 'hangman',     name: 'Hangman',       icon: '🎯', timeEstimate: '5 mins',  color: '#ff9f43', dark: '#c05700' },
-  { id: 'crossword',   name: 'Crossword',     icon: '✏️', timeEstimate: '10 mins', color: '#c77dff', dark: '#6b21a8' },
-  { id: 'writeit',     name: 'Write It',      icon: '✏️', timeEstimate: '10 mins', color: '#a855f7', dark: '#581c87' },
-  { id: 'quizquest',   name: 'Quiz Quest',    icon: '🏆', timeEstimate: '5 mins',  color: '#ec4899', dark: '#9d174d' },
+  { id: 'wordsearch',  name: 'Word Search',   icon: '🔍', timeEstimate: '5 mins',  color: '#4d96ff', dark: '#1a5cbf', phase: 'warmup' },
+  { id: 'memoryspell', name: 'Memory Spell',  icon: '🧠', timeEstimate: '5 mins',  color: '#6bcb77', dark: '#1e7e34', phase: 'warmup' },
+  { id: 'hangman',     name: 'Hangman',       icon: '🎯', timeEstimate: '5 mins',  color: '#ff9f43', dark: '#c05700', phase: 'warmup' },
+  { id: 'writeit',     name: 'Write It',      icon: '✏️', timeEstimate: '10 mins', color: '#a855f7', dark: '#581c87', phase: 'explore' },
+  { id: 'crossword',   name: 'Crossword',     icon: '✏️', timeEstimate: '10 mins', color: '#c77dff', dark: '#6b21a8', phase: 'explore' },
+  { id: 'quizquest',   name: 'Quiz Quest',    icon: '🏆', timeEstimate: '5 mins',  color: '#ec4899', dark: '#9d174d', phase: 'consolidate' },
+];
+
+const PHASES = [
+  { key: 'warmup',      label: 'Warm-Up',     hint: 'Spot the words' },
+  { key: 'explore',     label: 'Explore',     hint: 'Try writing them' },
+  { key: 'consolidate', label: 'Consolidate', hint: 'Show what you know' },
 ];
 
 const STATUS_LABEL = {
@@ -264,45 +273,60 @@ function WordListHub({
         </div>
       </section>
 
-      {/* ── Activity cards ── */}
+      {/* ── Activity cards (grouped by phase: Warm-Up → Explore → Consolidate) ── */}
       <section className="hub-activities">
         <span className="hub-section-label">ACTIVITIES</span>
-        <div className="hub-grid">
-          {ACTIVITIES.map((activity) => {
-            const status = activityStatuses[activity.id] || 'not-started';
-            const done   = status === 'completed';
-            return (
-              <div
-                key={activity.id}
-                className={`hub-card hub-card--${status}`}
-                style={{
-                  borderColor:  activity.dark,
-                  boxShadow:    done
-                    ? `3px 3px 0 ${activity.dark}`
-                    : `5px 5px 0 ${activity.dark}`,
-                }}
-                onClick={() => onLaunch(activity.id)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => e.key === 'Enter' && onLaunch(activity.id)}
-              >
-                <div
-                  className="hub-card-header"
-                  style={{ background: activity.color }}
-                >
-                  <span className="hub-card-icon">{activity.icon}</span>
-                </div>
-                <div className="hub-card-body">
-                  <h3 className="hub-card-name">{activity.name}</h3>
-                  <span className={`hub-badge hub-badge--${status}`}>
-                    {STATUS_LABEL[status]}
-                  </span>
-                  <p className="hub-card-time">⏱ {activity.timeEstimate}</p>
+        {PHASES.map((phase, phaseIdx) => {
+          const phaseActivities = ACTIVITIES.filter((a) => a.phase === phase.key);
+          if (phaseActivities.length === 0) return null;
+          return (
+            <div key={phase.key} className="hub-phase">
+              <div className="hub-phase-header">
+                <span className="hub-phase-num">{phaseIdx + 1}</span>
+                <div className="hub-phase-text">
+                  <strong className="hub-phase-label">{phase.label}</strong>
+                  <span className="hub-phase-hint">{phase.hint}</span>
                 </div>
               </div>
-            );
-          })}
-        </div>
+              <div className="hub-grid">
+                {phaseActivities.map((activity) => {
+                  const status = activityStatuses[activity.id] || 'not-started';
+                  const done   = status === 'completed';
+                  return (
+                    <div
+                      key={activity.id}
+                      className={`hub-card hub-card--${status}`}
+                      style={{
+                        borderColor:  activity.dark,
+                        boxShadow:    done
+                          ? `3px 3px 0 ${activity.dark}`
+                          : `5px 5px 0 ${activity.dark}`,
+                      }}
+                      onClick={() => onLaunch(activity.id)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => e.key === 'Enter' && onLaunch(activity.id)}
+                    >
+                      <div
+                        className="hub-card-header"
+                        style={{ background: activity.color }}
+                      >
+                        <span className="hub-card-icon">{activity.icon}</span>
+                      </div>
+                      <div className="hub-card-body">
+                        <h3 className="hub-card-name">{activity.name}</h3>
+                        <span className={`hub-badge hub-badge--${status}`}>
+                          {STATUS_LABEL[status]}
+                        </span>
+                        <p className="hub-card-time">⏱ {activity.timeEstimate}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
       </section>
 
       {/* ── Word detail modal ── */}
