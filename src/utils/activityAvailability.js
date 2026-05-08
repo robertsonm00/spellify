@@ -1,3 +1,5 @@
+import { hasMorphology } from '../data/morphology';
+
 // Single point of truth for "is this activity available right now?"
 //
 // Every UI surface that renders or launches an activity calls this
@@ -72,16 +74,17 @@ export function getActivityAvailability(activity, ctx = {}) {
   //              message: `Finish ${prereq} first` };
   //   }
 
-  // ── 3. Age / word-list gating ─────────────────────────────────
-  // Example for the future:
-  //   if (activity.id === 'crossword' && (ctx.session?.words?.length ?? 0) < 6) {
-  //     return { available: false, locked: true, reason: 'unsupported',
-  //              message: 'Need at least 6 words for a crossword' };
-  //   }
-  //   if (activity.id === 'wordforge' && ctx.session?.year === 1) {
-  //     return { available: false, locked: true, reason: 'unsupported',
-  //              message: 'Best from Year 3 onwards' };
-  //   }
+  // ── 3. Word-list gating ───────────────────────────────────────
+  // Word Forge only makes sense for words with prefix/suffix structure.
+  // Hide it entirely when no word in the session qualifies — better than
+  // running the activity on unrelated words via a silent fallback.
+  if (activity.id === 'wordforge') {
+    const words = ctx.session?.words ?? [];
+    if (!words.some(hasMorphology)) {
+      return { available: false, locked: true, reason: 'unsupported',
+               message: 'Needs prefix/suffix words' };
+    }
+  }
 
   return OPEN;
 }

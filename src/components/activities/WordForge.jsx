@@ -1,22 +1,51 @@
-import React, { useState, useMemo } from 'react';
-import { getMorphology, getMorphologyWords, pickDistractors } from '../../data/morphology';
+import React, { useState, useMemo, useEffect } from 'react';
+import confetti from 'canvas-confetti';
+import { getMorphology, pickDistractors } from '../../data/morphology';
 import GameHeader from '../GameHeader';
 import GameProgressStrip from '../GameProgressStrip';
 import './WordForge.css';
 
+// ── Word-correct celebration (mirrors Hangman / Crossword / WordSearch) ─────
+
+function playWordChime() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [523.25, 659.25, 783.99].forEach((freq, i) => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'triangle';
+      osc.frequency.value = freq;
+      const t = ctx.currentTime + i * 0.15;
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.28, t + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+      osc.start(t);
+      osc.stop(t + 0.45);
+    });
+  } catch { /* AudioContext unavailable */ }
+}
+
+function fireWordConfetti() {
+  confetti({
+    particleCount: 90,
+    spread: 65,
+    origin: { y: 0.4 },
+    colors: ['#22c55e', '#86efac', '#ffd93d', '#c77dff', '#4d96ff'],
+  });
+}
+
 /**
  * Word Forge — pupil drags prefix/suffix tiles onto a root to build a word.
- * Falls back to morphology-only words if the session list contains none.
+ * Only runs on session words that have a prefix/suffix breakdown; the
+ * activityAvailability gate hides the game when no word qualifies.
  */
 function WordForge({ words, onComplete, onExit }) {
-  // Filter session words to those that have a morphological breakdown.
-  // If none match, fall back to a default morphology set so the activity
-  // is always playable.
-  const queue = useMemo(() => {
-    const filtered = (words || []).filter((w) => getMorphology(w));
-    if (filtered.length >= 3) return filtered;
-    return getMorphologyWords().slice(0, 8);
-  }, [words]);
+  const queue = useMemo(
+    () => (words || []).filter((w) => getMorphology(w)),
+    [words]
+  );
 
   const [wordIndex,  setWordIndex] = useState(0);
   const [pickedPre,  setPickedPre] = useState(null);
@@ -39,6 +68,26 @@ function WordForge({ words, onComplete, onExit }) {
     return { prefixes, suffixes };
   }, [morph]);
 
+  // Auto-submit the moment all required slots are filled. Inline the logic
+  // so the effect doesn't reference functions declared later (rules-of-hooks
+  // requires this hook to sit above the early returns below).
+  useEffect(() => {
+    if (!morph || phase !== 'build') return;
+    const filled = (!morph.prefix || pickedPre) && (!morph.suffix || pickedSuf);
+    if (!filled) return;
+    const isCorrect = (!morph.prefix || pickedPre === morph.prefix)
+                   && (!morph.suffix || pickedSuf === morph.suffix);
+    const attempt   = isCorrect
+      ? target
+      : `${pickedPre || ''}${morph.root}${pickedSuf || ''}`;
+    if (isCorrect) {
+      playWordChime();
+      fireWordConfetti();
+    }
+    setResults((prev) => [...prev, { word: target, correct: isCorrect, attempt }]);
+    setPhase('result');
+  }, [phase, pickedPre, pickedSuf, morph, target]);
+
   if (!morph) {
     return (
       <>
@@ -50,13 +99,9 @@ function WordForge({ words, onComplete, onExit }) {
     );
   }
 
+  // Live preview shown beneath the slots. Once the picks are right the
+  // effect transitions to 'result' phase, so this only matters mid-build.
   const built = `${pickedPre || ''}${morph.root}${pickedSuf || ''}`;
-
-  const handleCheck = () => {
-    const isCorrect = built.toLowerCase() === target.toLowerCase();
-    setResults([...results, { word: target, correct: isCorrect, attempt: built }]);
-    setPhase('result');
-  };
 
   const handleNext = () => {
     if (wordIndex + 1 >= queue.length) {
@@ -95,10 +140,6 @@ function WordForge({ words, onComplete, onExit }) {
       </>
     );
   }
-
-  const canCheck =
-    (!morph.prefix || pickedPre) &&
-    (!morph.suffix || pickedSuf);
 
   return (
     <>
@@ -178,12 +219,6 @@ function WordForge({ words, onComplete, onExit }) {
             ))}
           </div>
         </div>
-      )}
-
-      {phase === 'build' && (
-        <button className="wf-cta" onClick={handleCheck} disabled={!canCheck}>
-          Check ✓
-        </button>
       )}
 
       {phase === 'result' && (

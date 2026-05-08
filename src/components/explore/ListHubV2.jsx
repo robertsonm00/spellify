@@ -338,7 +338,10 @@ export default function ListHubV2({
           <section className="hub-activities">
             <span className="hub-section-label">ACTIVITIES</span>
             <div className="lhv2-grid">
-              {ACTIVITIES.map((act) => {
+              {ACTIVITIES.filter((act) => {
+                const a = getActivityAvailability(act, { session: { year: list.year, words, age: userAge }, user });
+                return a.reason !== 'unsupported';
+              }).map((act) => {
                 const status = progress[act.id]?.status || 'not-started';
                 const done   = status === 'completed';
                 const avail  = getActivityAvailability(act, { session: { year: list.year, words, age: userAge }, user });

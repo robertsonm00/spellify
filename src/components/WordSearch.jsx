@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import confetti from 'canvas-confetti';
 import { generateWordSearch, checkWord } from '../utils/wordSearchEngine';
+import { speakWord } from '../utils/speech';
 import GameHeader from './GameHeader';
 import GameProgressStrip from './GameProgressStrip';
 import './WordSearch.css';
@@ -115,6 +116,9 @@ export default function WordSearch({ words, savedProgress = null, onSaveProgress
       showToast(`✓ ${matched.word.toLowerCase()}`);
       playWordChime();
       fireWordConfetti();
+      // Speak the word after the celebration so they don't overlap. Lowercase
+      // first — many TTS engines spell out all-caps as letters (C·A·T).
+      setTimeout(() => speakWord(matched.word.toLowerCase()), 1000);
       return true;
     }
     return false;

@@ -354,7 +354,10 @@ export default function ListHubV3({
             {/* Activities */}
             <p className="lhv3-section-label">ACTIVITIES</p>
             <div className="lhv3-grid">
-              {ACTIVITIES.map((act) => {
+              {ACTIVITIES.filter((act) => {
+                const a = getActivityAvailability(act, { session: { year: list.year, words, age: userAge }, user });
+                return a.reason !== 'unsupported';
+              }).map((act) => {
                 const status = progress[act.id]?.status || 'not-started';
                 const done   = status === 'completed';
                 const { neon, glow } = neonFor(act);

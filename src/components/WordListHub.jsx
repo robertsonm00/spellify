@@ -267,7 +267,13 @@ function WordListHub({
       <section className="hub-activities">
         <span className="hub-section-label">ACTIVITIES</span>
         {PHASES.map((phase, phaseIdx) => {
-          const phaseActivities = ACTIVITIES.filter((a) => a.phase === phase.key);
+          // Hide activities marked unsupported for this session (e.g. WordForge
+          // when no word in the list has prefix/suffix structure).
+          const phaseActivities = ACTIVITIES.filter((a) => {
+            if (a.phase !== phase.key) return false;
+            const avail = getActivityAvailability(a, { session, user });
+            return avail.reason !== 'unsupported';
+          });
           if (phaseActivities.length === 0) return null;
           return (
             <div key={phase.key} className="hub-phase">

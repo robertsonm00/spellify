@@ -107,7 +107,10 @@ export default function ListHub({ list, listType = 'curriculum', onBack, getList
         <main className="lh-activities">
           <h2 className="lh-section-title">Choose an activity</h2>
           <div className="lh-grid">
-            {ACTIVITIES.map((act) => {
+            {ACTIVITIES.filter((act) => {
+              const a = getActivityAvailability(act, { session: { year: list.year, words, age: list.ageRange?.[0] }, user });
+              return a.reason !== 'unsupported';
+            }).map((act) => {
               const status = progress[act.id]?.status || 'not_started';
               const done   = status === 'completed';
               const avail  = getActivityAvailability(act, { session: { year: list.year, words, age: list.ageRange?.[0] }, user });
