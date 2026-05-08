@@ -12,6 +12,21 @@
 // ── Statutory category pools ───────────────────────────────────────────────
 
 /**
+ * Year 2 Common Exception Words (NC 2014, English Appendix 1).
+ * 63 words drawn from the Y2 statutory CEW list.
+ */
+export const YEAR2_CEW = [
+  'door', 'floor', 'poor', 'because', 'find', 'kind', 'mind', 'behind',
+  'child', 'children', 'wild', 'climb', 'most', 'only', 'both', 'old',
+  'cold', 'gold', 'hold', 'told', 'every', 'everybody', 'even', 'great',
+  'break', 'steak', 'pretty', 'beautiful', 'after', 'fast', 'last', 'past',
+  'father', 'class', 'grass', 'pass', 'plant', 'path', 'bath', 'hour',
+  'move', 'prove', 'improve', 'sure', 'sugar', 'eye', 'could', 'should',
+  'would', 'who', 'whole', 'any', 'many', 'place', 'race', 'once',
+  'mr', 'mrs', 'people', 'oh', 'their', 'there', 'water',
+];
+
+/**
  * Year 1 Common Exception Words (NC 2014, English Appendix 1).
  * 45 words taught and assessed in Year 1.
  */
@@ -88,21 +103,12 @@ const YEAR1_WORDS = [
   'old','time','back','very','much','door','only','who',
 ];
 
-const YEAR2_WORDS = [
-  'door','floor','poor','because','find','kind','mind','behind','child',
-  'children','wild','climb','most','only','both','cold','gold','hold','told',
-  'every','great','break','pretty','beautiful','after','fast','last','past',
-  'father','class','grass','plant','path','bath','hour','move','prove',
-  'improve','sure','sugar','eye','could','should','would','whole','any',
-  'many','clothes','busy','people','water','again','half','money','everybody',
-];
-
 // ── YEAR_DATA — keyed by school year for backwards compatibility ───────────
 // Y3 and Y4 both pull from YEAR3_4; Y5 and Y6 both pull from YEAR5_6.
 
 export const YEAR_DATA = {
   1: { year: 1, label: 'Year 1', ageRange: [5, 6],  words: YEAR1_WORDS },
-  2: { year: 2, label: 'Year 2', ageRange: [6, 7],  words: YEAR2_WORDS },
+  2: { year: 2, label: 'Year 2', ageRange: [6, 7],  words: YEAR2_CEW },
   3: { year: 3, label: 'Year 3', ageRange: [7, 8],  words: YEAR3_4 },
   4: { year: 4, label: 'Year 4', ageRange: [8, 9],  words: YEAR3_4 },
   5: { year: 5, label: 'Year 5', ageRange: [9, 10], words: YEAR5_6 },

@@ -20,7 +20,7 @@
  * WordObject: { word: string, yearGroup: number, difficulty: 'easy'|'medium'|'hard' }
  */
 
-import { YEAR_DATA, YEAR1_CEW, YEAR3_4, YEAR5_6 } from '../data/spelling/index.js';
+import { YEAR_DATA, YEAR1_CEW, YEAR2_CEW, YEAR3_4, YEAR5_6 } from '../data/spelling/index.js';
 
 // ── Y1 / Y2 phonics rule buckets ───────────────────────────────────────────
 // Drawn from the NC 2014 English Appendix 1 example words for each rule.
@@ -165,7 +165,7 @@ export const YEAR_GROUPS = [
 export const CATEGORIES = {
   reception: RECEPTION_WORDS,
   year1_cew: YEAR1_CEW,                 // Year 1 Common Exception Words (45)
-  year2:     YEAR_DATA[2].words,        // Year 2 high-frequency / CEW pool
+  year2_cew: YEAR2_CEW,                 // Year 2 Common Exception Words (63)
   year3_4:   YEAR3_4,                   // Y3 & Y4 statutory list (100 → 109 expanded)
   year5_6:   YEAR5_6,                   // Y5 & Y6 statutory list (100 → 104 expanded)
 };
@@ -179,7 +179,7 @@ export function categoryForYearGroup(yearGroup) {
   const yg = Number(yearGroup);
   if (yg === 0) return 'reception';
   if (yg === 1) return 'year1_cew';
-  if (yg === 2) return 'year2';
+  if (yg === 2) return 'year2_cew';
   if (yg === 3 || yg === 4) return 'year3_4';
   if (yg === 5 || yg === 6) return 'year5_6';
   return 'year3_4';

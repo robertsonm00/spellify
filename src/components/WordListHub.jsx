@@ -4,6 +4,8 @@ import { scoreWord, scoreToBand } from '../utils/difficultyEngine';
 import DEFINITIONS from '../data/definitions';
 import { isSafeDefinition } from '../utils/definitionSafety';
 import { speakWord as speakHubWord } from '../utils/speech';
+import { ACTIVITIES, PHASES } from '../data/activities';
+import { getActivityAvailability } from '../utils/activityAvailability';
 
 // ── Word info fetch (with module-level cache) ─────────────────────────────────
 
@@ -125,14 +127,9 @@ function WordDetailModal({ word, userAge, chipColor, onClose }) {
   );
 }
 
-const ACTIVITIES = [
-  { id: 'wordsearch',  name: 'Word Search',   icon: '🔍', timeEstimate: '5 mins',  color: '#4d96ff', dark: '#1a5cbf' },
-  { id: 'memoryspell', name: 'Memory Spell',  icon: '🧠', timeEstimate: '5 mins',  color: '#6bcb77', dark: '#1e7e34' },
-  { id: 'hangman',     name: 'Hangman',       icon: '🎯', timeEstimate: '5 mins',  color: '#ff9f43', dark: '#c05700' },
-  { id: 'crossword',   name: 'Crossword',     icon: '✏️', timeEstimate: '10 mins', color: '#c77dff', dark: '#6b21a8' },
-  { id: 'writeit',     name: 'Write It',      icon: '✏️', timeEstimate: '10 mins', color: '#a855f7', dark: '#581c87' },
-  { id: 'quizquest',   name: 'Quiz Quest',    icon: '🏆', timeEstimate: '5 mins',  color: '#ec4899', dark: '#9d174d' },
-];
+// ACTIVITIES + PHASES are imported from src/data/activities.js — that
+// file is the single source of truth for which games exist. Adding a
+// new game there makes it appear here automatically.
 
 const STATUS_LABEL = {
   'not-started': 'Not Started',
@@ -170,6 +167,8 @@ function WordListHub({
   reviewQueue = [],
   childName = '',
   childCharacter = null,
+  session = null,   // full session — passed to availability checks
+  user = null,      // current user — passed to availability checks
   onLaunch,
   onReview,
   onChangeWords,
@@ -264,45 +263,67 @@ function WordListHub({
         </div>
       </section>
 
-      {/* ── Activity cards ── */}
+      {/* ── Activity cards (grouped by phase: Warm-Up → Explore → Consolidate) ── */}
       <section className="hub-activities">
         <span className="hub-section-label">ACTIVITIES</span>
-        <div className="hub-grid">
-          {ACTIVITIES.map((activity) => {
-            const status = activityStatuses[activity.id] || 'not-started';
-            const done   = status === 'completed';
-            return (
-              <div
-                key={activity.id}
-                className={`hub-card hub-card--${status}`}
-                style={{
-                  borderColor:  activity.dark,
-                  boxShadow:    done
-                    ? `3px 3px 0 ${activity.dark}`
-                    : `5px 5px 0 ${activity.dark}`,
-                }}
-                onClick={() => onLaunch(activity.id)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => e.key === 'Enter' && onLaunch(activity.id)}
-              >
-                <div
-                  className="hub-card-header"
-                  style={{ background: activity.color }}
-                >
-                  <span className="hub-card-icon">{activity.icon}</span>
-                </div>
-                <div className="hub-card-body">
-                  <h3 className="hub-card-name">{activity.name}</h3>
-                  <span className={`hub-badge hub-badge--${status}`}>
-                    {STATUS_LABEL[status]}
-                  </span>
-                  <p className="hub-card-time">⏱ {activity.timeEstimate}</p>
+        {PHASES.map((phase, phaseIdx) => {
+          const phaseActivities = ACTIVITIES.filter((a) => a.phase === phase.key);
+          if (phaseActivities.length === 0) return null;
+          return (
+            <div key={phase.key} className="hub-phase">
+              <div className="hub-phase-header">
+                <span className="hub-phase-num">{phaseIdx + 1}</span>
+                <div className="hub-phase-text">
+                  <strong className="hub-phase-label">{phase.label}</strong>
+                  <span className="hub-phase-hint">{phase.hint}</span>
                 </div>
               </div>
-            );
-          })}
-        </div>
+              <div className="hub-grid">
+                {phaseActivities.map((activity) => {
+                  const status = activityStatuses[activity.id] || 'not-started';
+                  const done   = status === 'completed';
+                  const avail  = getActivityAvailability(activity, { session, user });
+                  const locked = avail.locked;
+                  return (
+                    <div
+                      key={activity.id}
+                      className={`hub-card hub-card--${status}${locked ? ' hub-card--locked' : ''}`}
+                      style={{
+                        borderColor:  activity.dark,
+                        boxShadow:    done
+                          ? `3px 3px 0 ${activity.dark}`
+                          : `5px 5px 0 ${activity.dark}`,
+                        opacity: locked ? 0.55 : 1,
+                        cursor:  locked ? 'not-allowed' : 'pointer',
+                      }}
+                      onClick={() => { if (!locked) onLaunch(activity.id); }}
+                      role="button"
+                      tabIndex={locked ? -1 : 0}
+                      aria-disabled={locked}
+                      title={locked ? avail.message : undefined}
+                      onKeyDown={(e) => { if (!locked && e.key === 'Enter') onLaunch(activity.id); }}
+                    >
+                      <div
+                        className="hub-card-header"
+                        style={{ background: activity.color }}
+                      >
+                        <span className="hub-card-icon">{activity.icon}</span>
+                        {locked && <span className="hub-card-lock" aria-hidden="true">🔒</span>}
+                      </div>
+                      <div className="hub-card-body">
+                        <h3 className="hub-card-name">{activity.name}</h3>
+                        <span className={`hub-badge hub-badge--${status}`}>
+                          {locked ? (avail.message || 'Locked') : STATUS_LABEL[status]}
+                        </span>
+                        <p className="hub-card-time">⏱ {activity.timeEstimate}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
       </section>
 
       {/* ── Word detail modal ── */}
