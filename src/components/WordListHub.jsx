@@ -4,6 +4,8 @@ import { scoreWord, scoreToBand } from '../utils/difficultyEngine';
 import DEFINITIONS from '../data/definitions';
 import { isSafeDefinition } from '../utils/definitionSafety';
 import { speakWord as speakHubWord } from '../utils/speech';
+import { ACTIVITIES, PHASES } from '../data/activities';
+import { getActivityAvailability } from '../utils/activityAvailability';
 
 // ── Word info fetch (with module-level cache) ─────────────────────────────────
 
@@ -125,26 +127,9 @@ function WordDetailModal({ word, userAge, chipColor, onClose }) {
   );
 }
 
-// Phase ordering follows the Warm-Up → Explore → Consolidate lesson structure.
-// 'warmup' = recognition (low stakes), 'explore' = active production (cued),
-// 'consolidate' = generative / creative recall.
-const ACTIVITIES = [
-  { id: 'wordsearch',  name: 'Word Search',   icon: '🔍', timeEstimate: '5 mins',  color: '#4d96ff', dark: '#1a5cbf', phase: 'warmup' },
-  { id: 'memoryspell', name: 'Memory Spell',  icon: '🧠', timeEstimate: '5 mins',  color: '#6bcb77', dark: '#1e7e34', phase: 'warmup' },
-  { id: 'hangman',     name: 'Hangman',       icon: '🎯', timeEstimate: '5 mins',  color: '#ff9f43', dark: '#c05700', phase: 'warmup' },
-  { id: 'syllabletap', name: 'Syllable Tap',  icon: '👂', timeEstimate: '5 mins',  color: '#34d399', dark: '#0e7c52', phase: 'warmup' },
-  { id: 'writeit',     name: 'Write It',      icon: '✏️', timeEstimate: '10 mins', color: '#a855f7', dark: '#581c87', phase: 'explore' },
-  { id: 'weakspot',    name: 'Weak Spot',     icon: '🎯', timeEstimate: '5 mins',  color: '#fbbf24', dark: '#92400e', phase: 'explore' },
-  { id: 'crossword',   name: 'Crossword',     icon: '✏️', timeEstimate: '10 mins', color: '#c77dff', dark: '#6b21a8', phase: 'explore' },
-  { id: 'quizquest',   name: 'Quiz Quest',    icon: '🏆', timeEstimate: '5 mins',  color: '#ec4899', dark: '#9d174d', phase: 'consolidate' },
-  { id: 'wordforge',   name: 'Word Forge',    icon: '🔨', timeEstimate: '5 mins',  color: '#f97316', dark: '#9a3412', phase: 'consolidate' },
-];
-
-const PHASES = [
-  { key: 'warmup',      label: 'Warm-Up',     hint: 'Spot the words' },
-  { key: 'explore',     label: 'Explore',     hint: 'Try writing them' },
-  { key: 'consolidate', label: 'Consolidate', hint: 'Show what you know' },
-];
+// ACTIVITIES + PHASES are imported from src/data/activities.js — that
+// file is the single source of truth for which games exist. Adding a
+// new game there makes it appear here automatically.
 
 const STATUS_LABEL = {
   'not-started': 'Not Started',
@@ -182,6 +167,8 @@ function WordListHub({
   reviewQueue = [],
   childName = '',
   childCharacter = null,
+  session = null,   // full session — passed to availability checks
+  user = null,      // current user — passed to availability checks
   onLaunch,
   onReview,
   onChangeWords,
@@ -295,31 +282,38 @@ function WordListHub({
                 {phaseActivities.map((activity) => {
                   const status = activityStatuses[activity.id] || 'not-started';
                   const done   = status === 'completed';
+                  const avail  = getActivityAvailability(activity, { session, user });
+                  const locked = avail.locked;
                   return (
                     <div
                       key={activity.id}
-                      className={`hub-card hub-card--${status}`}
+                      className={`hub-card hub-card--${status}${locked ? ' hub-card--locked' : ''}`}
                       style={{
                         borderColor:  activity.dark,
                         boxShadow:    done
                           ? `3px 3px 0 ${activity.dark}`
                           : `5px 5px 0 ${activity.dark}`,
+                        opacity: locked ? 0.55 : 1,
+                        cursor:  locked ? 'not-allowed' : 'pointer',
                       }}
-                      onClick={() => onLaunch(activity.id)}
+                      onClick={() => { if (!locked) onLaunch(activity.id); }}
                       role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => e.key === 'Enter' && onLaunch(activity.id)}
+                      tabIndex={locked ? -1 : 0}
+                      aria-disabled={locked}
+                      title={locked ? avail.message : undefined}
+                      onKeyDown={(e) => { if (!locked && e.key === 'Enter') onLaunch(activity.id); }}
                     >
                       <div
                         className="hub-card-header"
                         style={{ background: activity.color }}
                       >
                         <span className="hub-card-icon">{activity.icon}</span>
+                        {locked && <span className="hub-card-lock" aria-hidden="true">🔒</span>}
                       </div>
                       <div className="hub-card-body">
                         <h3 className="hub-card-name">{activity.name}</h3>
                         <span className={`hub-badge hub-badge--${status}`}>
-                          {STATUS_LABEL[status]}
+                          {locked ? (avail.message || 'Locked') : STATUS_LABEL[status]}
                         </span>
                         <p className="hub-card-time">⏱ {activity.timeEstimate}</p>
                       </div>

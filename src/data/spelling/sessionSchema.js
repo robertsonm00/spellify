@@ -1,3 +1,8 @@
+// Derived from the canonical activity registry so adding a new game
+// in src/data/activities.js automatically extends INITIAL_STATUSES
+// without needing a parallel edit here.
+import { ACTIVITIES } from '../activities';
+
 export const STORAGE_KEY   = 'spellify_session_v2';
 export const LEGACY_KEY_V1 = 'spellify_session_v1';
 export const LEGACY_KEY_V0 = 'spellify_session';      // bare key used by earliest builds
@@ -5,17 +10,9 @@ export const LEGACY_KEY_V0 = 'spellify_session';      // bare key used by earlie
 /** @deprecated kept for external references; prefer LEGACY_KEY_V1 */
 export const LEGACY_KEY = LEGACY_KEY_V1;
 
-export const INITIAL_STATUSES = {
-  wordsearch:   'not-started',
-  memoryspell:  'not-started',
-  hangman:      'not-started',
-  syllabletap:  'not-started',
-  writeit:      'not-started',
-  weakspot:     'not-started',
-  crossword:    'not-started',
-  quizquest:    'not-started',
-  wordforge:    'not-started',
-};
+export const INITIAL_STATUSES = Object.fromEntries(
+  ACTIVITIES.map((a) => [a.id, 'not-started'])
+);
 
 /**
  * Build a fresh v2 session object.

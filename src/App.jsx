@@ -3,17 +3,10 @@ import './App.css';
 import Welcome        from './components/Welcome';
 import OnboardingFlow from './components/OnboardingFlow';
 import WordListHub    from './components/WordListHub';
-import WordSearch     from './components/WordSearch';
 import SpellingQuiz   from './components/SpellingQuiz';
-import Hangman        from './components/Hangman';
-import Crossword      from './components/Crossword';
-import WriteIt        from './components/WriteIt';
-import MemorySpell    from './components/MemorySpell';
-import QuizQuest      from './components/QuizQuest';
-import SyllableTap    from './components/activities/SyllableTap';
-import WordForge      from './components/activities/WordForge';
-import WeakSpot       from './components/activities/WeakSpot';
 import { loadSession, saveSession, createSession, INITIAL_STATUSES, updateMastery, rebuildReviewQueue, getActivityProgress, setActivityProgress } from './data/spelling/sessionSchema';
+import { getActivity, getActivityTitle } from './data/activities';
+import { isActivityAvailable } from './utils/activityAvailability';
 import TopNav         from './components/TopNav';
 import ExplorePage    from './components/explore/ExplorePage';
 import SignInModal    from './components/explore/SignInModal';
@@ -27,18 +20,9 @@ function hasProgress(activityStatuses) {
   );
 }
 
-const GAME_TITLES = {
-  wordsearch:  'Word Search',
-  memoryspell: 'Memory Spell',
-  hangman:     'Hangman',
-  syllabletap: 'Syllable Tap',
-  crossword:   'Crossword',
-  writeit:     'Write It',
-  weakspot:    'Weak Spot',
-  quizquest:   'Quiz Quest',
-  wordforge:   'Word Forge',
-  review:      'Spelling Quiz',
-};
+// Title for the Review pseudo-activity (real activities pull their title
+// from the canonical registry via getActivityTitle()).
+const REVIEW_TITLE = 'Spelling Quiz';
 
 function App() {
   const [section,        setSection]        = useState('myWords'); // 'myWords' | 'explore'
@@ -153,116 +137,13 @@ function App() {
   // ── Activity screen ──────────────────────────────────────────────────────
 
   if (activeActivity && session) {
-    const { id }                     = activeActivity;
-    const { words, difficulty, age, dyslexiaMode = false, reviewQueue = [] } = session;
+    const { id } = activeActivity;
+    const { words, difficulty, dyslexiaMode = false, reviewQueue = [] } = session;
     let Activity = null;
+    let title    = '';
 
-    if (id === 'wordsearch') {
-      Activity = (
-        <WordSearch
-          words={words}
-          dyslexiaMode={dyslexiaMode}
-          hideTopbar
-          savedProgress={getActivityProgress(session, 'wordsearch')}
-          onSaveProgress={(p) => handleSaveProgress('wordsearch', p)}
-          onComplete={(results) => handleComplete('wordsearch', results)}
-          onExit={handleExit}
-        />
-      );
-    } else if (id === 'memoryspell') {
-      Activity = (
-        <MemorySpell
-          words={words}
-          wordObjects={session.wordObjects || []}
-          dyslexiaMode={dyslexiaMode}
-          hideTopbar
-          savedProgress={getActivityProgress(session, 'memoryspell')}
-          onSaveProgress={(p) => handleSaveProgress('memoryspell', p)}
-          onComplete={(results) => handleComplete('memoryspell', results)}
-          onExit={handleExit}
-        />
-      );
-    } else if (id === 'hangman') {
-      Activity = (
-        <Hangman
-          words={words}
-          difficulty={difficulty}
-          dyslexiaMode={dyslexiaMode}
-          hideTopbar
-          savedProgress={getActivityProgress(session, 'hangman')}
-          onSaveProgress={(p) => handleSaveProgress('hangman', p)}
-          onComplete={(results) => handleComplete('hangman', results)}
-          onExit={handleExit}
-        />
-      );
-    } else if (id === 'crossword') {
-      Activity = (
-        <Crossword
-          words={words}
-          userAge={age || 8}
-          difficulty={difficulty}
-          dyslexiaMode={dyslexiaMode}
-          hideTopbar
-          savedProgress={getActivityProgress(session, 'crossword')}
-          onSaveProgress={(p) => handleSaveProgress('crossword', p)}
-          onComplete={(results) => handleComplete('crossword', results || [])}
-          onExit={handleExit}
-        />
-      );
-    } else if (id === 'writeit') {
-      Activity = (
-        <WriteIt
-          words={words}
-          childName={session.childName || ''}
-          dyslexiaMode={dyslexiaMode}
-          hideTopbar
-          savedProgress={getActivityProgress(session, 'writeit')}
-          onSaveProgress={(p) => handleSaveProgress('writeit', p)}
-          onComplete={(results) => handleComplete('writeit', results || [])}
-          onExit={handleExit}
-        />
-      );
-    } else if (id === 'quizquest') {
-      Activity = (
-        <QuizQuest
-          words={words}
-          wordObjects={session.wordObjects || []}
-          dyslexiaMode={dyslexiaMode}
-          hideTopbar
-          savedProgress={getActivityProgress(session, 'quizquest')}
-          onSaveProgress={(p) => handleSaveProgress('quizquest', p)}
-          onComplete={(results) => handleComplete('quizquest', results || [])}
-          onExit={handleExit}
-        />
-      );
-    } else if (id === 'syllabletap') {
-      Activity = (
-        <SyllableTap
-          words={words}
-          dyslexiaMode={dyslexiaMode}
-          onComplete={(results) => handleComplete('syllabletap', results || [])}
-          onExit={handleExit}
-        />
-      );
-    } else if (id === 'wordforge') {
-      Activity = (
-        <WordForge
-          words={words}
-          dyslexiaMode={dyslexiaMode}
-          onComplete={(results) => handleComplete('wordforge', results || [])}
-          onExit={handleExit}
-        />
-      );
-    } else if (id === 'weakspot') {
-      Activity = (
-        <WeakSpot
-          words={words}
-          dyslexiaMode={dyslexiaMode}
-          onComplete={(results) => handleComplete('weakspot', results || [])}
-          onExit={handleExit}
-        />
-      );
-    } else if (id === 'review') {
+    if (id === 'review') {
+      // Review is a special pseudo-activity — fixed component, not in the registry.
       Activity = (
         <SpellingQuiz
           words={reviewQueue.length > 0 ? reviewQueue : words}
@@ -272,6 +153,29 @@ function App() {
           onExit={handleExit}
         />
       );
+      title = REVIEW_TITLE;
+    } else {
+      const activity = getActivity(id);
+      // Refuse to render an activity that isn't available for this session.
+      // (Today every activity is available; future paid/locked/age gates
+      // route through utils/activityAvailability.js — see that file.)
+      if (activity && isActivityAvailable(activity, { session, user })) {
+        const Component  = activity.component;
+        const extraProps = activity.buildProps ? activity.buildProps(session) : {};
+        Activity = (
+          <Component
+            words={words}
+            dyslexiaMode={dyslexiaMode}
+            hideTopbar
+            savedProgress={getActivityProgress(session, id)}
+            onSaveProgress={(p) => handleSaveProgress(id, p)}
+            onComplete={(results) => handleComplete(id, results || [])}
+            onExit={handleExit}
+            {...extraProps}
+          />
+        );
+        title = getActivityTitle(id);
+      }
     }
 
     if (Activity) {
@@ -283,7 +187,7 @@ function App() {
             onSignInClick={() => setShowSignIn(true)}
             onSignOut={signOut}
             onExit={handleExit}
-            gameTitle={GAME_TITLES[id] || ''}
+            gameTitle={title}
           />
           <main className="app-game-main">{Activity}</main>
         </>
@@ -346,6 +250,8 @@ function App() {
               userAge={session.age || 8}
               year={session.year ?? null}
               ruleLabel={session.ruleLabel || null}
+              session={session}
+              user={user}
               dyslexiaMode={session.dyslexiaMode || false}
               difficulty={session.difficulty || 'medium'}
               activityStatuses={session.activityStatuses}

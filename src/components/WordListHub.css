@@ -636,3 +636,25 @@
   font-size: 0.8rem;
   color: #777;
 }
+
+/* ── Locked activity card (driven by activityAvailability.js) ────────── */
+.hub-card--locked .hub-card-name {
+  color: #777;
+}
+.hub-card-lock {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.5rem;
+  font-size: 1.1rem;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.hub-card-header {
+  position: relative; /* lock badge positions against this */
+}
