@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import './Hangman.css';
 import { getSupportTip } from '../data/spelling/dyslexiaPatterns';
-import DEFINITIONS from '../data/definitions';
+import { resolveDefinition } from '../utils/wordDefinitions';
 
 function playWordChime() {
   try {
@@ -84,8 +84,14 @@ function HangmanSVG({ stage }) {
   );
 }
 
-function Hangman({ words, difficulty = 'medium', dyslexiaMode = false, childName = '', childCharacter = null, savedProgress = null, onSaveProgress, onComplete, onExit, hideTopbar = false }) {
+function Hangman({ words, difficulty = 'medium', dyslexiaMode = false, childName = '', childCharacter = null, savedProgress = null, onSaveProgress, onComplete, onExit }) {
   const maxWrong = MAX_WRONG[difficulty] ?? 6;
+
+  // Hangman owns the entire screen — hide the global TopNav while mounted.
+  useEffect(() => {
+    document.body.classList.add('hangman-active');
+    return () => document.body.classList.remove('hangman-active');
+  }, []);
 
   // Validate saved progress belongs to the current word list — wipe it if the list changed.
   const savedIsValid = (() => {
@@ -100,6 +106,7 @@ function Hangman({ words, difficulty = 'medium', dyslexiaMode = false, childName
   const [guessed,        setGuessed]        = useState(() => new Set(savedIsValid ? (savedProgress.guessed ?? []) : []));
   const [wordResults,    setWordResults]    = useState(savedIsValid ? (savedProgress.wordResults ?? []) : []);
   const [phase,          setPhase]          = useState('playing'); // playing | word-result | complete
+  const [clue,           setClue]           = useState(null);
 
   // Clear stale savedProgress from the hub if the word list has changed.
   useEffect(() => {
@@ -172,6 +179,16 @@ function Hangman({ words, difficulty = 'medium', dyslexiaMode = false, childName
     onSaveProgress?.({ queue, wordIndex, wordResults, guessed: [...guessed] });
   }, [wordResults, wordIndex, guessed]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Resolve clue for the current word — local map first, then API fallback.
+  useEffect(() => {
+    let cancelled = false;
+    setClue(null);
+    resolveDefinition(currentWord).then(def => {
+      if (!cancelled) setClue(def);
+    });
+    return () => { cancelled = true; };
+  }, [currentWord]);
+
   const restart = () => {
     onSaveProgress?.(null);
     setWordIndex(0);
@@ -218,7 +235,7 @@ function Hangman({ words, difficulty = 'medium', dyslexiaMode = false, childName
 
     return (
       <div className="hm-wrap">
-        {!hideTopbar && topbar}
+        {topbar}
         <div className="hm-progress-strip">
           <div className="hm-bar-fill" style={{ width: '100%' }} />
           <span className="hm-count">{wordResults.filter(r => r.won).length} of {wordResults.length} words guessed</span>
@@ -249,8 +266,6 @@ function Hangman({ words, difficulty = 'medium', dyslexiaMode = false, childName
   const blanks = currentWord.split('').map((l) =>
     guessed.has(l) || (phase === 'word-result' && lost) ? l : null
   );
-
-  const clue = DEFINITIONS[currentWord.toLowerCase()] ?? null;
 
   return (
     <div className="hm-wrap">

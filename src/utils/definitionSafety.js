@@ -52,7 +52,8 @@ const DRUG_TERMS = [
 
 // ── Explicit / adult content ──────────────────────────────────────────────────
 const ADULT_TERMS = [
-  'sexual intercourse',
+  '\\bsexual\\b',     // catches "sexual maturity", "sexual intercourse", etc.
+  '\\bsexually\\b',
   'genitalia',
   '\\bpenis\\b',
   '\\bvagina\\b',
@@ -60,6 +61,62 @@ const ADULT_TERMS = [
   'pornograph',
   'erotic',
   'prostitut',
+  'fornicat',
+];
+
+// ── Violence / disturbing content ─────────────────────────────────────────────
+// Kept narrow on purpose — broad terms like "death" appear benignly in many
+// definitions. We only reject clearly disturbing references.
+const VIOLENCE_TERMS = [
+  '\\bkill\\b',
+  '\\bkilled\\b',
+  '\\bkilling\\b',
+  '\\bkills\\b',
+  'murder',
+  'suicide',
+  'tortur',
+  '\\brape\\b',
+  'raping',
+  'molest',
+  '\\bcorpse',
+  'dead\\s+body',
+  'dead\\s+bodies',
+  'genocide',
+  'massacre',
+  'beheading',
+  'lynching',
+  'shoot\\s+to\\s+kill',
+  'self[-\\s]harm',
+];
+
+// ── Pejorative descriptions of people ────────────────────────────────────────
+// Dictionary entries often include demeaning slang senses ("a dull, unattractive
+// girl or woman" for "dog"). These aren't slurs, but they're not appropriate as
+// clues in a children's spelling app.
+const PEJORATIVE_TERMS = [
+  '\\bunattractive\\b',
+  '\\bugly\\b',
+  '\\bstupid\\b',
+  '\\bdimwit',
+  '\\bidiot',
+  '\\bmoron',
+  '\\bimbecile',
+  '\\bcoward\\b',
+  '\\bcowardly\\b',
+  'reprehensible',
+  'despicable',
+  'contemptible',
+  'morally\\s+(loose|low|bankrupt|corrupt)',
+  'low\\s+morals',
+  '\\bsleaz',
+  '\\bwhore\\b',
+  '\\bbitch\\b',
+  '\\bbastard\\b',
+  '\\bslut\\b',
+  '\\bhag\\b',
+  '\\bcrone\\b',
+  'feeble[-\\s]?minded',
+  'mentally\\s+(deficient|defective)',
 ];
 
 // ── Racial / ethnic slurs ─────────────────────────────────────────────────────
@@ -93,6 +150,8 @@ const ALL_PATTERNS = [
   ...UNSAFE_MARKERS,
   ...DRUG_TERMS,
   ...ADULT_TERMS,
+  ...VIOLENCE_TERMS,
+  ...PEJORATIVE_TERMS,
   ...SLUR_TERMS,
 ];
 
