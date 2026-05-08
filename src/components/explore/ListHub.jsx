@@ -1,14 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import WordSearch from '../WordSearch';
-import Crossword  from '../Crossword';
+import { ACTIVITIES } from '../../data/activities';
+import { getActivityAvailability } from '../../utils/activityAvailability';
+import { renderExploreActivity } from './exploreActivityRunner';
 import './ListHub.css';
-
-const ACTIVITIES = [
-  { id: 'wordSearch', label: 'Word Search', icon: '🔍', color: '#4d96ff', dark: '#1a5cbf', live: true  },
-  { id: 'crossword',  label: 'Crossword',   icon: '✏️', color: '#c77dff', dark: '#6b21a8', live: true  },
-  { id: 'hangman',    label: 'Hangman',      icon: '🎯', color: '#ff9f43', dark: '#c05700', live: false },
-  { id: 'quiz',       label: 'Quiz',         icon: '🏆', color: '#ec4899', dark: '#9d174d', live: false },
-];
 
 const CATEGORY_COLOURS = {
   'Statutory':    '#6b7280',
@@ -52,27 +46,16 @@ export default function ListHub({ list, listType = 'curriculum', onBack, getList
     setActiveActivity(null);
   };
 
-  // ── Render active game ───────────────────────────────────────────────────
-  if (activeActivity === 'wordSearch') {
-    return (
-      <WordSearch
-        words={words}
-        hideTopbar
-        onComplete={(results) => handleComplete('wordSearch', results)}
-        onExit={() => setActiveActivity(null)}
-      />
-    );
-  }
-  if (activeActivity === 'crossword') {
-    return (
-      <Crossword
-        words={words}
-        userAge={10}
-        hideTopbar
-        onComplete={(results) => handleComplete('crossword', results || [])}
-        onExit={() => setActiveActivity(null)}
-      />
-    );
+  // ── Render active game (delegated to the canonical registry) ─────────────
+  if (activeActivity) {
+    const rendered = renderExploreActivity(activeActivity, {
+      list,
+      words,
+      user,
+      onComplete: handleComplete,
+      onExit: () => setActiveActivity(null),
+    });
+    if (rendered) return rendered;
   }
 
   // ── List Hub view ────────────────────────────────────────────────────────
@@ -120,14 +103,15 @@ export default function ListHub({ list, listType = 'curriculum', onBack, getList
           </ul>
         </aside>
 
-        {/* ── Activity cards ── */}
+        {/* ── Activity cards (driven by the canonical registry) ── */}
         <main className="lh-activities">
           <h2 className="lh-section-title">Choose an activity</h2>
           <div className="lh-grid">
             {ACTIVITIES.map((act) => {
-              const status  = progress[act.id]?.status || 'not_started';
-              const done    = status === 'completed';
-              const locked  = !act.live;
+              const status = progress[act.id]?.status || 'not_started';
+              const done   = status === 'completed';
+              const avail  = getActivityAvailability(act, { session: { year: list.year, words, age: list.ageRange?.[0] }, user });
+              const locked = avail.locked;
 
               return (
                 <div
@@ -141,7 +125,8 @@ export default function ListHub({ list, listType = 'curriculum', onBack, getList
                   role={locked ? undefined : 'button'}
                   tabIndex={locked ? -1 : 0}
                   onKeyDown={e => !locked && e.key === 'Enter' && setActiveActivity(act.id)}
-                  aria-label={locked ? `${act.label} — coming soon` : act.label}
+                  aria-label={locked ? `${act.name} — ${avail.message || 'locked'}` : act.name}
+                  title={locked ? avail.message : undefined}
                 >
                   {/* Coloured header */}
                   <div
@@ -153,9 +138,9 @@ export default function ListHub({ list, listType = 'curriculum', onBack, getList
                   </div>
 
                   <div className="lh-card-body">
-                    <h3 className="lh-card-name">{act.label}</h3>
+                    <h3 className="lh-card-name">{act.name}</h3>
                     {locked ? (
-                      <span className="lh-card-soon">Coming soon</span>
+                      <span className="lh-card-soon">{avail.message || 'Locked'}</span>
                     ) : (
                       <>
                         <span className={`lh-card-status lh-card-status--${status}`}>

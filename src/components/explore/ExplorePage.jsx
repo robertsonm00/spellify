@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { YEAR_GROUPS, getListsForYear } from '../../data/curriculumLists';
 import { useCustomLists } from '../../hooks/useCustomLists';
 import { useProgress }    from '../../hooks/useProgress';
+import { ACTIVITIES }     from '../../data/activities';
 import ListHub            from './ListHub';
 import ListHubV2          from './ListHubV2';
 import ListHubV3          from './ListHubV3';
@@ -25,7 +26,9 @@ function ListCard({ list, listType, onClick, progress }) {
   const words       = list.words || [];
   const previewWords = words.slice(0, 3).map(w => (typeof w === 'string' ? w : w.word));
   const moreCount   = Math.max(0, words.length - 3);
-  const ACTS        = 4; // total activities per list
+  // Total activities derived from the canonical registry — adding a new
+  // game makes every Explore card's progress denominator update automatically.
+  const ACTS        = ACTIVITIES.length;
   const completedActs = Object.values(progress || {}).filter(p => p?.status === 'completed').length;
   const pct         = Math.round((completedActs / ACTS) * 100);
   const allDone     = completedActs === ACTS;

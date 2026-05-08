@@ -12,12 +12,9 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import WordSearch  from '../WordSearch';
-import MemorySpell from '../MemorySpell';
-import Hangman     from '../Hangman';
-import Crossword   from '../Crossword';
-import WriteIt     from '../WriteIt';
-import QuizQuest   from '../QuizQuest';
+import { ACTIVITIES } from '../../data/activities';
+import { getActivityAvailability } from '../../utils/activityAvailability';
+import { renderExploreActivity } from './exploreActivityRunner';
 import { scoreWord, scoreToBand } from '../../utils/difficultyEngine';
 import DEFINITIONS from '../../data/definitions';
 import { isSafeDefinition } from '../../utils/definitionSafety';
@@ -165,15 +162,8 @@ function MasteryDot({ rate }) {
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-
-const ACTIVITIES = [
-  { id: 'wordsearch',  name: 'Word Search',  icon: '🔍', timeEstimate: '5 mins',  color: '#4d96ff', dark: '#1a5cbf' },
-  { id: 'memoryspell', name: 'Memory Spell', icon: '🧠', timeEstimate: '5 mins',  color: '#6bcb77', dark: '#1e7e34' },
-  { id: 'hangman',     name: 'Hangman',      icon: '🎯', timeEstimate: '5 mins',  color: '#ff9f43', dark: '#c05700' },
-  { id: 'crossword',   name: 'Crossword',    icon: '✏️', timeEstimate: '10 mins', color: '#c77dff', dark: '#6b21a8' },
-  { id: 'writeit',     name: 'Write It',     icon: '✏️', timeEstimate: '10 mins', color: '#a855f7', dark: '#581c87' },
-  { id: 'quizquest',   name: 'Quiz Quest',   icon: '🏆', timeEstimate: '5 mins',  color: '#ec4899', dark: '#9d174d' },
-];
+// ACTIVITIES is imported from the canonical registry in src/data/activities.js
+// so adding a new game makes it appear here automatically.
 
 const STATUS_LABEL = {
   'not-started': 'Not Started',
@@ -210,6 +200,7 @@ export default function ListHubV2({
   onBack,
   getListProgress,
   markComplete,
+  user = null,
 }) {
   const [activeActivity, setActiveActivity] = useState(null);
   const [progress,       setProgress]       = useState({});
@@ -253,19 +244,16 @@ export default function ListHubV2({
     setActiveActivity(null);
   };
 
-  // ── Active game renders ──────────────────────────────────────────────────────
-  if (activeActivity === 'wordsearch')
-    return <WordSearch  words={words} hideTopbar onComplete={r => handleComplete('wordsearch', r)}         onExit={() => setActiveActivity(null)} />;
-  if (activeActivity === 'memoryspell')
-    return <MemorySpell words={words} wordObjects={wordObjects} hideTopbar onComplete={r => handleComplete('memoryspell', r)} onExit={() => setActiveActivity(null)} />;
-  if (activeActivity === 'hangman')
-    return <Hangman     words={words} difficulty="medium" hideTopbar onComplete={r => handleComplete('hangman', r)}     onExit={() => setActiveActivity(null)} />;
-  if (activeActivity === 'crossword')
-    return <Crossword   words={words} userAge={userAge} difficulty="medium" hideTopbar onComplete={r => handleComplete('crossword', r || [])} onExit={() => setActiveActivity(null)} />;
-  if (activeActivity === 'writeit')
-    return <WriteIt     words={words} hideTopbar onComplete={r => handleComplete('writeit', r || [])}      onExit={() => setActiveActivity(null)} />;
-  if (activeActivity === 'quizquest')
-    return <QuizQuest   words={words} wordObjects={wordObjects} hideTopbar onComplete={r => handleComplete('quizquest', r || [])} onExit={() => setActiveActivity(null)} />;
+  // ── Active game render — delegated to the canonical registry ─────────────────
+  if (activeActivity) {
+    const rendered = renderExploreActivity(activeActivity, {
+      list,
+      words,
+      onComplete: handleComplete,
+      onExit: () => setActiveActivity(null),
+    });
+    if (rendered) return rendered;
+  }
 
   // ── Hub view ─────────────────────────────────────────────────────────────────
   const catColour = CATEGORY_COLOURS[list.category] || '#6b7280';
@@ -353,26 +341,33 @@ export default function ListHubV2({
               {ACTIVITIES.map((act) => {
                 const status = progress[act.id]?.status || 'not-started';
                 const done   = status === 'completed';
+                const avail  = getActivityAvailability(act, { session: { year: list.year, words, age: userAge }, user });
+                const locked = avail.locked;
                 return (
                   <div
                     key={act.id}
-                    className={`lhv2-card hub-card--${status}`}
+                    className={`lhv2-card hub-card--${status}${locked ? ' hub-card--locked' : ''}`}
                     style={{
                       borderColor: act.dark,
                       boxShadow: done ? `4px 4px 0 ${act.dark}` : `6px 6px 0 ${act.dark}`,
+                      opacity: locked ? 0.55 : 1,
+                      cursor:  locked ? 'not-allowed' : 'pointer',
                     }}
-                    onClick={() => setActiveActivity(act.id)}
+                    onClick={() => { if (!locked) setActiveActivity(act.id); }}
                     role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => e.key === 'Enter' && setActiveActivity(act.id)}
+                    tabIndex={locked ? -1 : 0}
+                    aria-disabled={locked}
+                    title={locked ? avail.message : undefined}
+                    onKeyDown={(e) => { if (!locked && e.key === 'Enter') setActiveActivity(act.id); }}
                   >
                     <div className="lhv2-card-header" style={{ background: act.color }}>
                       <span className="lhv2-card-icon">{act.icon}</span>
+                      {locked && <span className="hub-card-lock" aria-hidden="true">🔒</span>}
                     </div>
                     <div className="lhv2-card-body">
                       <h3 className="lhv2-card-name">{act.name}</h3>
                       <span className={`hub-badge hub-badge--${status}`}>
-                        {STATUS_LABEL[status]}
+                        {locked ? (avail.message || 'Locked') : STATUS_LABEL[status]}
                       </span>
                       <p className="lhv2-card-time">⏱ {act.timeEstimate}</p>
                       {progress[act.id]?.accuracy != null && (

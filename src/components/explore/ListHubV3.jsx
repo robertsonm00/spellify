@@ -5,12 +5,9 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import WordSearch  from '../WordSearch';
-import MemorySpell from '../MemorySpell';
-import Hangman     from '../Hangman';
-import Crossword   from '../Crossword';
-import WriteIt     from '../WriteIt';
-import QuizQuest   from '../QuizQuest';
+import { ACTIVITIES } from '../../data/activities';
+import { getActivityAvailability } from '../../utils/activityAvailability';
+import { renderExploreActivity } from './exploreActivityRunner';
 import { scoreWord, scoreToBand } from '../../utils/difficultyEngine';
 import DEFINITIONS from '../../data/definitions';
 import { isSafeDefinition } from '../../utils/definitionSafety';
@@ -151,15 +148,30 @@ function LedDot({ rate }) {
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
+// ACTIVITIES is imported from the canonical registry in src/data/activities.js.
+// V3's arcade theme overrides the registry's `color` with a brighter neon for
+// each known game; new games fall back to the registry color + a derived glow.
 
-const ACTIVITIES = [
-  { id: 'wordsearch',  name: 'Word Search',  icon: '🔍', timeEstimate: '5 mins',  neon: '#00e5ff', glow: 'rgba(0,229,255,0.35)'   },
-  { id: 'memoryspell', name: 'Memory Spell', icon: '🧠', timeEstimate: '5 mins',  neon: '#39ff14', glow: 'rgba(57,255,20,0.35)'   },
-  { id: 'hangman',     name: 'Hangman',      icon: '🎯', timeEstimate: '5 mins',  neon: '#ff9f43', glow: 'rgba(255,159,67,0.35)'  },
-  { id: 'crossword',   name: 'Crossword',    icon: '✏️', timeEstimate: '10 mins', neon: '#c77dff', glow: 'rgba(199,125,255,0.35)' },
-  { id: 'writeit',     name: 'Write It',     icon: '✍️', timeEstimate: '10 mins', neon: '#ff6bff', glow: 'rgba(255,107,255,0.35)' },
-  { id: 'quizquest',   name: 'Quiz Quest',   icon: '🏆', timeEstimate: '5 mins',  neon: '#ffd93d', glow: 'rgba(255,217,61,0.35)'  },
-];
+const NEON_OVERRIDES = {
+  wordsearch:  { neon: '#00e5ff', glow: 'rgba(0,229,255,0.35)'   },
+  memoryspell: { neon: '#39ff14', glow: 'rgba(57,255,20,0.35)'   },
+  hangman:     { neon: '#ff9f43', glow: 'rgba(255,159,67,0.35)'  },
+  crossword:   { neon: '#c77dff', glow: 'rgba(199,125,255,0.35)' },
+  writeit:     { neon: '#ff6bff', glow: 'rgba(255,107,255,0.35)' },
+  quizquest:   { neon: '#ffd93d', glow: 'rgba(255,217,61,0.35)'  },
+};
+
+/** Hex `#rrggbb` → `rgba(r,g,b,alpha)` glow string. */
+function deriveGlow(hex, alpha = 0.35) {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex || '');
+  if (!m) return 'rgba(255,255,255,0.35)';
+  const n = parseInt(m[1], 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha})`;
+}
+
+function neonFor(act) {
+  return NEON_OVERRIDES[act.id] || { neon: act.color, glow: deriveGlow(act.color) };
+}
 
 const STATUS_LABEL = {
   'not-started': 'Not Started',
@@ -190,6 +202,7 @@ export default function ListHubV3({
   onBack,
   getListProgress,
   markComplete,
+  user = null,
 }) {
   const [activeActivity, setActiveActivity] = useState(null);
   const [progress,       setProgress]       = useState({});
@@ -233,19 +246,16 @@ export default function ListHubV3({
     setActiveActivity(null);
   };
 
-  // ── Active game renders ─────────────────────────────────────────────────────
-  if (activeActivity === 'wordsearch')
-    return <WordSearch  words={words} hideTopbar onComplete={r => handleComplete('wordsearch', r)}         onExit={() => setActiveActivity(null)} />;
-  if (activeActivity === 'memoryspell')
-    return <MemorySpell words={words} wordObjects={wordObjects} hideTopbar onComplete={r => handleComplete('memoryspell', r)} onExit={() => setActiveActivity(null)} />;
-  if (activeActivity === 'hangman')
-    return <Hangman     words={words} difficulty="medium" hideTopbar onComplete={r => handleComplete('hangman', r)}     onExit={() => setActiveActivity(null)} />;
-  if (activeActivity === 'crossword')
-    return <Crossword   words={words} userAge={userAge} difficulty="medium" hideTopbar onComplete={r => handleComplete('crossword', r || [])} onExit={() => setActiveActivity(null)} />;
-  if (activeActivity === 'writeit')
-    return <WriteIt     words={words} hideTopbar onComplete={r => handleComplete('writeit', r || [])}      onExit={() => setActiveActivity(null)} />;
-  if (activeActivity === 'quizquest')
-    return <QuizQuest   words={words} wordObjects={wordObjects} hideTopbar onComplete={r => handleComplete('quizquest', r || [])} onExit={() => setActiveActivity(null)} />;
+  // ── Active game render — delegated to the canonical registry ────────────────
+  if (activeActivity) {
+    const rendered = renderExploreActivity(activeActivity, {
+      list,
+      words,
+      onComplete: handleComplete,
+      onExit: () => setActiveActivity(null),
+    });
+    if (rendered) return rendered;
+  }
 
   // ── Hub view ────────────────────────────────────────────────────────────────
   const catNeon = CATEGORY_NEONS[list.category] || '#94a3b8';
@@ -326,14 +336,17 @@ export default function ListHubV3({
                 </span>
               </div>
               <div className="lhv3-pixel-bar">
-                {progressBlocks.map((filled, i) => (
-                  <div
-                    key={i}
-                    className={`lhv3-pixel-block${filled ? ' lhv3-pixel-block--on' : ''}`}
-                    style={filled ? { '--act-neon': ACTIVITIES[i].neon, '--act-glow': ACTIVITIES[i].glow } : {}}
-                    title={ACTIVITIES[i].name}
-                  />
-                ))}
+                {progressBlocks.map((filled, i) => {
+                  const theme = neonFor(ACTIVITIES[i]);
+                  return (
+                    <div
+                      key={i}
+                      className={`lhv3-pixel-block${filled ? ' lhv3-pixel-block--on' : ''}`}
+                      style={filled ? { '--act-neon': theme.neon, '--act-glow': theme.glow } : {}}
+                      title={ACTIVITIES[i].name}
+                    />
+                  );
+                })}
               </div>
               <span className="lhv3-score-pct">{progressPct}%</span>
             </div>
@@ -344,31 +357,41 @@ export default function ListHubV3({
               {ACTIVITIES.map((act) => {
                 const status = progress[act.id]?.status || 'not-started';
                 const done   = status === 'completed';
+                const { neon, glow } = neonFor(act);
+                const avail  = getActivityAvailability(act, { session: { year: list.year, words, age: userAge }, user });
+                const locked = avail.locked;
                 return (
                   <div
                     key={act.id}
-                    className={`lhv3-card${done ? ' lhv3-card--done' : ''}`}
-                    style={{ '--neon': act.neon, '--glow': act.glow }}
-                    onClick={() => setActiveActivity(act.id)}
+                    className={`lhv3-card${done ? ' lhv3-card--done' : ''}${locked ? ' lhv3-card--locked' : ''}`}
+                    style={{
+                      '--neon': neon,
+                      '--glow': glow,
+                      opacity: locked ? 0.55 : 1,
+                      cursor:  locked ? 'not-allowed' : 'pointer',
+                    }}
+                    onClick={() => { if (!locked) setActiveActivity(act.id); }}
                     role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => e.key === 'Enter' && setActiveActivity(act.id)}
+                    tabIndex={locked ? -1 : 0}
+                    aria-disabled={locked}
+                    title={locked ? avail.message : undefined}
+                    onKeyDown={(e) => { if (!locked && e.key === 'Enter') setActiveActivity(act.id); }}
                   >
                     <div
                       className="lhv3-card-face"
                       style={{
                         background: theme === 'light'
-                          ? `radial-gradient(ellipse at 50% 110%, ${act.glow.replace('0.35)', '0.12)')} 0%, transparent 65%), #fafafe`
-                          : `radial-gradient(ellipse at 50% 110%, ${act.glow} 0%, transparent 65%), #0d0d20`,
+                          ? `radial-gradient(ellipse at 50% 110%, ${glow.replace('0.35)', '0.12)')} 0%, transparent 65%), #fafafe`
+                          : `radial-gradient(ellipse at 50% 110%, ${glow} 0%, transparent 65%), #0d0d20`,
                       }}
                     >
-                      <span className="lhv3-card-icon">{act.icon}</span>
+                      <span className="lhv3-card-icon">{locked ? '🔒' : act.icon}</span>
                       {done && <span className="lhv3-checkmark">✓</span>}
                     </div>
                     <div className="lhv3-card-body">
                       <h3 className="lhv3-card-name">{act.name}</h3>
                       <span className={`lhv3-status lhv3-status--${status}`}>
-                        {STATUS_LABEL[status]}
+                        {locked ? (avail.message || 'Locked') : STATUS_LABEL[status]}
                       </span>
                       <p className="lhv3-time">⏱ {act.timeEstimate}</p>
                       {progress[act.id]?.accuracy != null && (
