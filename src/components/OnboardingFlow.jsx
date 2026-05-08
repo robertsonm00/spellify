@@ -238,8 +238,6 @@ export function GeneratedWords({
   yearGroup,
   onConfirm,
   initialDyslexiaMode = false,
-  showSupportToggle   = true,
-  confirmLabel        = "Let's Play! ▶",
 }) {
   const [count,        setCount]        = useState(10);
   const [extraSupport, setExtraSupport] = useState(initialDyslexiaMode);
@@ -344,22 +342,20 @@ export function GeneratedWords({
       </div>
 
       {/* Extra Support Mode */}
-      {showSupportToggle && (
-        <label className="ob-support-toggle">
-          <div className="ob-support-switch">
-            <input
-              type="checkbox"
-              checked={extraSupport}
-              onChange={(e) => handleExtraSupportToggle(e.target.checked)}
-            />
-            <span className="ob-support-slider" />
-          </div>
-          <div className="ob-support-text">
-            <span className="ob-support-name">⭐ Extra Support Mode</span>
-            <span className="ob-support-hint">Support your learning journey</span>
-          </div>
-        </label>
-      )}
+      <label className="ob-support-toggle">
+        <div className="ob-support-switch">
+          <input
+            type="checkbox"
+            checked={extraSupport}
+            onChange={(e) => handleExtraSupportToggle(e.target.checked)}
+          />
+          <span className="ob-support-slider" />
+        </div>
+        <div className="ob-support-text">
+          <span className="ob-support-name">⭐ Extra Support Mode</span>
+          <span className="ob-support-hint">Support your learning journey</span>
+        </div>
+      </label>
 
       <div className="ob-word-grid">
         {words.map((w, i) => {
@@ -389,7 +385,7 @@ export function GeneratedWords({
             ruleLabel: groupBy === 'rule' ? ruleLabel : null,
           })}
         >
-          {confirmLabel}
+          Let's Play! ▶
         </button>
       </div>
     </div>

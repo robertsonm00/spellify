@@ -300,8 +300,6 @@ function App() {
             <GeneratedWords
               yearGroup={session.year}
               initialDyslexiaMode={session.dyslexiaMode || false}
-              showSupportToggle={false}
-              confirmLabel="Use these words ▶"
               onConfirm={(payload) => { handleChangeWords(payload); setChangeWordsOpen(false); }}
             />
           </div>
