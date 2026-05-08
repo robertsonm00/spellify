@@ -62,7 +62,6 @@ export function renderExploreActivity(activityId, { list, words, user, onComplet
     <Component
       words={words}
       dyslexiaMode={false}
-      hideTopbar
       onComplete={(results) => onComplete(activityId, results || [])}
       onExit={onExit}
       {...extraProps}

@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { speakWord } from '../../utils/speech';
 import { syllableCount } from '../../utils/syllableCount';
+import GameHeader from '../GameHeader';
+import GameProgressStrip from '../GameProgressStrip';
 import './SyllableTap.css';
 
 /**
@@ -56,80 +58,88 @@ function SyllableTap({ words, onComplete, onExit }) {
   if (phase === 'complete') {
     const wins = results.filter((r) => r.correct).length;
     return (
-      <div className="st-shell st-complete">
-        <h2 className="st-title">All done!</h2>
-        <p className="st-score">{wins} / {results.length} correct</p>
-        <ul className="st-summary">
-          {results.map((r, i) => (
-            <li key={i} className={r.correct ? 'st-summary-row st-summary-row--ok' : 'st-summary-row st-summary-row--bad'}>
-              <span className="st-summary-word">{r.word}</span>
-              <span className="st-summary-counts">you tapped {r.taps} · was {r.expected}</span>
-            </li>
-          ))}
-        </ul>
-        <div className="st-cta-row">
-          <button className="st-cta" onClick={() => onComplete(results.map((r) => ({ word: r.word, correct: r.correct })))}>
-            Back to Hub
-          </button>
+      <>
+        <GameHeader title="Syllable Tap" onExit={onExit} />
+        <GameProgressStrip percent={100}>
+          {results.length} of {queue.length} words done
+        </GameProgressStrip>
+        <div className="st-shell st-complete">
+          <h2 className="st-title">All done!</h2>
+          <p className="st-score">{wins} / {results.length} correct</p>
+          <ul className="st-summary">
+            {results.map((r, i) => (
+              <li key={i} className={r.correct ? 'st-summary-row st-summary-row--ok' : 'st-summary-row st-summary-row--bad'}>
+                <span className="st-summary-word">{r.word}</span>
+                <span className="st-summary-counts">you tapped {r.taps} · was {r.expected}</span>
+              </li>
+            ))}
+          </ul>
+          <div className="st-cta-row">
+            <button className="st-cta" onClick={() => onComplete(results.map((r) => ({ word: r.word, correct: r.correct })))}>
+              Back to Hub
+            </button>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   if (!word) {
     return (
-      <div className="st-shell">
-        <p>No words available.</p>
-        <button className="st-cta" onClick={onExit}>Back</button>
-      </div>
+      <>
+        <GameHeader title="Syllable Tap" onExit={onExit} />
+        <div className="st-shell">
+          <p>No words available.</p>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="st-shell">
-      <div className="st-header">
-        <button className="st-exit" onClick={onExit}>← Exit</button>
-        <span className="st-progress">{wordIndex + 1} / {queue.length}</span>
+    <>
+      <GameHeader title="Syllable Tap" onExit={onExit} />
+      <GameProgressStrip percent={(wordIndex / queue.length) * 100}>
+        Word {wordIndex + 1} of {queue.length}
+      </GameProgressStrip>
+      <div className="st-shell">
+        <p className="st-instructions">
+          Listen to the word, then tap once for each syllable you hear.
+        </p>
+
+        <button className="st-play" onClick={playWord}>
+          🔊 Hear it again
+        </button>
+
+        <button
+          className={`st-tap-btn st-tap-btn--${phase}`}
+          onClick={handleTap}
+          disabled={phase === 'result'}
+        >
+          TAP
+        </button>
+
+        <p className="st-tap-count" aria-live="polite">
+          {taps === 0 ? 'Tap to count syllables' : `${taps} tap${taps === 1 ? '' : 's'}`}
+        </p>
+
+        {phase === 'tap' && (
+          <button className="st-cta" onClick={handleDone}>Done ✓</button>
+        )}
+
+        {phase === 'result' && (
+          <div className="st-result">
+            {taps === correct ? (
+              <p className="st-result-ok">✅ Right! "{word}" has {correct} syllable{correct === 1 ? '' : 's'}.</p>
+            ) : (
+              <p className="st-result-bad">
+                Not quite — "{word}" has <strong>{correct}</strong> syllable{correct === 1 ? '' : 's'}.
+              </p>
+            )}
+            <button className="st-cta" onClick={handleNext}>Next →</button>
+          </div>
+        )}
       </div>
-
-      <h2 className="st-title">Syllable Tap</h2>
-      <p className="st-instructions">
-        Listen to the word, then tap once for each syllable you hear.
-      </p>
-
-      <button className="st-play" onClick={playWord}>
-        🔊 Hear it again
-      </button>
-
-      <button
-        className={`st-tap-btn st-tap-btn--${phase}`}
-        onClick={handleTap}
-        disabled={phase === 'result'}
-      >
-        TAP
-      </button>
-
-      <p className="st-tap-count" aria-live="polite">
-        {taps === 0 ? 'Tap to count syllables' : `${taps} tap${taps === 1 ? '' : 's'}`}
-      </p>
-
-      {phase === 'tap' && (
-        <button className="st-cta" onClick={handleDone}>Done ✓</button>
-      )}
-
-      {phase === 'result' && (
-        <div className="st-result">
-          {taps === correct ? (
-            <p className="st-result-ok">✅ Right! "{word}" has {correct} syllable{correct === 1 ? '' : 's'}.</p>
-          ) : (
-            <p className="st-result-bad">
-              Not quite — "{word}" has <strong>{correct}</strong> syllable{correct === 1 ? '' : 's'}.
-            </p>
-          )}
-          <button className="st-cta" onClick={handleNext}>Next →</button>
-        </div>
-      )}
-    </div>
+    </>
   );
 }
 

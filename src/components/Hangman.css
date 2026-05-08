@@ -436,7 +436,4 @@
   color: white;
 }
 
-/* ── Hide the global TopNav while Hangman owns the screen ── */
-body.hangman-active .topnav { display: none; }
-body.hangman-active { padding-top: 0; }
-body.hangman-active .app-game-main { min-height: 100vh; }
+/* TopNav hide rule moved to GameHeader.css (body.game-active …) */

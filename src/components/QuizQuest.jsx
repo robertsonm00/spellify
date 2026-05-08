@@ -3,6 +3,7 @@ import confetti from 'canvas-confetti';
 import { buildQuiz } from '../utils/quizQuestionBuilder';
 import DEFINITIONS from '../data/definitions.js';
 import { letterBoxSize } from '../utils/letterBoxSize';
+import GameHeader from './GameHeader';
 import './QuizQuest.css';
 import { speakWord as speak } from '../utils/speech';
 
@@ -344,24 +345,6 @@ function QuestionCard({ question, onAnswer, dyslexiaMode }) {
   return null;
 }
 
-const HEADER_STARS = Array.from({ length: 40 }, (_, i) => ({
-  id: i,
-  left:  (i * 37 + 13) % 100,
-  top:   (i * 53 + 7)  % 100,
-  size:  6 + (i % 4) * 3,
-  dim:   i % 3 === 0,
-}));
-
-const BRAND_LETTERS = [
-  { letter: 'S', color: '#ff6b6b' },
-  { letter: 'P', color: '#ffd93d' },
-  { letter: 'E', color: '#6bcb77' },
-  { letter: 'L', color: '#4d96ff' },
-  { letter: 'L', color: '#c77dff' },
-  { letter: 'I', color: '#ff9f43' },
-  { letter: 'F', color: '#ff6b6b' },
-  { letter: 'Y', color: '#ffd93d' },
-];
 
 // ── Main component ───────────────────────────────────────────────────────────
 
@@ -373,7 +356,6 @@ export default function QuizQuest({
   onComplete,
   onExit,
   dyslexiaMode = false,
-  hideTopbar = false,
 }) {
   // Build the quiz once per mount. useMemo ensures we don't reshuffle on
   // every state change.
@@ -450,26 +432,13 @@ export default function QuizQuest({
   const wrapClass = `qq-wrap${dyslexiaMode ? ' qq-wrap--es' : ''}`;
 
   const topbar = (
-    <div className="qq-topbar">
-      <div className="qq-topbar-stars" aria-hidden="true">
-        {HEADER_STARS.map((s) => (
-          <span key={s.id} className={`qq-topbar-star${s.dim ? ' qq-topbar-star--dim' : ''}`}
-            style={{ left: `${s.left}%`, top: `${s.top}%`, fontSize: `${s.size}px` }}>★</span>
-        ))}
-      </div>
-      <button className="qq-back" onClick={onExit}>← Exit</button>
-      <div className="qq-topbar-center">
-        <span className="qq-topbar-brand" aria-label="Spellify">
-          {BRAND_LETTERS.map(({ letter, color }, i) => (
-            <span key={i} className="qq-brand-letter" style={{ color, animationDelay: `${i * 0.08}s` }}>{letter}</span>
-          ))}
-        </span>
-        <h2 className="qq-title">Quiz Quest</h2>
-      </div>
-      <div className="qq-topbar-right">
-        <button className="qq-restart" onClick={handleRestartClick} title="Restart quiz">↺ Restart</button>
-      </div>
-    </div>
+    <GameHeader
+      title="Quiz Quest"
+      onExit={onExit}
+      rightSlot={
+        <button className="game-header-btn" onClick={handleRestartClick} title="Restart quiz">↺ Restart</button>
+      }
+    />
   );
 
   // Empty / no-questions state — happens if words array is empty or every
@@ -477,7 +446,7 @@ export default function QuizQuest({
   if (questions.length === 0) {
     return (
       <div className={wrapClass}>
-        {!hideTopbar && topbar}
+        {topbar}
         <div className="qq-stage">
           <div className="qq-card">
             <p className="qq-prompt">No quiz questions could be built from your word list.</p>
@@ -493,7 +462,7 @@ export default function QuizQuest({
   if (phase === 'start') {
     return (
       <div className={wrapClass}>
-        {!hideTopbar && topbar}
+        {topbar}
         <div className="qq-stage">
           <div className="qq-card qq-card--start">
             {/* FUTURE: replace emoji with animated buddy character */}
@@ -526,7 +495,7 @@ export default function QuizQuest({
 
     return (
       <div className={wrapClass}>
-        {!hideTopbar && topbar}
+        {topbar}
         <div className="qq-results">
           <div className="qq-results-score">
             <span className="qq-score-emoji">{emoji}</span>

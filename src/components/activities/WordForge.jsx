@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { getMorphology, getMorphologyWords, pickDistractors } from '../../data/morphology';
+import GameHeader from '../GameHeader';
+import GameProgressStrip from '../GameProgressStrip';
 import './WordForge.css';
 
 /**
@@ -39,10 +41,12 @@ function WordForge({ words, onComplete, onExit }) {
 
   if (!morph) {
     return (
-      <div className="wf-shell">
-        <p>No morphology data for this word.</p>
-        <button className="wf-cta" onClick={onExit}>Back</button>
-      </div>
+      <>
+        <GameHeader title="Word Forge" onExit={onExit} />
+        <div className="wf-shell">
+          <p>No morphology data for this word.</p>
+        </div>
+      </>
     );
   }
 
@@ -68,8 +72,13 @@ function WordForge({ words, onComplete, onExit }) {
   if (phase === 'complete') {
     const wins = results.filter((r) => r.correct).length;
     return (
-      <div className="wf-shell wf-complete">
-        <h2 className="wf-title">Word Forge complete!</h2>
+      <>
+        <GameHeader title="Word Forge" onExit={onExit} />
+        <GameProgressStrip percent={100}>
+          {results.length} of {queue.length} words done
+        </GameProgressStrip>
+        <div className="wf-shell wf-complete">
+          <h2 className="wf-title">Word Forge complete!</h2>
         <p className="wf-score">{wins} / {results.length} correct</p>
         <ul className="wf-summary">
           {results.map((r, i) => (
@@ -82,7 +91,8 @@ function WordForge({ words, onComplete, onExit }) {
         <button className="wf-cta" onClick={() => onComplete(results.map((r) => ({ word: r.word, correct: r.correct })))}>
           Back to Hub
         </button>
-      </div>
+        </div>
+      </>
     );
   }
 
@@ -91,13 +101,12 @@ function WordForge({ words, onComplete, onExit }) {
     (!morph.suffix || pickedSuf);
 
   return (
-    <div className="wf-shell">
-      <div className="wf-header">
-        <button className="wf-exit" onClick={onExit}>← Exit</button>
-        <span className="wf-progress">{wordIndex + 1} / {queue.length}</span>
-      </div>
-
-      <h2 className="wf-title">Word Forge</h2>
+    <>
+      <GameHeader title="Word Forge" onExit={onExit} />
+      <GameProgressStrip percent={(wordIndex / queue.length) * 100}>
+        Word {wordIndex + 1} of {queue.length}
+      </GameProgressStrip>
+      <div className="wf-shell">
       <p className="wf-instructions">
         Build the target word by tapping a {morph.prefix && morph.suffix ? 'prefix and suffix' : morph.prefix ? 'prefix' : 'suffix'} to add to the root.
       </p>
@@ -189,7 +198,8 @@ function WordForge({ words, onComplete, onExit }) {
           <button className="wf-cta" onClick={handleNext}>Next →</button>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }
 

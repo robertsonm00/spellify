@@ -166,7 +166,6 @@ function App() {
           <Component
             words={words}
             dyslexiaMode={dyslexiaMode}
-            hideTopbar
             savedProgress={getActivityProgress(session, id)}
             onSaveProgress={(p) => handleSaveProgress(id, p)}
             onComplete={(results) => handleComplete(id, results || [])}
@@ -179,19 +178,8 @@ function App() {
     }
 
     if (Activity) {
-      return (
-        <>
-          <TopNav
-            user={user}
-            profile={profile}
-            onSignInClick={() => setShowSignIn(true)}
-            onSignOut={signOut}
-            onExit={handleExit}
-            gameTitle={title}
-          />
-          <main className="app-game-main">{Activity}</main>
-        </>
-      );
+      // Activities own their own header via <GameHeader>. Don't wrap in TopNav.
+      return <main className="app-game-main">{Activity}</main>;
     }
   }
 

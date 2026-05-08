@@ -3,6 +3,7 @@ import confetti from 'canvas-confetti';
 import { generateCrossword, wordCells } from '../utils/crosswordEngine';
 import DEFINITIONS from '../data/definitions';
 import { isSafeDefinition } from '../utils/definitionSafety';
+import GameHeader from './GameHeader';
 import './Crossword.css';
 import { speakWord } from '../utils/speech';
 
@@ -34,26 +35,6 @@ function fireWordConfetti() {
     colors: ['#6bcb77', '#4d96ff', '#ffd93d', '#c77dff', '#ff6b6b'],
   });
 }
-
-const HEADER_STARS = Array.from({ length: 40 }, (_, i) => ({
-  id: i,
-  left:  (i * 37 + 13) % 100,
-  top:   (i * 53 + 7)  % 100,
-  size:  6 + (i % 4) * 3,
-  dim:   i % 3 === 0,
-}));
-
-const BRAND_LETTERS = [
-  { letter: 'S', color: '#ff6b6b' },
-  { letter: 'P', color: '#ffd93d' },
-  { letter: 'E', color: '#6bcb77' },
-  { letter: 'L', color: '#4d96ff' },
-  { letter: 'L', color: '#c77dff' },
-  { letter: 'I', color: '#ff9f43' },
-  { letter: 'F', color: '#ff6b6b' },
-  { letter: 'Y', color: '#ffd93d' },
-];
-
 
 // ── Config ───────────────────────────────────────────────────────────────────
 
@@ -166,7 +147,7 @@ function isWordComplete(pw, filled) {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onExit, savedProgress = null, onSaveProgress, hideTopbar = false }) {
+function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onExit, savedProgress = null, onSaveProgress }) {
   const maxWords = getMaxWords(userAge, difficulty);
   const maxHints = getMaxHints(userAge);
 
@@ -441,30 +422,13 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
   // ── Loading & no-layout states ────────────────────────────────────────────
 
   const topbar = (rightSlot = null) => (
-    <div className="cw-topbar">
-      <div className="cw-topbar-stars" aria-hidden="true">
-        {HEADER_STARS.map((s) => (
-          <span key={s.id} className={`cw-topbar-star${s.dim ? ' cw-topbar-star--dim' : ''}`}
-            style={{ left: `${s.left}%`, top: `${s.top}%`, fontSize: `${s.size}px` }}>★</span>
-        ))}
-      </div>
-      <button className="cw-back" onClick={onExit}>← Exit</button>
-      <div className="cw-topbar-center">
-        <span className="cw-topbar-brand" aria-label="Spellify">
-          {BRAND_LETTERS.map(({ letter, color }, i) => (
-            <span key={i} className="cw-brand-letter" style={{ color, animationDelay: `${i * 0.08}s` }}>{letter}</span>
-          ))}
-        </span>
-        <h2 className="cw-title">Crossword</h2>
-      </div>
-      <div className="cw-topbar-right">{rightSlot}</div>
-    </div>
+    <GameHeader title="Crossword" onExit={onExit} rightSlot={rightSlot} />
   );
 
   if (validation === null) {
     return (
       <div className="cw-wrap">
-        {!hideTopbar && topbar()}
+        {topbar()}
         <p className="cw-loading">📖 Checking the dictionary…</p>
       </div>
     );
@@ -474,7 +438,7 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
     const skipped = validation?.skipped ?? [];
     return (
       <div className="cw-wrap">
-        {!hideTopbar && topbar()}
+        {topbar()}
         <p className="cw-error">
           Couldn't build a crossword — need at least 2 dictionary words.
         </p>
@@ -561,7 +525,7 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
       onKeyDown={handleKeyDown}
     >
       {/* ── Header ── */}
-      {!hideTopbar && topbar(null)}
+      {topbar(null)}
 
       {/* ── Body ── */}
       <div className="cw-body">

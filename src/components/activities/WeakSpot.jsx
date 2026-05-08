@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getWeakSpot } from '../../data/weakSpots';
+import GameHeader from '../GameHeader';
+import GameProgressStrip from '../GameProgressStrip';
 import './WeakSpot.css';
 
 const FLASH_MS = 1500;
@@ -55,44 +57,50 @@ function WeakSpot({ words, onComplete, onExit }) {
   if (phase === 'complete') {
     const wins = results.filter((r) => r.correct).length;
     return (
-      <div className="ws-shell ws-complete">
-        <h2 className="ws-title">Weak Spot complete!</h2>
-        <p className="ws-score">{wins} / {results.length} correct</p>
-        <ul className="ws-summary">
-          {results.map((r, i) => (
-            <li key={i} className={r.correct ? 'ws-summary-row ws-summary-row--ok' : 'ws-summary-row ws-summary-row--bad'}>
-              <span className="ws-summary-word">{r.word}</span>
-              {!r.correct && (
-                <span className="ws-summary-attempt">you typed "{r.attempt || '—'}" · was "{r.missing}"</span>
-              )}
-            </li>
-          ))}
-        </ul>
-        <button className="ws-cta" onClick={() => onComplete(results.map((r) => ({ word: r.word, correct: r.correct })))}>
-          Back to Hub
-        </button>
-      </div>
+      <>
+        <GameHeader title="Weak Spot" onExit={onExit} />
+        <GameProgressStrip percent={100}>
+          {results.length} of {queue.length} words done
+        </GameProgressStrip>
+        <div className="ws-shell ws-complete">
+          <h2 className="ws-title">Weak Spot complete!</h2>
+          <p className="ws-score">{wins} / {results.length} correct</p>
+          <ul className="ws-summary">
+            {results.map((r, i) => (
+              <li key={i} className={r.correct ? 'ws-summary-row ws-summary-row--ok' : 'ws-summary-row ws-summary-row--bad'}>
+                <span className="ws-summary-word">{r.word}</span>
+                {!r.correct && (
+                  <span className="ws-summary-attempt">you typed "{r.attempt || '—'}" · was "{r.missing}"</span>
+                )}
+              </li>
+            ))}
+          </ul>
+          <button className="ws-cta" onClick={() => onComplete(results.map((r) => ({ word: r.word, correct: r.correct })))}>
+            Back to Hub
+          </button>
+        </div>
+      </>
     );
   }
 
   if (!word) {
     return (
-      <div className="ws-shell">
-        <p>No words available.</p>
-        <button className="ws-cta" onClick={onExit}>Back</button>
-      </div>
+      <>
+        <GameHeader title="Weak Spot" onExit={onExit} />
+        <div className="ws-shell">
+          <p>No words available.</p>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="ws-shell">
-      <div className="ws-header">
-        <button className="ws-exit" onClick={onExit}>← Exit</button>
-        <span className="ws-progress">{wordIndex + 1} / {queue.length}</span>
-      </div>
-
-      <h2 className="ws-title">Weak Spot</h2>
-
+    <>
+      <GameHeader title="Weak Spot" onExit={onExit} />
+      <GameProgressStrip percent={(wordIndex / queue.length) * 100}>
+        Word {wordIndex + 1} of {queue.length}
+      </GameProgressStrip>
+      <div className="ws-shell">
       {phase === 'flash' && (
         <>
           <p className="ws-instructions">Look carefully...</p>
@@ -137,7 +145,8 @@ function WeakSpot({ words, onComplete, onExit }) {
           <button className="ws-cta" onClick={handleNext}>Next →</button>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }
 

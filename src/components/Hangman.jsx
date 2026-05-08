@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import './Hangman.css';
+import GameHeader from './GameHeader';
+import GameProgressStrip from './GameProgressStrip';
 import { getSupportTip } from '../data/spelling/dyslexiaPatterns';
 import { resolveDefinition } from '../utils/wordDefinitions';
 
@@ -28,25 +30,6 @@ function fireWordConfetti() {
   confetti({ particleCount: 90, spread: 65, origin: { y: 0.4 },
     colors: ['#22c55e', '#86efac', '#ffd93d', '#c77dff', '#4d96ff'] });
 }
-
-const HEADER_STARS = Array.from({ length: 40 }, (_, i) => ({
-  id: i,
-  left:  (i * 37 + 13) % 100,
-  top:   (i * 53 + 7)  % 100,
-  size:  6 + (i % 4) * 3,
-  dim:   i % 3 === 0,
-}));
-
-const BRAND_LETTERS = [
-  { letter: 'S', color: '#ff6b6b' },
-  { letter: 'P', color: '#ffd93d' },
-  { letter: 'E', color: '#6bcb77' },
-  { letter: 'L', color: '#4d96ff' },
-  { letter: 'L', color: '#c77dff' },
-  { letter: 'I', color: '#ff9f43' },
-  { letter: 'F', color: '#ff6b6b' },
-  { letter: 'Y', color: '#ffd93d' },
-];
 
 const MAX_WRONG = { easy: 8, medium: 6, hard: 4 };
 
@@ -86,12 +69,6 @@ function HangmanSVG({ stage }) {
 
 function Hangman({ words, difficulty = 'medium', dyslexiaMode = false, childName = '', childCharacter = null, savedProgress = null, onSaveProgress, onComplete, onExit }) {
   const maxWrong = MAX_WRONG[difficulty] ?? 6;
-
-  // Hangman owns the entire screen — hide the global TopNav while mounted.
-  useEffect(() => {
-    document.body.classList.add('hangman-active');
-    return () => document.body.classList.remove('hangman-active');
-  }, []);
 
   // Validate saved progress belongs to the current word list — wipe it if the list changed.
   const savedIsValid = (() => {
@@ -198,26 +175,13 @@ function Hangman({ words, difficulty = 'medium', dyslexiaMode = false, childName
   };
 
   const topbar = (
-    <div className="hm-topbar">
-      <div className="hm-topbar-stars" aria-hidden="true">
-        {HEADER_STARS.map((s) => (
-          <span key={s.id} className={`hm-topbar-star${s.dim ? ' hm-topbar-star--dim' : ''}`}
-            style={{ left: `${s.left}%`, top: `${s.top}%`, fontSize: `${s.size}px` }}>★</span>
-        ))}
-      </div>
-      <button className="hm-back" onClick={onExit}>← Exit</button>
-      <div className="hm-topbar-center">
-        <span className="hm-topbar-brand" aria-label="Spellify">
-          {BRAND_LETTERS.map(({ letter, color }, i) => (
-            <span key={i} className="hm-brand-letter" style={{ color, animationDelay: `${i * 0.08}s` }}>{letter}</span>
-          ))}
-        </span>
-        <h2 className="hm-title">Hangman</h2>
-      </div>
-      <div className="hm-topbar-right">
-        <button className="hm-restart" onClick={restart} title="Restart game">↺ Restart</button>
-      </div>
-    </div>
+    <GameHeader
+      title="Hangman"
+      onExit={onExit}
+      rightSlot={
+        <button className="game-header-btn" onClick={restart} title="Restart game">↺ Restart</button>
+      }
+    />
   );
 
   // ── Complete screen ──
@@ -236,10 +200,9 @@ function Hangman({ words, difficulty = 'medium', dyslexiaMode = false, childName
     return (
       <div className="hm-wrap">
         {topbar}
-        <div className="hm-progress-strip">
-          <div className="hm-bar-fill" style={{ width: '100%' }} />
-          <span className="hm-count">{wordResults.filter(r => r.won).length} of {wordResults.length} words guessed</span>
-        </div>
+        <GameProgressStrip percent={100}>
+          {wordResults.filter(r => r.won).length} of {wordResults.length} words guessed
+        </GameProgressStrip>
         <div className="hm-complete">
           {childCharacter && <div className="hm-complete-emoji">{childCharacter.emoji}</div>}
           <h2>Game Over!</h2>
@@ -270,17 +233,9 @@ function Hangman({ words, difficulty = 'medium', dyslexiaMode = false, childName
   return (
     <div className="hm-wrap">
       {topbar}
-
-      {/* ── Progress strip ── */}
-      {(() => {
-        const progress = queue.length > 0 ? Math.round((wordResults.length / queue.length) * 100) : 0;
-        return (
-          <div className="hm-progress-strip">
-            <div className="hm-bar-fill" style={{ width: `${progress}%` }} />
-            <span className="hm-count">{wordResults.length} of {queue.length} words done</span>
-          </div>
-        );
-      })()}
+      <GameProgressStrip percent={queue.length > 0 ? (wordResults.length / queue.length) * 100 : 0}>
+        {wordResults.length} of {queue.length} words done
+      </GameProgressStrip>
 
       {/* ── Game area: hangman left, clue + word right ── */}
       <div className="hm-game-area">

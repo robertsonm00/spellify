@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './SpellingQuiz.css';
+import GameHeader from './GameHeader';
+import GameProgressStrip from './GameProgressStrip';
 import { getSupportTip } from '../data/spelling/dyslexiaPatterns';
 
 // Seconds to memorise the word per difficulty
@@ -73,7 +75,10 @@ function SpellingQuiz({ words, difficulty = 'medium', dyslexiaMode = false, chil
     
     return (
       <div className="quiz-wrap">
-        {onExit && <button className="quiz-back" onClick={onExit}>← Hub</button>}
+        <GameHeader title="Review" onExit={onExit} />
+        <GameProgressStrip percent={100}>
+          {results.length} of {queue.length} words done
+        </GameProgressStrip>
         <div className="quiz-complete">
           {childCharacter && <div className="quiz-complete-emoji">{childCharacter.emoji}</div>}
           <h2>Quiz complete!</h2>
@@ -111,9 +116,10 @@ function SpellingQuiz({ words, difficulty = 'medium', dyslexiaMode = false, chil
 
   return (
     <div className="quiz-wrap">
-      {onExit && <button className="quiz-back" onClick={onExit}>← Hub</button>}
-
-      <p className="quiz-progress">Word {index + 1} of {queue.length}</p>
+      <GameHeader title="Review" onExit={onExit} />
+      <GameProgressStrip percent={(index / queue.length) * 100}>
+        Word {index + 1} of {queue.length}
+      </GameProgressStrip>
 
       {phase === 'memorise' && (
         <div className="quiz-stage quiz-memorise">

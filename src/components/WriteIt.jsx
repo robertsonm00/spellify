@@ -1,29 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import confetti from 'canvas-confetti';
+import GameHeader from './GameHeader';
 import './WriteIt.css';
 import './WordListHub.css';
 import { speakWord as speak } from '../utils/speech';
 import DEFINITIONS from '../data/definitions';
 import { isSafeDefinition } from '../utils/definitionSafety';
-
-const HEADER_STARS = Array.from({ length: 40 }, (_, i) => ({
-  id: i,
-  left:  (i * 37 + 13) % 100,
-  top:   (i * 53 + 7)  % 100,
-  size:  6 + (i % 4) * 3,
-  dim:   i % 3 === 0,
-}));
-
-const BRAND_LETTERS = [
-  { letter: 'S', color: '#ff6b6b' },
-  { letter: 'P', color: '#ffd93d' },
-  { letter: 'E', color: '#6bcb77' },
-  { letter: 'L', color: '#4d96ff' },
-  { letter: 'L', color: '#c77dff' },
-  { letter: 'I', color: '#ff9f43' },
-  { letter: 'F', color: '#ff6b6b' },
-  { letter: 'Y', color: '#ffd93d' },
-];
 
 
 // ── Word info cache + fetch ───────────────────────────────────────────────────
@@ -195,7 +177,6 @@ function WriteIt({
   onSaveProgress,
   onComplete,
   onExit,
-  hideTopbar = false,
 }) {
   const [rows, setRows] = useState(() => savedProgress?.rows ?? makeInitialState(words));
   const [wordsHidden,     setWordsHidden]     = useState(false);
@@ -423,35 +404,21 @@ function WriteIt({
     <div className={`wi-wrap${dyslexiaMode ? ' wi-wrap--es' : ''}`}>
 
       {/* Screen header */}
-      {!hideTopbar && <div className="wi-topbar wi-no-print">
-        <div className="wi-topbar-stars" aria-hidden="true">
-          {HEADER_STARS.map((s) => (
-            <span
-              key={s.id}
-              className={`wi-topbar-star${s.dim ? ' wi-topbar-star--dim' : ''}`}
-              style={{ left: `${s.left}%`, top: `${s.top}%`, fontSize: `${s.size}px` }}
-            >★</span>
-          ))}
-        </div>
-        <button className="wi-back" onClick={onExit}>← Exit</button>
-        <div className="wi-topbar-center">
-          <span className="wi-topbar-brand" aria-label="Spellify">
-            {BRAND_LETTERS.map(({ letter, color }, i) => (
-              <span key={i} className="wi-brand-letter" style={{ color, animationDelay: `${i * 0.08}s` }}>
-                {letter}
-              </span>
-            ))}
-          </span>
-          <h2 className="wi-title">Write It</h2>
-        </div>
-        <div className="wi-topbar-actions">
-          <button className="wi-restart-btn" onClick={handleRestartClick} title="Restart">↺ Restart</button>
-          <button className="wi-print-btn" onClick={() => window.print()} title="Print as worksheet">🖨 Print</button>
-          {baseAllDone && (
-            <button className="wi-done-btn" onClick={handleComplete}>✓ Done</button>
-          )}
-        </div>
-      </div>}
+      <div className="wi-no-print">
+        <GameHeader
+          title="Write It"
+          onExit={onExit}
+          rightSlot={
+            <>
+              <button className="game-header-btn" onClick={handleRestartClick} title="Restart">↺ Restart</button>
+              <button className="game-header-btn" onClick={() => window.print()} title="Print as worksheet">🖨 Print</button>
+              {baseAllDone && (
+                <button className="game-header-btn" onClick={handleComplete}>✓ Done</button>
+              )}
+            </>
+          }
+        />
+      </div>
 
       {/* Print-only header */}
       <div className="wi-print-header">

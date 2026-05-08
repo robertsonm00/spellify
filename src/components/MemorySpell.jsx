@@ -2,28 +2,10 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import confetti from 'canvas-confetti';
 import { chunkWord } from '../utils/wordChunking';
 import { letterBoxSize } from '../utils/letterBoxSize';
+import GameHeader from './GameHeader';
+import GameProgressStrip from './GameProgressStrip';
 import './MemorySpell.css';
 import { speakWord as speak } from '../utils/speech';
-
-const HEADER_STARS = Array.from({ length: 40 }, (_, i) => ({
-  id: i,
-  left:  (i * 37 + 13) % 100,
-  top:   (i * 53 + 7)  % 100,
-  delay: ((i * 0.31) % 3).toFixed(2),
-  size:  6 + (i % 4) * 3,
-  dim:   i % 3 === 0,
-}));
-
-const BRAND_LETTERS = [
-  { letter: 'S', color: '#ff6b6b' },
-  { letter: 'P', color: '#ffd93d' },
-  { letter: 'E', color: '#6bcb77' },
-  { letter: 'L', color: '#4d96ff' },
-  { letter: 'L', color: '#c77dff' },
-  { letter: 'I', color: '#ff9f43' },
-  { letter: 'F', color: '#ff6b6b' },
-  { letter: 'Y', color: '#ffd93d' },
-];
 
 // ── Success fanfare ───────────────────────────────────────────────────────────
 
@@ -148,7 +130,6 @@ export default function MemorySpell({
   onComplete,
   onExit,
   dyslexiaMode = false,
-  hideTopbar = false,
 }) {
   // Restore from a mid-session snapshot if one exists.
   const initWordIdx = savedProgress?.wordIdx ?? 0;
@@ -261,45 +242,12 @@ export default function MemorySpell({
 
   const wrapClass = `ms-wrap${dyslexiaMode ? ' ms-wrap--es' : ''}`;
 
-  // Topbar is shared across all phases.
-  const topbar = (
-    <div className="ms-topbar">
-      <div className="ms-topbar-stars" aria-hidden="true">
-        {HEADER_STARS.map((s) => (
-          <span
-            key={s.id}
-            className={`ms-topbar-star${s.dim ? ' ms-topbar-star--dim' : ''}`}
-            style={{ left: `${s.left}%`, top: `${s.top}%`, fontSize: `${s.size}px` }}
-          >★</span>
-        ))}
-      </div>
-      <button className="ms-back" onClick={onExit}>← Exit</button>
-      <div className="ms-topbar-center">
-        <span className="ms-topbar-brand" aria-label="Spellify">
-          {BRAND_LETTERS.map(({ letter, color }, i) => (
-            <span key={i} className="ms-brand-letter" style={{ color, animationDelay: `${i * 0.08}s` }}>
-              {letter}
-            </span>
-          ))}
-        </span>
-        <h2 className="ms-title">Memory Spell</h2>
-      </div>
-      {/* Spacer mirrors the exit button width to keep center truly centred */}
-      <div className="ms-topbar-spacer" aria-hidden="true" />
-    </div>
-  );
+  const topbar = <GameHeader title="Memory Spell" onExit={onExit} />;
 
-  // Progress bar fills as results accumulate; 100% when all words are done.
   const progressBar = (
-    <>
-      <div className="ms-progress-bar-track">
-        <div
-          className="ms-progress-bar-fill"
-          style={{ width: `${(results.length / words.length) * 100}%` }}
-        />
-      </div>
-      <p className="ms-progress-label">Word {Math.min(wordIdx + 1, words.length)} of {words.length}</p>
-    </>
+    <GameProgressStrip percent={(results.length / words.length) * 100}>
+      Word {Math.min(wordIdx + 1, words.length)} of {words.length}
+    </GameProgressStrip>
   );
 
   // ── Results screen ─────────────────────────────────────────────────────────
@@ -312,7 +260,7 @@ export default function MemorySpell({
 
     return (
       <div className={wrapClass}>
-        {!hideTopbar && topbar}
+        {topbar}
         {progressBar}
         <div className="ms-results">
           <div className="ms-results-score">

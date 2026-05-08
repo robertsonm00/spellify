@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import confetti from 'canvas-confetti';
 import { generateWordSearch, checkWord } from '../utils/wordSearchEngine';
+import GameHeader from './GameHeader';
+import GameProgressStrip from './GameProgressStrip';
 import './WordSearch.css';
 
 // ── Word-found celebration (same as Crossword / Hangman) ─────────────────────
@@ -37,25 +39,6 @@ function fireWordConfetti() {
 // Fixed 10×10 max
 const GRID_SIZE = 10;
 
-const HEADER_STARS = Array.from({ length: 40 }, (_, i) => ({
-  id: i,
-  left:  (i * 37 + 13) % 100,
-  top:   (i * 53 + 7)  % 100,
-  size:  6 + (i % 4) * 3,
-  dim:   i % 3 === 0,
-}));
-
-const BRAND_LETTERS = [
-  { letter: 'S', color: '#ff6b6b' },
-  { letter: 'P', color: '#ffd93d' },
-  { letter: 'E', color: '#6bcb77' },
-  { letter: 'L', color: '#4d96ff' },
-  { letter: 'L', color: '#c77dff' },
-  { letter: 'I', color: '#ff9f43' },
-  { letter: 'F', color: '#ff6b6b' },
-  { letter: 'Y', color: '#ffd93d' },
-];
-
 function getCellsBetween(start, end) {
   const rowDiff = end.row - start.row;
   const colDiff = end.col - start.col;
@@ -71,7 +54,7 @@ function getCellsBetween(start, end) {
   }));
 }
 
-export default function WordSearch({ words, savedProgress = null, onSaveProgress, onComplete, onExit, dyslexiaMode = false, hideTopbar = false }) {
+export default function WordSearch({ words, savedProgress = null, onSaveProgress, onComplete, onExit, dyslexiaMode = false }) {
   const [gameState,      setGameState]      = useState(() => savedProgress?.gameState ?? generateWordSearch(words, GRID_SIZE, { dyslexiaMode }));
   const [selectionAnchor, setSelectionAnchor] = useState(null); // click-mode anchor
   const [selectionCells,  setSelectionCells]  = useState([]);
@@ -244,36 +227,17 @@ export default function WordSearch({ words, savedProgress = null, onSaveProgress
     <div className="ws-wrap" onContextMenu={cancelSelection}>
 
       {/* ── Header ── */}
-      {!hideTopbar && (
-      <div className="ws-topbar">
-        <div className="ws-topbar-stars" aria-hidden="true">
-          {HEADER_STARS.map((s) => (
-            <span key={s.id} className={`ws-topbar-star${s.dim ? ' ws-topbar-star--dim' : ''}`}
-              style={{ left: `${s.left}%`, top: `${s.top}%`, fontSize: `${s.size}px` }}>★</span>
-          ))}
-        </div>
-        <button className="ws-back" onClick={onExit}>← Exit</button>
-        <div className="ws-topbar-center">
-          <span className="ws-topbar-brand" aria-label="Spellify">
-            {BRAND_LETTERS.map(({ letter, color }, i) => (
-              <span key={i} className="ws-brand-letter" style={{ color, animationDelay: `${i * 0.08}s` }}>{letter}</span>
-            ))}
-          </span>
-          <h2 className="ws-title">Word Search</h2>
-        </div>
-        <div className="ws-topbar-right">
-          <button className="ws-restart-btn" onClick={() => { if (foundWords.length > 0) setConfirmRestart(true); else resetProgress(); }} title="Restart game">↺ Restart</button>
-        </div>
-      </div>
-      )}
+      <GameHeader
+        title="Word Search"
+        onExit={onExit}
+        rightSlot={
+          <button className="game-header-btn" onClick={() => { if (foundWords.length > 0) setConfirmRestart(true); else resetProgress(); }} title="Restart game">↺ Restart</button>
+        }
+      />
 
-      {/* ── Progress strip — full width, touches header border ── */}
-      <div className="ws-progress-strip">
-        <div className="ws-bar-fill" style={{ width: `${progress}%` }} />
-        <span className="ws-count">
-          {foundWords.length} of {placedWords.length} words found
-        </span>
-      </div>
+      <GameProgressStrip percent={progress}>
+        {foundWords.length} of {placedWords.length} words found
+      </GameProgressStrip>
 
       {/* ── Body: grid + word list ── */}
       <div className="ws-body">

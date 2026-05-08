@@ -12,7 +12,7 @@
 //   phase         'warmup' | 'explore' | 'consolidate' — drives section order
 //   component     the React component to render
 //   buildProps    (session) → extra props to pass to the component
-//                 (the canonical {words, dyslexiaMode, hideTopbar,
+//                 (the canonical {words, dyslexiaMode,
 //                 savedProgress, onSaveProgress, onComplete, onExit}
 //                 shape is added by App.jsx automatically — only list
 //                 game-specific extras here, e.g. childName, userAge)
