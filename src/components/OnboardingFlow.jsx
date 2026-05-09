@@ -107,7 +107,8 @@ function NameInput({ onSubmit }) {
     <div className="ob-step ob-name">
       <div className="ob-step-header">
         <div className="ob-step-icon">👋</div>
-        <h2 className="ob-step-title">What's your name?</h2>
+        <h2 className="ob-step-title">Who's playing?</h2>
+        <p className="ob-step-sub">What should we call you?</p>
       </div>
 
       <form onSubmit={handleSubmit} className="ob-name-form">

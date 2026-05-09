@@ -33,7 +33,7 @@ export const ACTIVITIES = [
     id: 'wordsearch', name: 'Word Search', icon: '🔍',
     timeEstimate: '5 mins', color: '#4d96ff', dark: '#1a5cbf',
     phase: 'warmup', component: WordSearch,
-    buildProps: () => ({}),
+    buildProps: (s) => ({ year: s.year ?? null }),
   },
   {
     id: 'memoryspell', name: 'Memory Spell', icon: '🧠',

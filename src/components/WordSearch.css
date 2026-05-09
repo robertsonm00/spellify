@@ -277,6 +277,7 @@
 /* ── Word list sidebar ── */
 
 .ws-word-list {
+  order: -1;          /* render before the grid → list sits on the left */
   list-style: none;
   padding: 0;
   margin: 0;
@@ -291,7 +292,7 @@
 }
 
 .ws-word {
-  font-size: 0.82rem;
+  font-size: 1.2rem;
   font-weight: 800;
   color: #1a1a2e;
   text-transform: capitalize;

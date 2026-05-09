@@ -3,6 +3,7 @@ import confetti from 'canvas-confetti';
 import './Hangman.css';
 import GameHeader from './GameHeader';
 import GameProgressStrip from './GameProgressStrip';
+import RestartButton from './RestartButton';
 import { getSupportTip } from '../data/spelling/dyslexiaPatterns';
 import { resolveDefinition } from '../utils/wordDefinitions';
 
@@ -150,9 +151,11 @@ function Hangman({ words, difficulty = 'medium', dyslexiaMode = false, childName
     return () => window.removeEventListener('keydown', onKey);
   }, [handleGuess]);
 
-  // Persist mid-game state after the first guess so hub-exit → resume works.
+  // Persist on every state change — including the initial mount — so that
+  // exiting and re-entering keeps the same shuffled queue and current word.
+  // Without this the first save was deferred until a guess landed, meaning
+  // a quick exit-and-return reshuffled the questions.
   useEffect(() => {
-    if (wordResults.length === 0 && guessed.size === 0) return;
     onSaveProgress?.({ queue, wordIndex, wordResults, guessed: [...guessed] });
   }, [wordResults, wordIndex, guessed]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -174,12 +177,14 @@ function Hangman({ words, difficulty = 'medium', dyslexiaMode = false, childName
     setPhase('playing');
   };
 
+  const restartHasProgress = wordIndex > 0 || guessed.size > 0 || wordResults.length > 0;
+
   const topbar = (
     <GameHeader
       title="Hangman"
       onExit={onExit}
       rightSlot={
-        <button className="game-header-btn" onClick={restart} title="Restart game">↺ Restart</button>
+        <RestartButton hasProgress={restartHasProgress} onRestart={restart} />
       }
     />
   );

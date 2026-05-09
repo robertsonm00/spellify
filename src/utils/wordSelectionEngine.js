@@ -21,6 +21,7 @@
  */
 
 import { YEAR_DATA, YEAR1_CEW, YEAR2_CEW, YEAR3_4, YEAR5_6 } from '../data/spelling/index.js';
+import { getMorphology } from '../data/morphology';
 
 // ── Y1 / Y2 phonics rule buckets ───────────────────────────────────────────
 // Drawn from the NC 2014 English Appendix 1 example words for each rule.
@@ -251,6 +252,37 @@ function getRulePool(yearGroup, rule) {
  * }} opts
  * @returns {{ words: string[], wordObjects: WordObject[] }}
  */
+// Bucket key for "this word is essentially the same as another already picked".
+// Uses the morphological root when available (so equip/equipment/equipped all
+// resolve to "equip"), falling back to the first 5 chars for words without a
+// detected breakdown (catches close cousins like teach/teacher even if the
+// morphology table didn't fire).
+function stemKey(word) {
+  const w    = String(word).toLowerCase();
+  const root = getMorphology(w)?.root?.toLowerCase() ?? w;
+  return root.slice(0, 5);
+}
+
+// Take up to `count` words from `candidates`, skipping any whose stem already
+// appeared. If the pool runs out of unique stems before we reach `count`,
+// top up with remaining duplicates so we always return a full list.
+function dedupeByStem(candidates, count) {
+  const picked  = [];
+  const skipped = [];
+  const seen    = new Set();
+  for (const word of candidates) {
+    if (picked.length >= count) break;
+    const key = stemKey(word);
+    if (seen.has(key)) { skipped.push(word); continue; }
+    seen.add(key);
+    picked.push(word);
+  }
+  if (picked.length < count) {
+    picked.push(...skipped.slice(0, count - picked.length));
+  }
+  return picked;
+}
+
 export function selectWords({ yearGroup, count = 10, dyslexiaMode = false, groupBy = 'year', rule = null }) {
   let pool;
   if (groupBy === 'rule' && rule) {
@@ -272,7 +304,7 @@ export function selectWords({ yearGroup, count = 10, dyslexiaMode = false, group
     candidates = [...pool].sort(() => Math.random() - 0.5);
   }
 
-  const words = candidates.slice(0, count);
+  const words = dedupeByStem(candidates, count);
 
   const wordObjects = words.map((word) => ({
     word,

@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import confetti from 'canvas-confetti';
 import GameHeader from './GameHeader';
+import GameProgressStrip from './GameProgressStrip';
+import RestartButton from './RestartButton';
 import './WriteIt.css';
 import './WordListHub.css';
 import { speakWord as speak } from '../utils/speech';
@@ -180,7 +182,6 @@ function WriteIt({
 }) {
   const [rows, setRows] = useState(() => savedProgress?.rows ?? makeInitialState(words));
   const [wordsHidden,     setWordsHidden]     = useState(false);
-  const [confirmRestart,  setConfirmRestart]  = useState(false);
   const [activeWord,      setActiveWord]      = useState(null);
   const [justCompleted, setJustCompleted] = useState(false);
   const [celebrate, setCelebrate] = useState(null); // { emoji, text, hiding }
@@ -311,11 +312,7 @@ function WriteIt({
     setConfettiFired(false);
   };
 
-  const handleRestartClick = () => {
-    const hasProgress = rows.some(r => r.practices.some(p => p.done));
-    if (hasProgress) setConfirmRestart(true);
-    else doRestart();
-  };
+  const hasProgress = rows.some(r => r.practices.some(p => p.done));
 
   const updatePractice = useCallback((wordIdx, practiceIdx, patch) => {
     setRows(prev => prev.map((r, i) => {
@@ -410,7 +407,7 @@ function WriteIt({
           onExit={onExit}
           rightSlot={
             <>
-              <button className="game-header-btn" onClick={handleRestartClick} title="Restart">↺ Restart</button>
+              <RestartButton hasProgress={hasProgress} onRestart={doRestart} />
               <button className="game-header-btn" onClick={() => window.print()} title="Print as worksheet">🖨 Print</button>
               {baseAllDone && (
                 <button className="game-header-btn" onClick={handleComplete}>✓ Done</button>
@@ -418,6 +415,9 @@ function WriteIt({
             </>
           }
         />
+        <GameProgressStrip percent={(Math.min(currentRound, NUM_BASE) / NUM_BASE) * 100}>
+          {Math.min(currentRound, NUM_BASE)} of {NUM_BASE} rounds done
+        </GameProgressStrip>
       </div>
 
       {/* Print-only header */}
@@ -581,21 +581,6 @@ function WriteIt({
           <button className="wi-add-practice-btn" onClick={addPractice}>
             + Add Practice
           </button>
-        </div>
-      )}
-
-      {/* Restart confirmation */}
-      {confirmRestart && (
-        <div className="exit-overlay" onClick={() => setConfirmRestart(false)}>
-          <div className="exit-modal" onClick={e => e.stopPropagation()}>
-            <div className="exit-modal-icon">↺</div>
-            <h2 className="exit-modal-title">Restart?</h2>
-            <p className="exit-modal-body">You'll lose your progress so far.</p>
-            <div className="exit-modal-btns">
-              <button className="exit-btn exit-btn--cancel" onClick={() => setConfirmRestart(false)}>Keep going</button>
-              <button className="exit-btn exit-btn--confirm" onClick={() => { setConfirmRestart(false); doRestart(); }}>Yes, restart</button>
-            </div>
-          </div>
         </div>
       )}
 

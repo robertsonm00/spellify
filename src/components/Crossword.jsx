@@ -4,6 +4,8 @@ import { generateCrossword, wordCells } from '../utils/crosswordEngine';
 import DEFINITIONS from '../data/definitions';
 import { isSafeDefinition } from '../utils/definitionSafety';
 import GameHeader from './GameHeader';
+import GameProgressStrip from './GameProgressStrip';
+import RestartButton from './RestartButton';
 import './Crossword.css';
 import { speakWord } from '../utils/speech';
 
@@ -419,10 +421,28 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
     setRevealedWords(prev => new Set(prev).add(wordId));
   };
 
+  // Reset all puzzle state — used by both the "Try Again" button on the
+  // completion screen and the shared RestartButton in the header.
+  const resetPuzzle = () => {
+    onSaveProgress?.(null);
+    setFilled(new Map());
+    setHints(new Map());
+    setHintsUsed(0);
+    setSelectedCell(null);
+    setEndTime(null);
+    setRevealedWords(new Set());
+  };
+
+  const restartHasProgress = filled.size > 0 || hintsUsed > 0;
+
   // ── Loading & no-layout states ────────────────────────────────────────────
 
   const topbar = (rightSlot = null) => (
-    <GameHeader title="Crossword" onExit={onExit} rightSlot={rightSlot} />
+    <GameHeader
+      title="Crossword"
+      onExit={onExit}
+      rightSlot={rightSlot ?? <RestartButton hasProgress={restartHasProgress} onRestart={resetPuzzle} />}
+    />
   );
 
   if (validation === null) {
@@ -526,6 +546,10 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
     >
       {/* ── Header ── */}
       {topbar(null)}
+
+      <GameProgressStrip percent={(completedWords / layout.placedWords.length) * 100}>
+        {completedWords} of {layout.placedWords.length} words solved
+      </GameProgressStrip>
 
       {/* ── Body ── */}
       <div className="cw-body">

@@ -4,6 +4,7 @@ import { generateWordSearch, checkWord } from '../utils/wordSearchEngine';
 import { speakWord } from '../utils/speech';
 import GameHeader from './GameHeader';
 import GameProgressStrip from './GameProgressStrip';
+import RestartButton from './RestartButton';
 import './WordSearch.css';
 
 // ── Word-found celebration (same as Crossword / Hangman) ─────────────────────
@@ -38,7 +39,8 @@ function fireWordConfetti() {
 }
 
 // Fixed 10×10 max
-const GRID_SIZE = 10;
+// Year 5+ get a roomier 16x16 grid; younger ages stay on the cosier 10x10.
+const gridSizeForYear = (year) => (year != null && year >= 5 ? 16 : 10);
 
 function getCellsBetween(start, end) {
   const rowDiff = end.row - start.row;
@@ -55,14 +57,14 @@ function getCellsBetween(start, end) {
   }));
 }
 
-export default function WordSearch({ words, savedProgress = null, onSaveProgress, onComplete, onExit, dyslexiaMode = false }) {
+export default function WordSearch({ words, year = null, savedProgress = null, onSaveProgress, onComplete, onExit, dyslexiaMode = false }) {
+  const GRID_SIZE = gridSizeForYear(year);
   const [gameState,      setGameState]      = useState(() => savedProgress?.gameState ?? generateWordSearch(words, GRID_SIZE, { dyslexiaMode }));
   const [selectionAnchor, setSelectionAnchor] = useState(null); // click-mode anchor
   const [selectionCells,  setSelectionCells]  = useState([]);
   const [foundWords,      setFoundWords]      = useState(savedProgress?.foundWords ?? []);
   const [foundCells,      setFoundCells]      = useState(savedProgress?.foundCells ?? []);
   const [toast,           setToast]           = useState(null);
-  const [confirmRestart,  setConfirmRestart]  = useState(false);
 
   // Drag state in refs to avoid stale closures inside event handlers
   const isDraggingRef = useRef(false);
@@ -235,7 +237,7 @@ export default function WordSearch({ words, savedProgress = null, onSaveProgress
         title="Word Search"
         onExit={onExit}
         rightSlot={
-          <button className="game-header-btn" onClick={() => { if (foundWords.length > 0) setConfirmRestart(true); else resetProgress(); }} title="Restart game">↺ Restart</button>
+          <RestartButton hasProgress={foundWords.length > 0} onRestart={resetProgress} />
         }
       />
 
@@ -290,19 +292,6 @@ export default function WordSearch({ words, savedProgress = null, onSaveProgress
 
       </div>
 
-      {confirmRestart && (
-        <div className="exit-overlay" onClick={() => setConfirmRestart(false)}>
-          <div className="exit-modal" onClick={e => e.stopPropagation()}>
-            <div className="exit-modal-icon">↺</div>
-            <h2 className="exit-modal-title">Restart?</h2>
-            <p className="exit-modal-body">You'll lose your progress so far.</p>
-            <div className="exit-modal-btns">
-              <button className="exit-btn exit-btn--cancel" onClick={() => setConfirmRestart(false)}>Keep going</button>
-              <button className="exit-btn exit-btn--confirm" onClick={() => { setConfirmRestart(false); resetProgress(); }}>Yes, restart</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

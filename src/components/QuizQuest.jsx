@@ -4,6 +4,8 @@ import { buildQuiz } from '../utils/quizQuestionBuilder';
 import DEFINITIONS from '../data/definitions.js';
 import { letterBoxSize } from '../utils/letterBoxSize';
 import GameHeader from './GameHeader';
+import GameProgressStrip from './GameProgressStrip';
+import RestartButton from './RestartButton';
 import './QuizQuest.css';
 import { speakWord as speak } from '../utils/speech';
 
@@ -365,7 +367,6 @@ export default function QuizQuest({
   const [qIdx,       setQIdx]       = useState(savedProgress?.qIdx ?? 0);
   const [results,    setResults]    = useState(savedProgress?.results ?? []);
   const [lastResult,      setLastResult]      = useState(null);
-  const [confirmRestart,  setConfirmRestart]  = useState(false);
 
   const question = questions[qIdx] ?? null;
 
@@ -408,11 +409,7 @@ export default function QuizQuest({
     setPhase('start');
   };
 
-  const handleRestartClick = () => {
-    const hasProgress = qIdx > 0 || results.length > 0;
-    if (hasProgress && phase !== 'results') setConfirmRestart(true);
-    else handlePlayAgain();
-  };
+  const restartHasProgress = (qIdx > 0 || results.length > 0) && phase !== 'results';
 
   const handleComplete = () => {
     onSaveProgress?.(null);
@@ -432,13 +429,20 @@ export default function QuizQuest({
   const wrapClass = `qq-wrap${dyslexiaMode ? ' qq-wrap--es' : ''}`;
 
   const topbar = (
-    <GameHeader
-      title="Quiz Quest"
-      onExit={onExit}
-      rightSlot={
-        <button className="game-header-btn" onClick={handleRestartClick} title="Restart quiz">↺ Restart</button>
-      }
-    />
+    <>
+      <GameHeader
+        title="Quiz Quest"
+        onExit={onExit}
+        rightSlot={
+          <RestartButton hasProgress={restartHasProgress} onRestart={handlePlayAgain} label="Restart quiz" />
+        }
+      />
+      {questions.length > 0 && (
+        <GameProgressStrip percent={(results.length / questions.length) * 100}>
+          {results.length} of {questions.length} questions answered
+        </GameProgressStrip>
+      )}
+    </>
   );
 
   // Empty / no-questions state — happens if words array is empty or every
@@ -581,19 +585,6 @@ export default function QuizQuest({
 
       </div>
 
-      {confirmRestart && (
-        <div className="exit-overlay" onClick={() => setConfirmRestart(false)}>
-          <div className="exit-modal" onClick={e => e.stopPropagation()}>
-            <div className="exit-modal-icon">↺</div>
-            <h2 className="exit-modal-title">Restart?</h2>
-            <p className="exit-modal-body">You'll lose your progress so far.</p>
-            <div className="exit-modal-btns">
-              <button className="exit-btn exit-btn--cancel" onClick={() => setConfirmRestart(false)}>Keep going</button>
-              <button className="exit-btn exit-btn--confirm" onClick={() => { setConfirmRestart(false); handlePlayAgain(); }}>Yes, restart</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
