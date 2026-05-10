@@ -27,9 +27,81 @@ function playWordChime() {
   } catch {}
 }
 
+// Ascending magic shimmer — four sine overtones in a major-pentatonic run.
+function playCorrectChime() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [[880, 0], [1108.73, 0.07], [1318.51, 0.14], [1760, 0.21]].forEach(([freq, delay]) => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      const t = ctx.currentTime + delay;
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.13, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.38);
+      osc.start(t);
+      osc.stop(t + 0.4);
+    });
+  } catch {}
+}
+
+// Soft descending fizzle — triangle sweep, low volume, not a buzzer.
+function playFizzleSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(420, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(160, ctx.currentTime + 0.2);
+    gain.gain.setValueAtTime(0.07, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.24);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.26);
+  } catch {}
+}
+
 function fireWordConfetti() {
   confetti({ particleCount: 90, spread: 65, origin: { y: 0.4 },
     colors: ['#22c55e', '#86efac', '#ffd93d', '#c77dff', '#4d96ff'] });
+}
+
+// Wizard sparkles — star-shaped, purple/gold palette, from the word-box area.
+function fireCorrectSparkles() {
+  confetti({
+    particleCount: 24,
+    angle: 90,
+    spread: 55,
+    origin: { x: 0.62, y: 0.44 },
+    colors: ['#c77dff', '#ffffff', '#ffd93d', '#a78bfa', '#f9a8d4', '#7f77dd'],
+    ticks: 65,
+    gravity: 0.72,
+    scalar: 0.88,
+    shapes: ['star'],
+    startVelocity: 24,
+  });
+}
+
+// Wrong fizzle — tiny soft circles drifting up from the keyboard, barely there.
+function fireWrongFizzle() {
+  confetti({
+    particleCount: 10,
+    angle: 90,
+    spread: 38,
+    origin: { x: 0.5, y: 0.84 },
+    colors: ['#d8b4fe', '#c4b5fd', '#a78bfa', '#ede9fe'],
+    ticks: 26,
+    gravity: 1.5,
+    scalar: 0.5,
+    shapes: ['circle'],
+    startVelocity: 9,
+    drift: 0,
+  });
 }
 
 const MAX_WRONG = { easy: 8, medium: 6, hard: 4 };
@@ -119,8 +191,10 @@ function SpellDuel({
   const [wordResults,    setWordResults]    = useState(savedIsValid ? (savedProgress.wordResults ?? []) : []);
   const [phase,          setPhase]          = useState('playing'); // playing | word-result | complete
   const [clue,           setClue]           = useState(null);
-  const [lastWrongLetter, setLastWrongLetter] = useState(null);
-  const shakeTimerRef = useRef(null);
+  const [lastWrongLetter,   setLastWrongLetter]   = useState(null);
+  const [lastCorrectLetter, setLastCorrectLetter] = useState(null);
+  const shakeTimerRef   = useRef(null);
+  const sparkleTimerRef = useRef(null);
 
   useEffect(() => {
     if (savedProgress != null && !savedIsValid) onSaveProgress?.(null);
@@ -172,9 +246,17 @@ function SpellDuel({
       const isWrong = !letters.has(letter);
       setGuessed((prev) => new Set([...prev, letter]));
       if (isWrong) {
+        playFizzleSound();
+        fireWrongFizzle();
         setLastWrongLetter(letter);
         clearTimeout(shakeTimerRef.current);
-        shakeTimerRef.current = setTimeout(() => setLastWrongLetter(null), 260);
+        shakeTimerRef.current = setTimeout(() => setLastWrongLetter(null), 310);
+      } else {
+        playCorrectChime();
+        fireCorrectSparkles();
+        setLastCorrectLetter(letter);
+        clearTimeout(sparkleTimerRef.current);
+        sparkleTimerRef.current = setTimeout(() => setLastCorrectLetter(null), 480);
       }
     },
     [phase, guessed, queue, wordIndex]
@@ -298,7 +380,14 @@ function SpellDuel({
 
           <div className="hm-blanks">
             {blanks.map((ch, i) => (
-              <div key={i} className={`hm-letter-box${ch ? ' revealed' : ''}`}>
+              <div
+                key={i}
+                className={[
+                  'hm-letter-box',
+                  ch ? 'revealed' : '',
+                  ch && ch === lastCorrectLetter ? 'sparkle' : '',
+                ].filter(Boolean).join(' ')}
+              >
                 {ch ?? ''}
               </div>
             ))}

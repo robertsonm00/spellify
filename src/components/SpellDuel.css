@@ -111,18 +111,32 @@
   min-height: 1.1em;
 }
 
-/* ── Wrong-guess key shake ─────────────────────────────────────────────────── */
+/* ── Wrong-guess: shake + purple fizzle glow in one animation ──────────────── */
 
-@keyframes sd-shake {
-  0%, 100% { transform: translateX(0); }
-  20%       { transform: translateX(-4px); }
-  40%       { transform: translateX(4px); }
-  60%       { transform: translateX(-4px); }
-  80%       { transform: translateX(4px); }
+@keyframes sd-wrong-key {
+  0%   { transform: translateX(0);   box-shadow: 0 4px 0 rgba(167,139,250,0.4), 0 0  0px rgba(192,132,252,0);    }
+  18%  { transform: translateX(-4px); box-shadow: 0 3px 0 rgba(167,139,250,0.3), 0 0 18px rgba(192,132,252,0.65); }
+  36%  { transform: translateX( 4px); box-shadow: 0 2px 0 rgba(167,139,250,0.2), 0 0 14px rgba(192,132,252,0.45); }
+  54%  { transform: translateX(-3px); box-shadow: 0 1px 0 rgba(167,139,250,0.1), 0 0  8px rgba(192,132,252,0.25); }
+  72%  { transform: translateX( 2px); box-shadow: 0 0   0 transparent,           0 0  4px rgba(192,132,252,0.12); }
+  100% { transform: translateX(0);   box-shadow: none; }
 }
 
 .hm-key.shake {
-  animation: sd-shake 220ms ease-in-out;
+  animation: sd-wrong-key 300ms ease-in-out;
+}
+
+/* ── Correct letter box: sparkle reveal ─────────────────────────────────────── */
+
+@keyframes sd-letter-sparkle {
+  0%   { transform: scale(1);    box-shadow: 0 2px 6px rgba(0,0,0,0.07); }
+  28%  { transform: scale(1.18); box-shadow: 0 0 20px rgba(167,139,250,0.7), 0 0 8px rgba(253,211,77,0.5); }
+  60%  { transform: scale(1.06); box-shadow: 0 0 10px rgba(167,139,250,0.3); }
+  100% { transform: scale(1);    box-shadow: 0 2px 6px rgba(0,0,0,0.07); }
+}
+
+.hm-letter-box.sparkle {
+  animation: sd-letter-sparkle 0.48s ease-out;
 }
 
 /* ── Clue ─────────────────────────────────────────────────────────────────── */
