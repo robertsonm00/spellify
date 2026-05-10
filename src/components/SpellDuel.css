@@ -1,0 +1,347 @@
+.hm-wrap {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: linear-gradient(160deg, #f0f4ff 0%, #fdf4ff 100%);
+  font-family: 'Nunito', sans-serif;
+}
+
+/* ── Game area: energy bar left | clue + word right ── */
+
+.hm-game-area {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 560px);
+  gap: 2.5rem;
+  padding: 1rem 3rem;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+}
+
+.hm-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 4px 24px rgba(124, 58, 237, 0.1), 0 1px 4px rgba(0,0,0,0.06);
+  padding: 1.25rem 1rem 1.25rem;
+}
+
+.hm-right {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+/* ── Spell Energy Bar ─────────────────────────────────────────────────────── */
+
+.sd-energy-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+}
+
+.sd-energy-icon {
+  font-size: 2.2rem;
+  line-height: 1;
+}
+
+.sd-energy-label {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.58rem;
+  color: #6d28d9;
+  margin: 0;
+  letter-spacing: 0.05em;
+  text-align: center;
+}
+
+.sd-energy-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 6px 0;
+}
+
+.sd-energy-segment {
+  width: 88px;
+  height: 26px;
+  border-radius: 13px;
+  background: #d1cfe8;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+.sd-energy-segment--lit {
+  background: linear-gradient(90deg, #7f77dd 0%, #a78bfa 100%);
+  box-shadow: 0 0 10px rgba(127, 119, 221, 0.55), 0 0 4px rgba(167, 139, 250, 0.35);
+}
+
+.sd-energy-segment--gold {
+  background: linear-gradient(90deg, #ef9f27 0%, #fcd34d 100%);
+  box-shadow: 0 0 14px rgba(239, 159, 39, 0.7), 0 0 5px rgba(252, 211, 77, 0.5);
+  animation: sd-gold-pulse 0.55s ease-in-out infinite alternate;
+}
+
+@keyframes sd-gold-pulse {
+  from { box-shadow: 0 0 8px rgba(239, 159, 39, 0.45); }
+  to   { box-shadow: 0 0 22px rgba(239, 159, 39, 0.9), 0 0 8px rgba(252, 211, 77, 0.7); }
+}
+
+.sd-charges-text {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #6b7280;
+  margin: 0;
+  text-align: center;
+  line-height: 1.3;
+}
+
+.sd-flavour-text {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #7c3aed;
+  margin: 0;
+  text-align: center;
+  font-style: italic;
+  min-height: 1.1em;
+}
+
+/* ── Wrong-guess key shake ─────────────────────────────────────────────────── */
+
+@keyframes sd-shake {
+  0%, 100% { transform: translateX(0); }
+  20%       { transform: translateX(-4px); }
+  40%       { transform: translateX(4px); }
+  60%       { transform: translateX(-4px); }
+  80%       { transform: translateX(4px); }
+}
+
+.hm-key.shake {
+  animation: sd-shake 220ms ease-in-out;
+}
+
+/* ── Clue ─────────────────────────────────────────────────────────────────── */
+
+.hm-clue {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.2rem;
+  padding: 0.1rem 0 0.5rem;
+}
+
+.hm-clue-label {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #6d28d9;
+  letter-spacing: 0.02em;
+  margin: 0;
+}
+
+.hm-clue-text {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #111;
+  line-height: 1.3;
+  margin: 0;
+}
+
+/* ── Letter boxes ─────────────────────────────────────────────────────────── */
+
+.hm-blanks {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 78px;
+}
+
+.hm-letter-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  max-width: 78px;
+  height: 78px;
+  flex-shrink: 0;
+  border: 3px solid #cbd5e1;
+  border-radius: 10px;
+  background: #fff;
+  font-size: clamp(1rem, 4vw, 2rem);
+  font-weight: 800;
+  font-family: 'Nunito', sans-serif;
+  color: #1e293b;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.07);
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.hm-letter-box.revealed {
+  border-color: #22c55e;
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+/* ── Word result banner ───────────────────────────────────────────────────── */
+
+.hm-word-result {
+  text-align: center;
+  font-size: 1.05rem;
+  font-weight: 700;
+  padding: 0.65rem 1rem;
+  border-radius: 10px;
+}
+
+.hm-word-result.won  { background: #dcfce7; color: #15803d; border: 2px solid #86efac; }
+.hm-word-result.lost { background: #fce7f3; color: #be185d; border: 2px solid #f9a8d4; }
+
+/* ── A–Z keyboard ─────────────────────────────────────────────────────────── */
+
+.hm-keyboard-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 1rem calc(1.5rem + 50px);
+  flex-shrink: 0;
+}
+
+.hm-keyboard-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: rgba(0, 0, 0, 0.8);
+  letter-spacing: 0.03em;
+  margin: 0 0 0.3rem;
+}
+
+.hm-key-row {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.hm-key {
+  width: clamp(34px, 5.4vw, 54px);
+  height: clamp(40px, 6.2vw, 62px);
+  font-family: 'Nunito', sans-serif;
+  font-size: clamp(0.95rem, 1.6vw, 1.3rem);
+  font-weight: 800;
+  border: 2px solid #c084fc;
+  border-radius: 12px;
+  background: linear-gradient(150deg, #faf5ff 0%, #f3e8ff 55%, #ede9fe 100%);
+  color: #7c3aed;
+  cursor: pointer;
+  transition: transform 0.08s, box-shadow 0.1s, opacity 0.15s;
+  box-shadow: 0 4px 0 rgba(167, 139, 250, 0.4), 0 0 10px rgba(192, 132, 252, 0.15);
+  text-shadow: none;
+}
+
+.hm-key:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 rgba(167, 139, 250, 0.4);
+}
+
+.hm-key:hover:not(:disabled) {
+  box-shadow: 0 4px 0 rgba(167, 139, 250, 0.5), 0 0 18px rgba(192, 132, 252, 0.4);
+  filter: brightness(1.03);
+}
+
+.hm-key.right {
+  background: linear-gradient(150deg, #dcfce7 0%, #bbf7d0 100%) !important;
+  border-color: #16a34a !important;
+  color: #15803d !important;
+  box-shadow: 0 4px 0 #86efac, 0 0 12px rgba(34, 197, 94, 0.35) !important;
+}
+
+.hm-key.wrong {
+  background: #faf5ff !important;
+  border-color: #e9d5ff !important;
+  color: #d8b4fe !important;
+  box-shadow: none !important;
+  opacity: 0.4;
+}
+
+.hm-key:disabled { cursor: default; }
+
+/* ── Complete screen ──────────────────────────────────────────────────────── */
+
+.hm-complete {
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.hm-complete-emoji {
+  font-size: 3rem;
+  margin-bottom: 0.5rem;
+  animation: completeEmojiBounce 0.6s ease;
+}
+
+@keyframes completeEmojiBounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2) rotateZ(5deg); }
+}
+
+.hm-complete h2 {
+  margin-bottom: 0.3rem;
+}
+
+.hm-child-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #667eea;
+  margin: 0.5rem 0 1rem;
+  letter-spacing: 0.02em;
+}
+
+.hm-score-big {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #4a90e2;
+  margin: 0.5rem 0 1.5rem;
+}
+
+.hm-result-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.5rem;
+  display: inline-block;
+  text-align: left;
+}
+
+.hm-result-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.3rem 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.hm-result-list li.won  { color: #2e7d32; }
+.hm-result-list li.lost { color: #c62828; }
+.hm-result-icon { margin-left: auto; }
+
+.hm-done-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.hm-done-actions button {
+  padding: 0.6rem 1.5rem;
+  font-size: 1rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  background: #4a90e2;
+  color: white;
+}
