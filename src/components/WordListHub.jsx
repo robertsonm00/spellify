@@ -6,6 +6,8 @@ import { isSafeDefinition } from '../utils/definitionSafety';
 import { speakWord as speakHubWord } from '../utils/speech';
 import { ACTIVITIES, PHASES } from '../data/activities';
 import { getActivityAvailability } from '../utils/activityAvailability';
+import ActivityIcon from './ActivityIcon';
+import BuddyAvatar from './BuddyAvatar';
 
 // ── Word info fetch (with module-level cache) ─────────────────────────────────
 
@@ -148,6 +150,74 @@ const WORD_CHIP_COLORS = [
   { bg: '#fff0f8', border: '#ff6b9d' },
 ];
 
+// ── Player profile card ──────────────────────────────────────────────────────
+
+// 10-rung level ladder. The fourth rung deliberately uses the example name
+// the brief called out ("Wizard's Apprentice"). Level + points are derived
+// from the existing mastery / activity data — placeholder formula that will
+// be replaced once a real points system lands.
+const LEVEL_NAMES = [
+  'Spelling Initiate',
+  'Letter Scout',
+  'Word Cadet',
+  "Wizard's Apprentice",
+  'Rune Reader',
+  'Spell Weaver',
+  'Word Sorcerer',
+  'Phonics Mage',
+  'Master Speller',
+  'Grand Wordmancer',
+];
+const POINTS_PER_LEVEL = 250;
+
+function computeProfileStats(activityStatuses = {}, mastery = {}) {
+  const completed = Object.values(activityStatuses).filter((s) => s === 'completed').length;
+  const correct   = Object.values(mastery).reduce((s, m) => s + (m?.correct || 0), 0);
+  const points    = completed * 100 + correct * 10;
+  const levelIdx  = Math.min(Math.floor(points / POINTS_PER_LEVEL), LEVEL_NAMES.length - 1);
+  const intoLevel = points - levelIdx * POINTS_PER_LEVEL;
+  const levelPct  = Math.min(100, Math.round((intoLevel / POINTS_PER_LEVEL) * 100));
+  return { points, levelIdx, levelName: LEVEL_NAMES[levelIdx], levelPct };
+}
+
+function HubPlayerCard({ childName, childCharacter, year, activityStatuses, mastery }) {
+  const { points, levelIdx, levelName, levelPct } = computeProfileStats(activityStatuses, mastery);
+  return (
+    <section className="hub-player-card">
+      <div className="hub-player-header">PLAYER</div>
+      <div className="hub-player-body">
+        <div className="hub-player-buddy" aria-hidden="true">
+          {/* Custom pixel avatar for buddies that have one; emoji fallback otherwise */}
+          <BuddyAvatar
+            id={childCharacter?.id}
+            size={88}
+            fallback={childCharacter?.emoji || '⭐'}
+          />
+        </div>
+        <div className="hub-player-info">
+          <div className="hub-player-name">
+            {/* Swap hyphens for non-breaking hyphens so names like
+                "Ernest-Wren" never split across two lines. */}
+            {(childName || 'PLAYER').toUpperCase().replace(/-/g, '‑')}
+          </div>
+          <div className="hub-player-year">Year {year ?? '—'}</div>
+        </div>
+        <div className="hub-player-points">
+          <div className="hub-player-points-num">{points.toLocaleString()}</div>
+          <div className="hub-player-points-label">POINTS</div>
+        </div>
+        <div className="hub-player-level">
+          <div className="hub-player-level-name">⚡ {levelName} ⚡</div>
+          <div className="hub-player-level-bar" aria-label={`Level progress ${levelPct}%`}>
+            <div className="hub-player-level-fill" style={{ width: `${levelPct}%` }} />
+          </div>
+          <div className="hub-player-level-num">Level {levelIdx + 1} / {LEVEL_NAMES.length}</div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ── Mastery dot ───────────────────────────────────────────────────────────────
 function MasteryDot({ rate }) {
   if (rate === null) return <span className="hub-mastery-dot hub-mastery-dot--new"    title="Not tried yet" />;
@@ -176,8 +246,20 @@ function WordListHub({
   onClearProgress,
   onBackToWelcome,
   onOpenChangeWords,
+  onOpenWordLists,
 }) {
   const [activeWord,      setActiveWord]      = useState(null); // { word, chipColor }
+
+  // Layout toggle — 'classic' (vertical scroll) or 'split' (two-column).
+  // Persisted so the user's choice survives reloads.
+  const [layout, setLayout] = useState(() => {
+    if (typeof window === 'undefined') return 'classic';
+    return window.localStorage.getItem('hubLayout') === 'split' ? 'split' : 'classic';
+  });
+  useEffect(() => {
+    if (typeof window !== 'undefined') window.localStorage.setItem('hubLayout', layout);
+  }, [layout]);
+  const toggleLayout = () => setLayout((l) => (l === 'classic' ? 'split' : 'classic'));
 
   const completedCount = ACTIVITIES.filter((a) => activityStatuses[a.id] === 'completed').length;
   const progressPct    = Math.round((completedCount / ACTIVITIES.length) * 100);
@@ -186,27 +268,43 @@ function WordListHub({
   const progressBlocks = ACTIVITIES.map((a) => activityStatuses[a.id] === 'completed');
 
   return (
-    <div className="hub-shell">
-    <div className="hub">
-      {/* ── Welcome section ── */}
-      {childName && (
-        <h1 className="hub-welcome-heading">
-          Welcome {childName} &amp; {childCharacter?.emoji || '⭐'}!
-        </h1>
-      )}
+    <div className={`hub-shell hub-shell--${layout}`}>
+    <div className={`hub hub--${layout}`}>
+      {/* In split mode the left/right wrappers become independent flex columns
+          so progress isn't tied to the player card's row height. In classic
+          mode they use `display: contents` (see CSS) so the children flatten
+          back into the natural single-column flow. */}
+      <div className="hub-split-left">
+      {/* ── Player profile card (replaces the old welcome + practising header) ── */}
+      <HubPlayerCard
+        childName={childName}
+        childCharacter={childCharacter}
+        year={year}
+        activityStatuses={activityStatuses}
+        mastery={mastery}
+      />
 
-      {/* RULE_BUCKET_PICKER ── show which rule bucket is being practised */}
-      {ruleLabel && (
-        <p className="hub-rule-subtitle">
-          Practising: <strong>{ruleLabel}</strong>
-        </p>
-      )}
-
+      {/* Word list + Word lists CTA travel together as a sticky group:
+          once the word list hits the top, everything below it stops
+          scrolling alongside it. */}
+      <div className="hub-sticky-block">
       {/* ── Word list ── */}
       <section className="hub-words">
         <div className="hub-section-header">
-          <span className="hub-section-label">YOUR WORDS ({words.length})</span>
-          <button className="hub-change-btn" onClick={() => onOpenChangeWords?.()}>Change Words</button>
+          <div className="hub-section-title-block">
+            <span className="hub-section-label">WORD LIST</span>
+            <span className="hub-list-title">{ruleLabel || 'Untitled list'}</span>
+          </div>
+          <div className="hub-section-actions">
+            <button
+              className="hub-layout-toggle"
+              onClick={toggleLayout}
+              aria-label={layout === 'classic' ? 'Switch to split layout' : 'Switch to classic layout'}
+              title={layout === 'classic' ? 'Switch to split layout' : 'Switch to classic layout'}
+            >
+              {layout === 'classic' ? '▦' : '☰'}
+            </button>
+          </div>
         </div>
         <div className="hub-chips">
           {words.map((w, i) => {
@@ -230,22 +328,20 @@ function WordListHub({
         </div>
       </section>
 
-      {/* ── Review callout ── */}
-      {reviewQueue.length > 0 && (
-        <section className="hub-review-callout">
-          <div className="hub-review-inner">
-            <span className="hub-review-emoji">⭐</span>
-            <div className="hub-review-text">
-              <strong>{reviewQueue.length} word{reviewQueue.length > 1 ? 's' : ''} to practise</strong>
-              <span>Keep going — you're almost there!</span>
-            </div>
-            <button className="hub-review-btn" onClick={onReview}>
-              Practise →
-            </button>
-          </div>
-        </section>
-      )}
+      {/* ── Word lists CTA — entry point to the wider list browser ── */}
+      <section className="hub-word-lists">
+        <div className="hub-word-lists-header">BROWSE</div>
+        <button
+          className="hub-word-lists-btn"
+          onClick={() => onOpenWordLists?.()}
+        >
+          📋 Word lists →
+        </button>
+      </section>
+      </div>{/* /hub-sticky-block */}
+      </div>{/* /hub-split-left */}
 
+      <div className="hub-split-right">
       {/* ── Pixel progress bar ── */}
       <section className="hub-progress">
         <div className="hub-progress-labels">
@@ -297,8 +393,9 @@ function WordListHub({
                       style={{
                         borderColor:  activity.dark,
                         boxShadow:    done
-                          ? `3px 3px 0 ${activity.dark}`
-                          : `5px 5px 0 ${activity.dark}`,
+                          ? `3px 3px 0 ${activity.color}`
+                          : `5px 5px 0 ${activity.color}`,
+                        '--card-color': activity.color,
                         opacity: locked ? 0.55 : 1,
                         cursor:  locked ? 'not-allowed' : 'pointer',
                       }}
@@ -313,7 +410,10 @@ function WordListHub({
                         className="hub-card-header"
                         style={{ background: activity.color }}
                       >
-                        <span className="hub-card-icon">{activity.icon}</span>
+                        <span className="hub-card-icon hub-card-icon--emoji">{activity.icon}</span>
+                        <span className="hub-card-icon hub-card-icon--svg" aria-hidden="true">
+                          <ActivityIcon id={activity.id} size={28} />
+                        </span>
                         {locked && <span className="hub-card-lock" aria-hidden="true">🔒</span>}
                       </div>
                       <div className="hub-card-body">
@@ -331,6 +431,23 @@ function WordListHub({
           );
         })}
       </section>
+
+      {/* ── Review callout — last item in the right column ── */}
+      {reviewQueue.length > 0 && (
+        <section className="hub-review-callout">
+          <div className="hub-review-inner">
+            <span className="hub-review-emoji">⭐</span>
+            <div className="hub-review-text">
+              <strong>{reviewQueue.length} word{reviewQueue.length > 1 ? 's' : ''} to practise</strong>
+              <span>Keep going — you're almost there!</span>
+            </div>
+            <button className="hub-review-btn" onClick={onReview}>
+              Practise →
+            </button>
+          </div>
+        </section>
+      )}
+      </div>{/* /hub-split-right */}
 
       {/* ── Word detail modal ── */}
       {activeWord && (

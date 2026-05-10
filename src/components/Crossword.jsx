@@ -568,7 +568,7 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
                 return (
                   <li
                     key={pw.id}
-                    className={`cw-word-row${done ? ' cw-word-row--done' : ''}`}
+                    className={`game-word${done ? ' game-word--done' : ''}`}
                     onClick={() => {
                       // Fill the CURRENTLY SELECTED grid word with this pill's letters.
                       // Does not reveal which pill belongs to which grid position.
@@ -592,8 +592,8 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
                       containerRef.current?.focus();
                     }}
                   >
-                    {done && <span className="cw-word-check" aria-hidden="true">✓</span>}
-                    <span className="cw-word-text">{pw.word.toLowerCase()}</span>
+                    {done && <span className="game-word-check" aria-hidden="true">✓</span>}
+                    {pw.word.toLowerCase()}
                   </li>
                 );
               })}
@@ -663,7 +663,7 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
             <div className="cw-clue-bar-actions">
               <button
                 className="cw-hear-btn"
-                onClick={() => speakWord(selectedWord.word)}
+                onClick={() => speakWord(selectedWord.word.toLowerCase())}
                 title="Hear the word"
               >
                 🔊 Hear the word

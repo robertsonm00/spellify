@@ -1,7 +1,46 @@
 import React, { useState } from 'react';
+import confetti from 'canvas-confetti';
 import './OnboardingFlow.css';
 import { YEAR_GROUPS, selectWords, getRuleGroups } from '../utils/wordSelectionEngine';
 import AddWordsManual from './AddWordsManual';
+import BuddyAvatar, { hasBuddyAvatar } from './BuddyAvatar';
+
+// ── Buddy-pick celebration ──────────────────────────────────────────────
+// Triumphant ascending fanfare (C5 → E5 → G5 → C6) — kid-friendly "ta-da!"
+function playBuddyFanfare() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const NOTES = [
+      { f: 523.25, t: 0.00, d: 0.18, v: 0.18 },
+      { f: 659.25, t: 0.10, d: 0.18, v: 0.20 },
+      { f: 783.99, t: 0.20, d: 0.20, v: 0.22 },
+      { f: 1046.5, t: 0.32, d: 0.55, v: 0.28 },
+    ];
+    NOTES.forEach(({ f, t, d, v }) => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'triangle';
+      osc.frequency.value = f;
+      const at = ctx.currentTime + t;
+      gain.gain.setValueAtTime(0, at);
+      gain.gain.linearRampToValueAtTime(v, at + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001, at + d);
+      osc.start(at);
+      osc.stop(at + d);
+    });
+  } catch { /* AudioContext unavailable */ }
+}
+
+function fireBuddyConfetti() {
+  confetti({
+    particleCount: 120,
+    spread: 90,
+    origin: { y: 0.5 },
+    colors: ['#ff6b6b', '#ffd93d', '#6bcb77', '#4d96ff', '#c77dff', '#ff9f43'],
+  });
+}
 
 const STARS = Array.from({ length: 60 }, (_, i) => ({
   id: i,
@@ -99,7 +138,10 @@ function NameInput({ onSubmit }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (name.trim()) {
-      onSubmit(name.trim());
+      // Replace ASCII hyphens with U+2011 (NON-BREAKING HYPHEN) so names
+      // like "Peter-Parker" never split across two lines anywhere downstream.
+      // Visually identical, but the line-break rule ignores it.
+      onSubmit(name.trim().replace(/-/g, '‑'));
     }
   };
 
@@ -117,7 +159,7 @@ function NameInput({ onSubmit }) {
           className="ob-name-input"
           placeholder="Type your name..."
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => setName(e.target.value.toUpperCase())}
           autoFocus
         />
         <button
@@ -136,24 +178,44 @@ function NameInput({ onSubmit }) {
 
 function CharacterPicker({ name, onSelect }) {
   const [showMore, setShowMore] = useState(false);
+  const [pickedId, setPickedId] = useState(null);
 
   const initialCharacters = CHARACTERS.slice(0, 7);
   const charactersToShow = showMore ? CHARACTERS : initialCharacters;
 
+  const handlePick = (char) => {
+    if (pickedId) return;            // ignore double-taps while celebrating
+    setPickedId(char.id);
+    playBuddyFanfare();
+    fireBuddyConfetti();
+    // Hold on the picked card for ~1s so the celebration is visible before
+    // advancing to the next onboarding step.
+    setTimeout(() => onSelect(char), 1000);
+  };
+
   return (
     <div className="ob-step ob-character">
       <div className="ob-step-header">
-        <h2 className="ob-step-title" style={{ paddingTop: '2.5rem' }}>Choose your learning buddy, {name}.</h2>
+        <h2 className="ob-step-title" style={{ paddingTop: '2.5rem' }}>
+          Welcome <span style={{ whiteSpace: 'nowrap' }}>{name}</span>.
+          <br />
+          Choose your learning buddy.
+        </h2>
       </div>
 
       <div className={`ob-character-grid${showMore ? ' ob-character-grid--expanded' : ''}`} style={showMore ? { maxHeight: '300px', overflowY: 'auto', paddingRight: '8px' } : {}}>
         {charactersToShow.map((char) => (
           <button
             key={char.id}
-            className="ob-character-card"
-            onClick={() => onSelect(char)}
+            className={`ob-character-card${pickedId === char.id ? ' ob-character-card--picked' : ''}`}
+            onClick={() => handlePick(char)}
+            disabled={!!pickedId && pickedId !== char.id}
           >
-            <span className="ob-character-emoji">{char.emoji}</span>
+            <span className={`ob-character-emoji${hasBuddyAvatar(char.id) ? ' ob-character-emoji--svg' : ''}`}>
+              {hasBuddyAvatar(char.id)
+                ? <BuddyAvatar id={char.id} size={56} />
+                : char.emoji}
+            </span>
             <span className="ob-character-name">{char.name}</span>
           </button>
         ))}
@@ -161,6 +223,7 @@ function CharacterPicker({ name, onSelect }) {
           <button
             className="ob-character-card ob-character-card--show-more"
             onClick={() => setShowMore(true)}
+            disabled={!!pickedId}
           >
             <span className="ob-character-emoji">➕</span>
             <span className="ob-character-name">Show more</span>
@@ -177,7 +240,9 @@ function YearPicker({ name, onSelect }) {
   return (
     <div className="ob-step ob-year">
       <div className="ob-step-header">
-        <h2 className="ob-step-title">What's your age, {name}?</h2>
+        <h2 className="ob-step-title">
+          What's your age, <span style={{ whiteSpace: 'nowrap' }}>{name}</span>?
+        </h2>
       </div>
 
       <div className="ob-year-grid">

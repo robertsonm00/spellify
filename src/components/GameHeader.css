@@ -163,6 +163,39 @@
   text-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
 }
 
+/* ── Shared word pill (sidebar lists in WordSearch, Crossword, …) ── */
+
+.game-word {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #1a1a2e;
+  text-transform: capitalize;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: 6px;
+  background: #fff;
+  border: 2px solid #e0e0e0;
+  transition: opacity 0.2s, background 0.1s, border-color 0.1s;
+  user-select: none;
+}
+
+.game-word--done {
+  opacity: 0.45;
+  text-decoration: line-through;
+  background: #f0fdf4;
+  border-color: #86efac;
+  color: #166534;
+}
+
+.game-word-check {
+  font-size: 0.7rem;
+  color: #16a34a;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+
 /* ── Hide the global TopNav while any game is mounted ── */
 
 body.game-active .topnav { display: none; }

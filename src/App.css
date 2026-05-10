@@ -18,7 +18,7 @@ body.extra-support .hm-letter,
 body.extra-support .hm-display,
 body.extra-support .ws-cell,
 body.extra-support .cw-letter,
-body.extra-support .cw-word-text,
+body.extra-support .game-word,
 body.extra-support .cw-clue-bar-text,
 body.extra-support .hub-chip,
 body.extra-support .ob-word-card,
@@ -40,7 +40,7 @@ body.extra-support .hub-chip {
 }
 
 /* Larger word pills + clue text in the crossword */
-body.extra-support .cw-word-row {
+body.extra-support .cw-word-rows .game-word {
   font-size: 1.05em;
   padding-block: 0.45rem;
 }

@@ -311,3 +311,143 @@
   .topnav-brand        { display: none; }
   .topnav-settings span:first-child { display: none; }
 }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   V2 — retro 90s window theme to match the split-layout hub
+   Cream bg with charcoal underline, pixel-font brand with hard offset shadow,
+   tabs and buttons styled like 90s OS controls.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+.topnav--v2 {
+  background: #fdf6e8;
+  border-bottom: 2px solid #2a2a2a;
+  box-shadow: 0 3px 0 rgba(42, 42, 42, 0.06);
+}
+
+/* Brand — drop the neon glow, replace with a hard pixel offset shadow */
+.topnav--v2 .topnav-brand-letter {
+  text-shadow: 1.5px 1.5px 0 #2a2a2a;
+  animation: none;
+}
+
+/* Window-style buttons (Exit, Settings) */
+.topnav--v2 .topnav-exit,
+.topnav--v2 .topnav-settings {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.05em;
+  background: #fff;
+  color: #2a2a2a;
+  border: 2px solid #2a2a2a;
+  border-radius: 4px;
+  box-shadow: 2px 2px 0 #2a2a2a;
+  padding: 0.5rem 0.7rem;
+  min-height: 34px;
+  transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.15s;
+}
+.topnav--v2 .topnav-exit:hover,
+.topnav--v2 .topnav-settings:hover {
+  background: #fff7e0;
+  color: #2a2a2a;
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 #2a2a2a;
+}
+.topnav--v2 .topnav-exit:active,
+.topnav--v2 .topnav-settings:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+/* Tabs — pastel pill buttons; mint when active */
+.topnav--v2 .topnav-tabs {
+  background: transparent;
+  padding: 0;
+  gap: 0.5rem;
+}
+.topnav--v2 .topnav-tab {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 800;
+  background: #fff;
+  color: #2a2a2a;
+  border: 2px solid #2a2a2a;
+  border-radius: 6px;
+  box-shadow: 2px 2px 0 #2a2a2a;
+  padding: 0.42rem 1rem;
+  min-height: 36px;
+  transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.15s;
+}
+.topnav--v2 .topnav-tab:hover:not(.topnav-tab--active) {
+  background: #fff7e0;
+  color: #2a2a2a;
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 #2a2a2a;
+}
+.topnav--v2 .topnav-tab--active {
+  background: #87d1c1;
+  color: #2a2a2a;
+}
+
+/* Game title (when shown) — pixel font in charcoal with a soft mint shadow */
+.topnav--v2 .topnav-game-title {
+  color: #2a2a2a;
+  text-shadow: 1.5px 1.5px 0 #87d1c1;
+  font-size: 1rem;
+}
+
+/* Sign in + avatar — same window-button language */
+.topnav--v2 .topnav-signin {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.05em;
+  background: #ffd97c;
+  color: #2a2a2a;
+  border: 2px solid #2a2a2a;
+  border-radius: 4px;
+  box-shadow: 2px 2px 0 #2a2a2a;
+  padding: 0.5rem 0.85rem;
+  min-height: 34px;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+.topnav--v2 .topnav-signin:hover {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 #2a2a2a;
+}
+.topnav--v2 .topnav-signin:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+.topnav--v2 .topnav-avatar {
+  background: #fff;
+  color: #2a2a2a;
+  border: 2px solid #2a2a2a;
+  border-radius: 4px;
+  box-shadow: 2px 2px 0 #2a2a2a;
+}
+.topnav--v2 .topnav-avatar:hover {
+  background: #fff7e0;
+  color: #2a2a2a;
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 #2a2a2a;
+}
+.topnav--v2 .topnav-avatar-initials {
+  background: #c8a3e5;
+  color: #2a2a2a;
+  border-color: #2a2a2a;
+}
+
+.topnav--v2 .topnav-dropdown {
+  background: #fff;
+  border: 2px solid #2a2a2a;
+  border-radius: 6px;
+  box-shadow: 4px 4px 0 #2a2a2a;
+  color: #2a2a2a;
+}
+.topnav--v2 .topnav-dropdown-name { color: #2a2a2a; }
+.topnav--v2 .topnav-dropdown-year { color: #5a5a5a; }
+.topnav--v2 .topnav-dropdown-signout {
+  color: #2a2a2a;
+  background: transparent;
+}
+.topnav--v2 .topnav-dropdown-signout:hover { background: #fff7e0; }

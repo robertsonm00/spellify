@@ -282,8 +282,8 @@ export default function WordSearch({ words, year = null, savedProgress = null, o
           {placedWords.map(({ word }) => {
             const done = foundWords.includes(word);
             return (
-              <li key={word} className={`ws-word${done ? ' ws-word--done' : ''}`}>
-                {done && <span className="ws-word-check">✓</span>}
+              <li key={word} className={`game-word${done ? ' game-word--done' : ''}`}>
+                {done && <span className="game-word-check">✓</span>}
                 {word.toLowerCase()}
               </li>
             );

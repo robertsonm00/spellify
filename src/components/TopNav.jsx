@@ -26,6 +26,28 @@ export default function TopNav({
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
+  // Visual variant — 'classic' (dark navy, default) or 'v2' (cream retro
+  // window). Toggled by clicking the SPELLIFY logo. Persists in its own
+  // localStorage key so the choice survives reloads.
+  const [variant, setVariant] = useState(() => {
+    if (typeof window === 'undefined') return 'classic';
+    return window.localStorage.getItem('topnavVariant') === 'v2' ? 'v2' : 'classic';
+  });
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('topnavVariant', variant);
+    }
+  }, [variant]);
+  const toggleVariant = () => setVariant((v) => (v === 'classic' ? 'v2' : 'classic'));
+
+  // Ensure the body.game-active class (which hides the TopNav while a game
+  // is mounted) is cleared whenever the TopNav itself renders. Belt-and-
+  // braces — protects against the class lingering after a hot-reload or a
+  // missed unmount.
+  useEffect(() => {
+    document.body.classList.remove('game-active');
+  }, []);
+
   // Close dropdown when clicking outside
   useEffect(() => {
     if (!dropdownOpen) return;
@@ -42,10 +64,18 @@ export default function TopNav({
   const initials    = displayName.slice(0, 2).toUpperCase();
 
   return (
-    <nav className="topnav">
+    <nav className={`topnav topnav--${variant}`}>
       {/* ── Left: Brand + Exit ── */}
       <div className="topnav-left">
-        <div className="topnav-brand" aria-label="Spellify">
+        <div
+          className="topnav-brand"
+          aria-label="Spellify — click to switch header style"
+          role="button"
+          tabIndex={0}
+          onClick={toggleVariant}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleVariant(); } }}
+          style={{ cursor: 'pointer' }}
+        >
           {BRAND_LETTERS.map(({ letter, color }, i) => (
             <span
               key={i}

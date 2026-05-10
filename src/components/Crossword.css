@@ -181,58 +181,15 @@
   flex: 1;
 }
 
-.cw-word-row {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.35rem 0.6rem;
-  border: 2px solid #e0e0e0;
-  border-radius: 999px;
-  background: #fff;
-  font-family: 'Nunito', sans-serif;
-  font-size: 0.85rem;
-  font-weight: 800;
-  color: #1a1a2e;
-  width: 100%;
-  user-select: none;
-  transition: background 0.1s, border-color 0.1s;
-}
-
-/* Clickable pill — pointer + hover */
-.cw-word-row { cursor: pointer; }
-.cw-word-row:not(.cw-word-row--done):hover {
+/* Word pills inside the Crossword sidebar use the shared .game-word class
+   (defined in GameHeader.css). The rules below add the Crossword-only
+   interactive affordances — these pills are clickable, unlike WordSearch's. */
+.cw-word-rows .game-word { cursor: pointer; }
+.cw-word-rows .game-word:not(.game-word--done):hover {
   background: #fef9c3;
   border-color: #fbbf24;
 }
-
-
-/* Match the wordsearch success state */
-.cw-word-row--done {
-  opacity: 0.45;
-  background: #f0fdf4;
-  border-color: #86efac;
-  color: #166534;
-  cursor: default;
-}
-.cw-word-row--done .cw-word-text {
-  text-decoration: line-through;
-}
-
-.cw-word-check {
-  font-size: 0.7rem;
-  color: #16a34a;
-  font-weight: 900;
-  flex-shrink: 0;
-}
-
-.cw-word-text {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  letter-spacing: 0.02em;
-  text-transform: capitalize;
-}
+.cw-word-rows .game-word--done { cursor: default; }
 
 /* ── Grid area ── */
 

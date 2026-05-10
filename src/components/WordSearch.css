@@ -291,34 +291,8 @@
   min-height: 0;
 }
 
-.ws-word {
-  font-size: 1.2rem;
-  font-weight: 800;
-  color: #1a1a2e;
-  text-transform: capitalize;
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.3rem 0.5rem;
-  border-radius: 6px;
-  background: #fff;
-  border: 2px solid #e0e0e0;
-  transition: opacity 0.2s;
-}
-
-.ws-word--done {
-  opacity: 0.45;
-  text-decoration: line-through;
-  background: #f0fdf4;
-  border-color: #86efac;
-  color: #166534;
-}
-
-.ws-word-check {
-  font-size: 0.7rem;
-  color: #16a34a;
-  font-weight: 900;
-}
+/* .ws-word / .ws-word--done / .ws-word-check moved to GameHeader.css as
+   .game-word / .game-word--done / .game-word-check (shared with Crossword). */
 
 /* ── Completion screen ── */
 

@@ -417,6 +417,8 @@
   border: 3px solid #e0e0e0;
   border-radius: 12px;
   text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 .ob-name-input::placeholder {
@@ -443,6 +445,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  /* Push the buddy name to the bottom of the card so cards stay aligned
+     regardless of whether the slot holds an emoji or a custom SVG. */
+  justify-content: space-between;
   gap: 0.6rem;
   padding: 1.2rem 0.75rem;
   border: 3px solid #e0e0e0;
@@ -467,9 +472,42 @@
   color: #fff;
 }
 
+/* Picked state during the celebration pause: pulse + brighter border */
+.ob-character-card--picked {
+  border-color: #ffd93d;
+  background: #fff8e1;
+  box-shadow: 0 8px 20px rgba(255, 217, 61, 0.45);
+  animation: ob-buddy-pulse 1s ease-in-out infinite;
+}
+.ob-character-card[disabled] {
+  cursor: default;
+  opacity: 0.55;
+}
+.ob-character-card--picked[disabled] { opacity: 1; }
+@keyframes ob-buddy-pulse {
+  0%, 100% { transform: scale(1.06); }
+  50%      { transform: scale(1.12); }
+}
+
 .ob-character-emoji {
   font-size: 2.5rem;
   line-height: 1;
+  /* Fixed-size slot so all buddies (emoji or SVG) take the same vertical
+     space — keeps the names aligned across cards. */
+  height: 56px;
+  width: 56px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.ob-character-emoji--svg svg {
+  /* Constrain the avatar so it never stretches past the slot — preserves
+     the pixel art's natural aspect ratio. */
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  image-rendering: pixelated;
 }
 
 .ob-character-name {

@@ -31,25 +31,25 @@ export const ACTIVITIES = [
   // ── Warm-Up: low-stakes recognition ─────────────────────────────
   {
     id: 'wordsearch', name: 'Word Search', icon: '🔍',
-    timeEstimate: '5 mins', color: '#4d96ff', dark: '#1a5cbf',
+    timeEstimate: '5 mins', color: '#b3d4f5', dark: '#4d80c8',
     phase: 'warmup', component: WordSearch,
     buildProps: (s) => ({ year: s.year ?? null }),
   },
   {
     id: 'memoryspell', name: 'Memory Spell', icon: '🧠',
-    timeEstimate: '5 mins', color: '#6bcb77', dark: '#1e7e34',
+    timeEstimate: '5 mins', color: '#b8e4be', dark: '#5fa269',
     phase: 'warmup', component: MemorySpell,
     buildProps: (s) => ({ wordObjects: s.wordObjects || [] }),
   },
   {
     id: 'hangman', name: 'Hangman', icon: '🎯',
-    timeEstimate: '5 mins', color: '#ff9f43', dark: '#c05700',
+    timeEstimate: '5 mins', color: '#f9c89a', dark: '#d18851',
     phase: 'warmup', component: Hangman,
     buildProps: (s) => ({ difficulty: s.difficulty || 'medium' }),
   },
   {
     id: 'syllabletap', name: 'Syllable Tap', icon: '👂',
-    timeEstimate: '5 mins', color: '#34d399', dark: '#0e7c52',
+    timeEstimate: '5 mins', color: '#9fdfc4', dark: '#4f9d80',
     phase: 'warmup', component: SyllableTap,
     buildProps: () => ({}),
   },
@@ -57,19 +57,19 @@ export const ACTIVITIES = [
   // ── Explore: active production with cues ────────────────────────
   {
     id: 'writeit', name: 'Write It', icon: '✏️',
-    timeEstimate: '10 mins', color: '#a855f7', dark: '#581c87',
+    timeEstimate: '10 mins', color: '#d9c0f7', dark: '#8c5fc9',
     phase: 'explore', component: WriteIt,
     buildProps: (s) => ({ childName: s.childName || '' }),
   },
   {
     id: 'weakspot', name: 'Weak Spot', icon: '🎯',
-    timeEstimate: '5 mins', color: '#fbbf24', dark: '#92400e',
+    timeEstimate: '5 mins', color: '#fbe1a4', dark: '#b88828',
     phase: 'explore', component: WeakSpot,
     buildProps: () => ({}),
   },
   {
     id: 'crossword', name: 'Crossword', icon: '✏️',
-    timeEstimate: '10 mins', color: '#c77dff', dark: '#6b21a8',
+    timeEstimate: '10 mins', color: '#e2c5f5', dark: '#9a5dc7',
     phase: 'explore', component: Crossword,
     buildProps: (s) => ({ userAge: s.age || 8, difficulty: s.difficulty || 'medium' }),
   },
@@ -77,13 +77,13 @@ export const ACTIVITIES = [
   // ── Consolidate: generative / creative recall ───────────────────
   {
     id: 'quizquest', name: 'Quiz Quest', icon: '🏆',
-    timeEstimate: '5 mins', color: '#ec4899', dark: '#9d174d',
+    timeEstimate: '5 mins', color: '#f5b9d3', dark: '#c95d8a',
     phase: 'consolidate', component: QuizQuest,
     buildProps: (s) => ({ wordObjects: s.wordObjects || [] }),
   },
   {
     id: 'wordforge', name: 'Word Forge', icon: '🔨',
-    timeEstimate: '5 mins', color: '#f97316', dark: '#9a3412',
+    timeEstimate: '5 mins', color: '#fbc4a3', dark: '#c25e30',
     phase: 'consolidate', component: WordForge,
     buildProps: () => ({}),
   },
