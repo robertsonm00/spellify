@@ -67,3 +67,64 @@ export function speakWord(word, { rate = 0.85, lang = 'en-GB' } = {}) {
   if (v) u.voice = v;
   window.speechSynthesis.speak(u);
 }
+
+/**
+ * Speak a word broken into syllable chunks — each chunk is queued as its
+ * own utterance so the speech engine pauses between them, demonstrating
+ * the syllable structure to the listener.
+ *
+ * For single-syllable words it just speaks the whole word slowly.
+ *
+ * @param {string}   word
+ * @param {string[]} chunks  pre-split chunks (e.g. from syllableChunks)
+ */
+export function speakSyllables(word, chunks) {
+  if (!('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  const v = getBestVoice();
+
+  const queue = (text, rate) => {
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-GB';
+    u.rate = rate;
+    if (v) u.voice = v;
+    window.speechSynthesis.speak(u);
+  };
+
+  if (!chunks || chunks.length <= 1) {
+    queue(word, 0.55);
+    return;
+  }
+  // Each chunk as a separate utterance — the engine inserts a natural pause
+  // between them, exaggerating the syllable break.
+  chunks.forEach((c) => queue(c, 0.7));
+  // Then the whole word once at a normal-slow rate to tie it back together.
+  queue(word, 0.75);
+}
+
+/**
+ * Speak a word and then immediately queue follow-up sentences (e.g. the
+ * definition and an example). Each sentence reads at a slightly faster
+ * rate than the word itself so the explanation feels like natural speech
+ * rather than a slow word-by-word reading.
+ *
+ * @param {string}   word
+ * @param {string[]} extraLines  sentences to read after the word
+ */
+export function speakWordWithInfo(word, extraLines = []) {
+  if (!('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  const v = getBestVoice();
+
+  const speak = (text, rate) => {
+    if (!text) return;
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-GB';
+    u.rate = rate;
+    if (v) u.voice = v;
+    window.speechSynthesis.speak(u);
+  };
+
+  speak(word, 0.85);
+  for (const line of extraLines) speak(line, 0.95);
+}

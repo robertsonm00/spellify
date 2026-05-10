@@ -1,0 +1,29 @@
+/* Static buddy sprite. (Walk-cycle animation is intentionally disabled
+   for now — the still + cheer frames are rendered straight as <img>.) */
+
+.buddy-sprite {
+  display: inline-block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* Interactive buddy: clicking plays a cheer sound + confetti and swaps
+   the still frame for the cheer pose for ~3 seconds. */
+.buddy-sprite-btn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.08s ease;
+}
+.buddy-sprite-btn:hover  { transform: translateY(-2px); }
+.buddy-sprite-btn:active { transform: scale(0.95); }
+.buddy-sprite-btn:focus-visible {
+  outline: 2px solid #6bcb77;
+  outline-offset: 4px;
+  border-radius: 4px;
+}

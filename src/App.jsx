@@ -8,6 +8,7 @@ import { loadSession, saveSession, createSession, INITIAL_STATUSES, updateMaster
 import { getActivity, getActivityTitle } from './data/activities';
 import { isActivityAvailable } from './utils/activityAvailability';
 import TopNav         from './components/TopNav';
+import { fireBuddyCheer } from './components/BuddyAvatar';
 import ExplorePage    from './components/explore/ExplorePage';
 import SignInModal    from './components/explore/SignInModal';
 import Settings       from './components/Settings';
@@ -62,16 +63,23 @@ function App() {
   };
 
   const handleLaunch = (id) => {
-    if (id !== 'review') {
-      setSession((prev) => ({
-        ...prev,
-        activityStatuses: {
-          ...prev.activityStatuses,
-          [id]: prev.activityStatuses[id] === 'not-started' ? 'in-progress' : prev.activityStatuses[id],
-        },
-      }));
-    }
+    // Don't mark as in-progress on launch — only after the child has actually
+    // completed at least one word. That bump happens in handleSaveProgress
+    // once the snapshot shows real progress.
     setActiveActivity({ id });
+  };
+
+  // Inspect a saved-progress snapshot for "did the child complete at least
+  // one word?". Each game stores results under a slightly different key, so
+  // we check the shapes we know about.
+  const hasMeaningfulProgress = (progress) => {
+    if (!progress) return false;
+    if (Array.isArray(progress.wordResults) && progress.wordResults.length > 0) return true;
+    if (Array.isArray(progress.results)     && progress.results.length     > 0) return true;
+    if (Array.isArray(progress.foundWords)  && progress.foundWords.length  > 0) return true;
+    if (progress.filled && (progress.filled.size > 0 || progress.filled.length > 0)) return true;
+    if (Array.isArray(progress.rows) && progress.rows.some((r) => r.practices?.some((p) => p.done))) return true;
+    return false;
   };
 
   const handleComplete = (id, results = []) => {
@@ -91,6 +99,10 @@ function App() {
       return next;
     });
     setActiveActivity(null);
+    // Trigger the buddy-cheer celebration once we're back on the hub. The
+    // small delay gives React a frame to mount the hub + BuddyAvatar so the
+    // event listener is attached when we dispatch.
+    setTimeout(fireBuddyCheer, 150);
   };
 
   const handleExit = () => setActiveActivity(null);
@@ -117,7 +129,20 @@ function App() {
   const handleClearProgress  = () => setSession((prev) => ({ ...prev, activityStatuses: INITIAL_STATUSES, activityProgress: {}, mastery: {}, reviewQueue: [] }));
 
   const handleSaveProgress = (id, progress) =>
-    setSession((prev) => setActivityProgress(prev, id, progress));
+    setSession((prev) => {
+      let next = setActivityProgress(prev, id, progress);
+      // First time we see real progress (≥ 1 word completed) → mark the
+      // activity in-progress. Skip review and never downgrade.
+      if (id !== 'review'
+          && hasMeaningfulProgress(progress)
+          && prev.activityStatuses[id] === 'not-started') {
+        next = {
+          ...next,
+          activityStatuses: { ...next.activityStatuses, [id]: 'in-progress' },
+        };
+      }
+      return next;
+    });
 
   const handleBackToWelcome = () => {
     if (session && hasProgress(session.activityStatuses)) {

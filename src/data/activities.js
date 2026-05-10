@@ -39,7 +39,10 @@ export const ACTIVITIES = [
     id: 'memoryspell', name: 'Memory Spell', icon: '🧠',
     timeEstimate: '5 mins', color: '#b8e4be', dark: '#5fa269',
     phase: 'warmup', component: MemorySpell,
-    buildProps: (s) => ({ wordObjects: s.wordObjects || [] }),
+    buildProps: (s) => ({
+      wordObjects: s.wordObjects || [],
+      childCharacter: s.childCharacter || null,
+    }),
   },
   {
     id: 'hangman', name: 'Hangman', icon: '🎯',

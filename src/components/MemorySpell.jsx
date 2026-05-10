@@ -4,6 +4,7 @@ import { chunkWord } from '../utils/wordChunking';
 import { letterBoxSize } from '../utils/letterBoxSize';
 import GameHeader from './GameHeader';
 import GameProgressStrip from './GameProgressStrip';
+import BuddyAvatar from './BuddyAvatar';
 import './MemorySpell.css';
 import { speakWord as speak } from '../utils/speech';
 
@@ -46,13 +47,6 @@ function fireConfetti() {
 // ── Constants ────────────────────────────────────────────────────────────────
 
 const INITIAL_HINTS = { heard: false, firstLetter: false, letterCount: false, chunk: false };
-
-const BUDDY_LINES = [
-  "Let's study this one together!",
-  "Take a good look — I'll hide it in a moment!",
-  "Ready to memorise this word?",
-  "You've got this — study hard!",
-];
 
 // ── Letter boxes (recall input) ───────────────────────────────────────────────
 //
@@ -125,6 +119,7 @@ function LetterDiff({ typed, target }) {
 export default function MemorySpell({
   words,
   wordObjects = [],
+  childCharacter = null,
   savedProgress = null,
   onSaveProgress,
   onComplete,
@@ -170,9 +165,9 @@ export default function MemorySpell({
     const next = [...results, result];
     setLastResult(result);
     setResults(next);
-    // Save outside any updater function to avoid setState-during-render warning.
     onSaveProgress?.({ wordIdx: wordIdx + 1, results: next });
-    setPhase('feedback');
+    // Stay on the recall screen — the in-place feedback layer takes over.
+    // (Phase stays 'recall'; lastResult drives the alternate render.)
   }, [word, wordIdx, results, onSaveProgress]);
 
   // ── Input handlers ─────────────────────────────────────────────────────────
@@ -211,6 +206,7 @@ export default function MemorySpell({
   };
 
   const nextWord = () => {
+    setLastResult(null);   // clear inline feedback as we advance
     if (wordIdx + 1 >= words.length) {
       setPhase('results');
     } else {
@@ -219,6 +215,29 @@ export default function MemorySpell({
       setPhase('reveal');
     }
   };
+
+  // Auto-advance after 3s on a correct answer. The CTA shows a fill that
+  // mirrors the same 3-second window so the child sees the timer ticking.
+  const autoAdvanceTimerRef = useRef(null);
+  useEffect(() => {
+    if (lastResult?.correct && phase === 'recall') {
+      autoAdvanceTimerRef.current = setTimeout(nextWord, 3000);
+      return () => clearTimeout(autoAdvanceTimerRef.current);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastResult, phase]);
+
+  // Buddy holds the cheer pose for ~1 second, then reverts to still even
+  // though the success panel stays up until the auto-advance fires.
+  const [buddyCheering, setBuddyCheering] = useState(false);
+  useEffect(() => {
+    if (lastResult?.correct) {
+      setBuddyCheering(true);
+      const t = setTimeout(() => setBuddyCheering(false), 1000);
+      return () => clearTimeout(t);
+    }
+    setBuddyCheering(false);
+  }, [lastResult]);
 
   const handlePlayAgain = () => {
     onSaveProgress?.(null); // wipe snapshot
@@ -306,8 +325,6 @@ export default function MemorySpell({
 
   // ── Per-word phases ────────────────────────────────────────────────────────
 
-  const buddyLine = BUDDY_LINES[wordIdx % BUDDY_LINES.length];
-
   return (
     <div className={wrapClass}>
       {topbar}
@@ -317,10 +334,15 @@ export default function MemorySpell({
 
         {/* ── Intro — shown only for the first word ── */}
         {phase === 'intro' && (
-          <div className="ms-card ms-card--intro">
-            {/* FUTURE: swap for animated buddy character */}
-            <span className="ms-buddy-emoji" aria-hidden="true">🦉</span>
-            <p className="ms-buddy-line">{buddyLine}</p>
+          <div className="ms-phase ms-phase--intro">
+            <span className="ms-buddy" aria-hidden="true">
+              <BuddyAvatar
+                id={childCharacter?.id}
+                size={120}
+                fallback={childCharacter?.emoji || '🦉'}
+              />
+            </span>
+            <h1 className="ms-h1">Let's study this one together!</h1>
             <button className="ms-btn ms-btn--primary ms-btn--large" onClick={goReveal}>
               Show me the word ▶
             </button>
@@ -329,11 +351,15 @@ export default function MemorySpell({
 
         {/* ── Reveal ── */}
         {phase === 'reveal' && (
-          <div className="ms-card ms-card--reveal">
-            {/* FUTURE: swap for animated buddy character */}
-            <span className="ms-buddy-emoji" aria-hidden="true">🦉</span>
-            <p className="ms-phase-hint">Study this word carefully</p>
-            {/* FUTURE: add letter-by-letter reveal animation on entry */}
+          <div className="ms-phase ms-phase--reveal">
+            <span className="ms-buddy" aria-hidden="true">
+              <BuddyAvatar
+                id={childCharacter?.id}
+                size={120}
+                fallback={childCharacter?.emoji || '🦉'}
+              />
+            </span>
+            <h1 className="ms-h1">Study this word carefully</h1>
             <div className="ms-word-display">
               <span className="ms-word-big">{word}</span>
             </div>
@@ -351,10 +377,20 @@ export default function MemorySpell({
 
         {/* ── Recall ── */}
         {phase === 'recall' && (
-          <div className="ms-card ms-card--recall">
-            <p className="ms-phase-hint">
-              The word has disappeared! Can you bring it back?
-            </p>
+          <div className="ms-phase ms-phase--recall">
+            <span className="ms-buddy" aria-hidden="true">
+              <BuddyAvatar
+                id={childCharacter?.id}
+                size={120}
+                fallback={childCharacter?.emoji || '🦉'}
+                cheering={buddyCheering}
+              />
+            </span>
+            <h1 className="ms-h1">
+              {lastResult?.correct === false
+                ? "Almost — let's look at the tricky bit"
+                : 'Your word has disappeared. Can you bring it back?'}
+            </h1>
 
             <div className="ms-hint-reveals">
               {hints.firstLetter && (
@@ -372,98 +408,95 @@ export default function MemorySpell({
               )}
             </div>
 
-            <LetterBoxes
-              value={input}
-              target={word}
-              inputRef={inputRef}
-              onChange={handleChange}
-              onKeyDown={handleKeyDown}
-            />
-
-            <button
-              className="ms-btn ms-btn--primary"
-              onClick={handleSubmit}
-              disabled={input.length < word.length}
-            >
-              Check ✓
-            </button>
-
-            <div className="ms-powerups">
-              <span className="ms-powerups-label">Need a hint?</span>
-              <button
-                className={`ms-hint-btn${hints.heard ? ' ms-hint-btn--used' : ''}`}
-                onClick={() => handleHint('heard')}
-                title="Hear the word again"
-              >
-                🔊 Hear it
-              </button>
-              <button
-                className={`ms-hint-btn${hints.firstLetter ? ' ms-hint-btn--used' : ''}`}
-                onClick={() => handleHint('firstLetter')}
-                disabled={hints.firstLetter}
-                title="Reveal the first letter"
-              >
-                🔤 First letter
-              </button>
-              <button
-                className={`ms-hint-btn${hints.letterCount ? ' ms-hint-btn--used' : ''}`}
-                onClick={() => handleHint('letterCount')}
-                disabled={hints.letterCount}
-                title="Show how many letters"
-              >
-                🔢 Letter count
-              </button>
-              <button
-                className={`ms-hint-btn${hints.chunk ? ' ms-hint-btn--used' : ''}`}
-                onClick={() => handleHint('chunk')}
-                disabled={hints.chunk}
-                title="Show word chunks"
-              >
-                🧩 Show chunks
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── Feedback ── */}
-        {phase === 'feedback' && lastResult && (
-          <div className={`ms-card ms-card--feedback${lastResult.correct ? ' ms-card--correct' : ' ms-card--wrong'}`}>
-            {lastResult.correct ? (
+            {/* Pre-submit: input + check + hints. Once submitted, the
+                feedback layer below replaces these. */}
+            {!lastResult && (
               <>
-                <span className="ms-feedback-emoji">🎉</span>
-                <p className="ms-feedback-msg ms-feedback-msg--correct">You brought it back!</p>
-                <span className="ms-word-answer">{word}</span>
-              </>
-            ) : (
-              <>
-                {/* FUTURE: trigger gentle near-miss sound here */}
-                <span className="ms-feedback-emoji">🤔</span>
-                <p className="ms-feedback-msg ms-feedback-msg--wrong">
-                  Almost — let's look at the tricky bit
-                </p>
-                <LetterDiff typed={lastResult.typed} target={word} />
-                <div className="ms-answer-reveal">
-                  <span className="ms-answer-label">The word was:</span>
-                  <span className="ms-word-answer">{word}</span>
-                  <span className="ms-chunk-display">{chunk}</span>
+                <LetterBoxes
+                  value={input}
+                  target={word}
+                  inputRef={inputRef}
+                  onChange={handleChange}
+                  onKeyDown={handleKeyDown}
+                />
+
+                <button
+                  className="ms-btn ms-btn--primary"
+                  onClick={handleSubmit}
+                  disabled={input.length < word.length}
+                >
+                  Check ✓
+                </button>
+
+                <div className="ms-powerups">
+                  <span className="ms-powerups-label">Need a hint?</span>
+                  <button
+                    className={`ms-hint-btn${hints.heard ? ' ms-hint-btn--used' : ''}`}
+                    onClick={() => handleHint('heard')}
+                    title="Hear the word again"
+                  >
+                    🔊 Hear it
+                  </button>
+                  <button
+                    className={`ms-hint-btn${hints.firstLetter ? ' ms-hint-btn--used' : ''}`}
+                    onClick={() => handleHint('firstLetter')}
+                    disabled={hints.firstLetter}
+                    title="Reveal the first letter"
+                  >
+                    🔤 First letter
+                  </button>
+                  <button
+                    className={`ms-hint-btn${hints.letterCount ? ' ms-hint-btn--used' : ''}`}
+                    onClick={() => handleHint('letterCount')}
+                    disabled={hints.letterCount}
+                    title="Show how many letters"
+                  >
+                    🔢 Letter count
+                  </button>
+                  <button
+                    className={`ms-hint-btn${hints.chunk ? ' ms-hint-btn--used' : ''}`}
+                    onClick={() => handleHint('chunk')}
+                    disabled={hints.chunk}
+                    title="Show word chunks"
+                  >
+                    🧩 Show chunks
+                  </button>
                 </div>
               </>
             )}
 
-            {Object.values(lastResult.hintsUsed).some(Boolean) && (
-              <p className="ms-hints-used">
-                Hints used: {[
-                  lastResult.hintsUsed.heard       && '🔊 heard',
-                  lastResult.hintsUsed.firstLetter && '🔤 first letter',
-                  lastResult.hintsUsed.letterCount && '🔢 letter count',
-                  lastResult.hintsUsed.chunk       && '🧩 chunks',
-                ].filter(Boolean).join(', ')}
-              </p>
+            {/* Correct: tinted-green success panel + auto-advancing Next. */}
+            {lastResult?.correct && (
+              <div className="ms-success-panel" role="status" aria-live="polite">
+                <p className="ms-success-msg">🎉 You got it right!</p>
+                <span className="ms-word-big ms-word-big--correct">{word}</span>
+                <button
+                  className="ms-btn ms-btn--primary ms-btn--large ms-btn--auto"
+                  onClick={() => {
+                    clearTimeout(autoAdvanceTimerRef.current);
+                    nextWord();
+                  }}
+                >
+                  <span className="ms-btn-auto-fill" aria-hidden="true" />
+                  <span className="ms-btn-auto-label">
+                    {wordIdx + 1 >= words.length ? 'See results ▶' : 'Next word ▶'}
+                  </span>
+                </button>
+              </div>
             )}
 
-            <button className="ms-btn ms-btn--primary ms-btn--large" onClick={nextWord}>
-              {wordIdx + 1 >= words.length ? 'See results ▶' : 'Next word ▶'}
-            </button>
+            {/* Wrong: pink-tinted panel mirroring the success panel. */}
+            {lastResult?.correct === false && (
+              <div className="ms-wrong-panel" role="status" aria-live="polite">
+                <LetterDiff typed={lastResult.typed} target={word} />
+                <p className="ms-wrong-msg">Good try! The word was...</p>
+                <span className="ms-word-big ms-word-big--wrong">{word}</span>
+                <span className="ms-chunk-display">{chunk}</span>
+                <button className="ms-btn ms-btn--primary ms-btn--large" onClick={nextWord}>
+                  {wordIdx + 1 >= words.length ? 'See results ▶' : 'Next word ▶'}
+                </button>
+              </div>
+            )}
           </div>
         )}
 

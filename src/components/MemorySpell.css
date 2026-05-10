@@ -149,14 +149,10 @@
   padding: 1rem 1rem 2rem;
 }
 
-/* ── Card ────────────────────────────────────────────────────────────────── */
+/* ── Phase wrapper ───────────────────────────────────────────────────────── */
+/* No white card; sits directly on the page background like the other games. */
 
-.ms-card {
-  background: #fff;
-  border: 2px solid #1a1a2e;
-  border-radius: 16px;
-  box-shadow: 4px 4px 0 #1a1a2e;
-  padding: 1.75rem 2rem;
+.ms-phase {
   width: 100%;
   max-width: 540px;
   display: flex;
@@ -164,40 +160,47 @@
   align-items: center;
   gap: 1rem;
   text-align: center;
+  padding: 0.5rem 1rem;
 }
 
-.ms-card--correct {
-  border-color: #6bcb77;
-  box-shadow: 4px 4px 0 #6bcb77;
-}
-
-.ms-card--wrong {
-  border-color: #f59e0b;
-  box-shadow: 4px 4px 0 #f59e0b;
-}
-
-/* ── Intro card ──────────────────────────────────────────────────────────── */
-
-.ms-buddy-emoji {
-  font-size: 3.5rem;
+/* Buddy avatar — emoji or BuddyAvatar SVG, sized consistently across phases. */
+.ms-buddy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 4rem;
   line-height: 1;
-  /* FUTURE: replace with animated buddy sprite element */
+  margin-bottom: 0.25rem;
+}
+.ms-buddy img,
+.ms-buddy svg {
+  width: 120px;
+  height: 120px;
+  object-fit: contain;
+  image-rendering: pixelated;
 }
 
-.ms-buddy-line {
-  font-size: 1.1rem;
-  font-weight: 700;
+/* H1 used at the top of every phase — replaces the old buddy-line +
+   phase-hint pair, large and friendly. */
+.ms-h1 {
+  font-family: 'Nunito', sans-serif;
+  font-size: 1.8rem;
+  font-weight: 800;
   color: #1a1a2e;
-  margin: 0;
+  margin: 0 0 0.5rem;
+  line-height: 1.25;
+  max-width: 480px;
 }
 
-/* ── Phase hint ──────────────────────────────────────────────────────────── */
-
-.ms-phase-hint {
-  font-size: 0.9rem;
-  color: #6b7280;
-  font-weight: 700;
-  margin: 0;
+/* Backwards-compat shims for older bits of CSS that still target these
+   classes (correct/wrong colour cues etc.). The container base is now
+   transparent so it inherits the page background. */
+.ms-card,
+.ms-card--correct,
+.ms-card--wrong {
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 /* ── Word display (reveal phase) ─────────────────────────────────────────── */
@@ -421,6 +424,91 @@
 
 .ms-btn--large { padding: 0.7rem 1.5rem; font-size: 1rem; }
 
+/* Auto-advance button: a 3-second progress fill slides over the button so
+   the child can see how long until the next word loads automatically. */
+.ms-btn--auto {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.ms-btn-auto-fill {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.35);
+  transform: translateX(-100%);
+  animation: ms-btn-auto-progress 3s linear forwards;
+  pointer-events: none;
+  z-index: 0;
+}
+.ms-btn-auto-label {
+  position: relative;
+  z-index: 1;
+}
+@keyframes ms-btn-auto-progress {
+  to { transform: translateX(0); }
+}
+
+/* Correct word highlight in green */
+.ms-word-big--correct { color: #16a34a; }
+
+/* Wrong word highlight, slightly muted so the panel doesn't shout */
+.ms-word-big--wrong { color: #1a1a2e; }
+
+/* Tinted-green success panel — pops over the recall view in place of the
+   input controls when the answer is correct. */
+.ms-success-panel {
+  background: rgba(34, 197, 94, 0.12);
+  border: 2px solid #22c55e;
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 460px;
+  box-shadow: 0 4px 0 rgba(22, 163, 74, 0.18);
+  animation: ms-success-pop 0.2s ease-out;
+}
+@keyframes ms-success-pop {
+  from { transform: scale(0.96); opacity: 0; }
+  to   { transform: scale(1);     opacity: 1; }
+}
+.ms-success-msg {
+  font-family: 'Nunito', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: #166534;
+  margin: 0;
+  text-align: center;
+}
+
+/* Pink-tinted wrong panel — mirrors the success panel structure. */
+.ms-wrong-panel {
+  background: rgba(248, 113, 113, 0.10);
+  border: 2px solid #f87171;
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 460px;
+  box-shadow: 0 4px 0 rgba(220, 38, 38, 0.15);
+  animation: ms-success-pop 0.2s ease-out;
+}
+.ms-wrong-msg {
+  font-family: 'Nunito', sans-serif;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #1a1a2e;
+  margin: 0;
+  text-align: center;
+}
+
 /* ── Feedback card ───────────────────────────────────────────────────────── */
 
 .ms-feedback-emoji { font-size: 3rem; line-height: 1; }
@@ -579,4 +667,4 @@
 .ms-wrap--es .ms-letter-box  { font-size: calc(var(--box-size, 38px) * 0.62); }
 .ms-wrap--es .ms-hint-btn    { font-size: 0.95rem; padding: 0.55rem 1rem; }
 .ms-wrap--es .ms-card        { gap: 1.35rem; }
-.ms-wrap--es .ms-buddy-line  { font-size: 1.2rem; line-height: 1.6; }
+.ms-wrap--es .ms-h1          { font-size: 2rem; line-height: 1.4; }

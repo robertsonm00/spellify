@@ -302,10 +302,45 @@ function WriteIt({
     return () => clearTimeout(t);
   }, [rows]);
 
+  // ── Per-word celebration: chime + confetti the first time each word
+  // is fully completed (all NUM_BASE practices marked done). Tracked by
+  // word so we don't fire twice if the row's `celebrated` flag flickers.
+  const celebratedWordsRef = useRef(new Set());
+  useEffect(() => {
+    rows.forEach((r) => {
+      const allDone = r.practices.slice(0, NUM_BASE).every(p => p.done);
+      if (!allDone) return;
+      if (celebratedWordsRef.current.has(r.word)) return;
+      celebratedWordsRef.current.add(r.word);
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        [523.25, 659.25, 783.99].forEach((freq, i) => {
+          const osc  = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.type = 'triangle';
+          osc.frequency.value = freq;
+          const t = ctx.currentTime + i * 0.12;
+          gain.gain.setValueAtTime(0, t);
+          gain.gain.linearRampToValueAtTime(0.22, t + 0.04);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+          osc.start(t); osc.stop(t + 0.4);
+        });
+      } catch { /* AudioContext unavailable */ }
+      confetti({
+        particleCount: 80,
+        spread: 65,
+        origin: { y: 0.45 },
+        colors: ['#a855f7', '#c084fc', '#6bcb77', '#ffd93d', '#4d96ff'],
+      });
+    });
+  }, [rows]);
+
   // ── Handlers ───────────────────────────────────────────────────────────────
 
   const doRestart = () => {
     onSaveRef.current?.(null);
+    celebratedWordsRef.current = new Set();
     setRows(makeInitialState(words));
     setWordsHidden(false);
     setJustCompleted(false);

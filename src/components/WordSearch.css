@@ -243,11 +243,13 @@
    is sitting on at the end of a drag.                                  */
 .ws-cell--sel,
 .ws-cell--sel:hover                   { background: #ffd93d; color: #1a1a2e; }
-.ws-cell--found,
-.ws-cell--found:hover                 { background: #bbf7d0; color: #14532d; }
-/* found always beats selected */
-.ws-cell--found.ws-cell--sel,
-.ws-cell--found.ws-cell--sel:hover    { background: #bbf7d0; color: #14532d; }
+/* Found cells stay green by default; hover deepens to a darker green so the
+   user still gets visual feedback when pointing at an already-found cell. */
+.ws-cell--found                       { background: #bbf7d0; color: #14532d; }
+.ws-cell--found:hover                 { background: #86efac; color: #14532d; }
+/* found always beats selected, but hover still tints */
+.ws-cell--found.ws-cell--sel          { background: #bbf7d0; color: #14532d; }
+.ws-cell--found.ws-cell--sel:hover    { background: #86efac; color: #14532d; }
 
 /* ── Toast ── */
 

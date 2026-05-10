@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import './WordListHub.css';
 import { scoreWord, scoreToBand } from '../utils/difficultyEngine';
 import DEFINITIONS from '../data/definitions';
 import { isSafeDefinition } from '../utils/definitionSafety';
-import { speakWord as speakHubWord } from '../utils/speech';
+import { speakWordWithInfo } from '../utils/speech';
 import { ACTIVITIES, PHASES } from '../data/activities';
 import { getActivityAvailability } from '../utils/activityAvailability';
 import ActivityIcon from './ActivityIcon';
@@ -66,6 +66,33 @@ async function fetchWordInfo(word, userAge) {
   }
 }
 
+// ── LockedActivityModal ──────────────────────────────────────────────────────
+// Reuses the WordDetail modal shell so the popup style stays consistent.
+
+function LockedActivityModal({ name, message, color, onClose }) {
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div className="hub-word-overlay" onClick={onClose} role="dialog" aria-modal="true">
+      <div className="hub-word-modal" style={{ '--modal-color': color }} onClick={(e) => e.stopPropagation()}>
+        <div className="hub-word-modal-header" style={{ background: color }}>
+          <span className="hub-word-modal-icon">🔒</span>
+          <h2 className="hub-word-modal-name">{name}</h2>
+          <button className="hub-word-modal-close" onClick={onClose} aria-label="Close">✕</button>
+        </div>
+        <div className="hub-word-modal-body">
+          <p className="hub-word-modal-badge">Locked</p>
+          <p className="hub-word-modal-def">{message}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── WordDetailModal ───────────────────────────────────────────────────────────
 
 function WordDetailModal({ word, userAge, chipColor, onClose }) {
@@ -86,21 +113,31 @@ function WordDetailModal({ word, userAge, chipColor, onClose }) {
 
   return (
     <div className="hub-word-overlay" onClick={onClose} role="dialog" aria-modal="true">
-      <div className="hub-word-modal" onClick={e => e.stopPropagation()}>
-        <button className="hub-word-modal-close" onClick={onClose} aria-label="Close">✕</button>
-
-        <div className="hub-word-modal-header" style={{ borderBottomColor: chipColor }}>
-          <h2 className="hub-word-modal-word" style={{ color: chipColor }}>{word}</h2>
-          {!info.loading && info.phonetic && (
-            <p className="hub-word-modal-phonetic">{info.phonetic}</p>
-          )}
-          {!info.loading && info.partOfSpeech && (
-            <span className="hub-word-modal-pos">{info.partOfSpeech}</span>
-          )}
+      <div className="hub-word-modal" style={{ '--modal-color': chipColor }} onClick={e => e.stopPropagation()}>
+        <div className="hub-word-modal-header" style={{ background: chipColor }}>
+          <span className="hub-word-modal-icon">📖</span>
+          <h2 className="hub-word-modal-name">{word}</h2>
+          <button className="hub-word-modal-close" onClick={onClose} aria-label="Close">✕</button>
         </div>
+        {!info.loading && (info.phonetic || info.partOfSpeech) && (
+          <div className="hub-word-modal-meta">
+            {info.phonetic && <span className="hub-word-modal-phonetic">{info.phonetic}</span>}
+            {info.partOfSpeech && <span className="hub-word-modal-pos">{info.partOfSpeech}</span>}
+          </div>
+        )}
 
         <div className="hub-word-modal-actions">
-          <button className="hub-word-modal-speak" onClick={() => speakHubWord(word)}>
+          <button
+            className="hub-word-modal-speak"
+            onClick={() => {
+              // Speak the word, then read the definition + example aloud
+              // so the child gets the full help context.
+              const lines = [];
+              if (info.definition) lines.push(info.definition);
+              if (info.example)    lines.push(`For example, ${info.example}`);
+              speakWordWithInfo(word, lines);
+            }}
+          >
             🔊 Hear it
           </button>
           <button className="hub-word-modal-teacher" disabled title="Coming in a future update">
@@ -186,11 +223,12 @@ function HubPlayerCard({ childName, childCharacter, year, activityStatuses, mast
     <section className="hub-player-card">
       <div className="hub-player-header">PLAYER</div>
       <div className="hub-player-body">
-        <div className="hub-player-buddy" aria-hidden="true">
-          {/* Custom pixel avatar for buddies that have one; emoji fallback otherwise */}
+        <div className="hub-player-buddy">
+          {/* Click the buddy → cheer pose + confetti + sound for ~3s */}
           <BuddyAvatar
             id={childCharacter?.id}
             size={88}
+            interactive
             fallback={childCharacter?.emoji || '⭐'}
           />
         </div>
@@ -249,6 +287,7 @@ function WordListHub({
   onOpenWordLists,
 }) {
   const [activeWord,      setActiveWord]      = useState(null); // { word, chipColor }
+  const [lockedInfo,      setLockedInfo]      = useState(null); // { name, message, color }
 
   // Layout toggle — 'classic' (vertical scroll) or 'split' (two-column).
   // Persisted so the user's choice survives reloads.
@@ -349,13 +388,34 @@ function WordListHub({
           <span className="hub-progress-pct">{progressPct}%</span>
         </div>
         <div className="hub-pixel-progress">
-          {progressBlocks.map((filled, i) => (
-            <div
-              key={i}
-              className={`hub-pixel-block${filled ? ' hub-pixel-block--filled' : ''}`}
-              title={ACTIVITIES[i].name}
-            />
-          ))}
+          {progressBlocks.map((filled, i) => {
+            const activity = ACTIVITIES[i];
+            const avail    = getActivityAvailability(activity, { session, user });
+            const locked   = avail.locked;
+            return (
+              <button
+                key={i}
+                type="button"
+                className={`hub-pixel-block${filled ? ' hub-pixel-block--filled' : ''}${locked ? ' hub-pixel-block--locked' : ''}`}
+                aria-label={locked ? `${activity.name} — locked. Tap for details.` : `Open ${activity.name}`}
+                onClick={() => {
+                  if (locked) {
+                    setLockedInfo({
+                      name:    activity.name,
+                      message: avail.message || 'This activity is currently unavailable.',
+                      color:   activity.color,
+                    });
+                  } else {
+                    onLaunch(activity.id);
+                  }
+                }}
+              >
+                <span className="hub-pixel-tip">
+                  {activity.name}{locked ? ' — Locked' : ''}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </section>
 
@@ -456,6 +516,16 @@ function WordListHub({
           userAge={userAge}
           chipColor={activeWord.chipColor}
           onClose={() => setActiveWord(null)}
+        />
+      )}
+
+      {/* ── Locked-activity info modal ── */}
+      {lockedInfo && (
+        <LockedActivityModal
+          name={lockedInfo.name}
+          message={lockedInfo.message}
+          color={lockedInfo.color}
+          onClose={() => setLockedInfo(null)}
         />
       )}
 

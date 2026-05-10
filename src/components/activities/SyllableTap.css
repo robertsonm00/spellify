@@ -1,3 +1,12 @@
+/* Wrap — pastel purple gradient that matches WriteIt. */
+.st-wrap {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: linear-gradient(160deg, #f5f0ff 0%, #fdf4ff 100%);
+  font-family: 'Nunito', sans-serif;
+}
+
 .st-shell {
   max-width: 600px;
   margin: 0 auto;
@@ -7,114 +16,261 @@
   align-items: center;
   text-align: center;
 }
-.st-header {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-.st-exit {
-  border: none;
-  background: transparent;
-  font-size: 1rem;
-  cursor: pointer;
-  color: #555;
-}
-.st-progress {
-  font-size: 0.9rem;
-  color: #777;
-}
-.st-title {
-  font-size: 1.6rem;
-  margin: 0.5rem 0;
-}
+
+/* Instructions — promoted to a real heading. */
 .st-instructions {
-  color: #555;
-  margin: 0 0 1.25rem;
-  max-width: 360px;
-}
-.st-play {
-  border: 2px solid #4d96ff;
-  background: #fff;
-  color: #1a5cbf;
-  border-radius: 999px;
-  padding: 0.6rem 1.25rem;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  margin-bottom: 1.5rem;
-}
-.st-tap-btn {
-  width: 220px;
-  height: 220px;
-  border-radius: 50%;
-  border: none;
-  background: linear-gradient(135deg, #6bcb77, #1e7e34);
-  color: #fff;
-  font-size: 2rem;
+  font-family: 'Nunito', sans-serif;
+  font-size: 1.6rem;
   font-weight: 800;
-  letter-spacing: 0.1em;
+  line-height: 1.3;
+  color: #1a1a2e;
+  margin: 1.25rem 0 1.5rem;
+  max-width: 520px;
+}
+
+.st-play {
+  border: 2px solid #a855f7;
+  background: #fff;
+  color: #6b21a8;
+  border-radius: 10px;
+  padding: 0.55rem 1.25rem;
+  font-size: 0.95rem;
+  font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 6px 0 #145e27;
-  transition: transform 0.08s, box-shadow 0.08s;
+  margin-bottom: 1.75rem;
+  transition: background 0.15s, transform 0.08s, box-shadow 0.1s;
+  box-shadow: 0 3px 0 rgba(168, 85, 247, 0.25);
+}
+.st-play:hover  { background: #f5f0ff; box-shadow: 0 4px 0 rgba(168, 85, 247, 0.35); }
+.st-play:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(168, 85, 247, 0.25); }
+
+/* ── TAP button — modern purple, mirrors the Hangman keyboard keys ── */
+.st-tap-btn {
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  border: 3px solid #7c3aed;
+  background: linear-gradient(150deg, #c084fc 0%, #a855f7 55%, #7c3aed 100%);
+  color: #fff;
+  font-family: 'Nunito', sans-serif;
+  font-size: 2.2rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  cursor: pointer;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.18);
+  box-shadow:
+    0 8px 0 #6b21a8,
+    0 14px 28px rgba(168, 85, 247, 0.35),
+    inset 0 -6px 0 rgba(0, 0, 0, 0.1);
+  transition: transform 0.08s, box-shadow 0.08s, filter 0.15s;
+}
+.st-tap-btn:hover {
+  filter: brightness(1.05);
+  box-shadow:
+    0 8px 0 #6b21a8,
+    0 16px 32px rgba(168, 85, 247, 0.5),
+    inset 0 -6px 0 rgba(0, 0, 0, 0.1);
 }
 .st-tap-btn:active {
-  transform: translateY(3px);
-  box-shadow: 0 3px 0 #145e27;
+  transform: translateY(4px);
+  box-shadow:
+    0 4px 0 #6b21a8,
+    0 6px 12px rgba(168, 85, 247, 0.3),
+    inset 0 -4px 0 rgba(0, 0, 0, 0.12);
 }
 .st-tap-btn:disabled {
-  opacity: 0.6;
+  opacity: 0.55;
   cursor: not-allowed;
+  box-shadow: 0 4px 0 #6b21a8;
 }
+
 .st-tap-count {
-  margin: 1rem 0;
-  font-size: 1.1rem;
+  margin: 1.1rem 0 0.5rem;
+  font-size: 1rem;
+  font-weight: 700;
   color: #1a1a2e;
 }
+
+/* The action row is [Undo] [TAP] [Done]. The TAP button lives in the middle
+   column at a fixed natural size so it never shifts when Undo/Done appear.
+   The side columns are equal-width fixed slots filled (or empty) as the
+   child progresses. */
+.st-tap-row {
+  display: grid;
+  grid-template-columns: 130px auto 130px;
+  align-items: center;
+  justify-items: center;
+  column-gap: 1.25rem;
+  margin: 1rem auto 0.5rem;
+  width: max-content;
+}
+.st-tap-row > .st-undo,
+.st-tap-row > .st-tap-row-spacer { justify-self: end;   }
+.st-tap-row > .st-cta,
+.st-tap-row > .st-tap-row-spacer:last-child { justify-self: start; }
+.st-tap-row-spacer {
+  display: block;
+  width: 130px;
+  height: 1px;          /* invisible placeholder, just holds the column */
+}
+
+/* Primary CTA — dark navy with a subtle radius (matches WriteIt's 8-10px
+   tone, far less rounded than the previous pill). */
 .st-cta {
   border: none;
   background: #1a1a2e;
   color: #fff;
-  padding: 0.75rem 1.75rem;
+  padding: 0.7rem 1.5rem;
   font-size: 1rem;
-  font-weight: 700;
-  border-radius: 999px;
+  font-weight: 800;
+  border-radius: 10px;
   cursor: pointer;
+  transition: background 0.15s, transform 0.08s;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.18);
 }
+.st-cta:hover  { background: #2a2a3e; }
+.st-cta:active { transform: translateY(1px); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.18); }
+.st-cta:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+
+/* Secondary — purple outline, same softer radius as the primary. */
+.st-undo {
+  border: 2px solid #6b21a8;
+  background: #fff;
+  color: #6b21a8;
+  padding: 0.6rem 1.2rem;
+  font-size: 0.95rem;
+  font-weight: 800;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.08s;
+}
+.st-undo:hover  { background: #f5f0ff; }
+.st-undo:active { transform: translateY(1px); }
+.st-undo:disabled { opacity: 0.4; cursor: not-allowed; }
+
 .st-cta-row {
   display: flex;
   gap: 0.75rem;
   margin-top: 1.5rem;
 }
-.st-result {
+
+/* ── Result panels — same treatment as MemorySpell ── */
+
+.st-success-panel,
+.st-wrong-panel {
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
   margin-top: 1rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 460px;
+  animation: st-panel-pop 0.2s ease-out;
 }
-.st-result-ok { color: #1e7e34; font-size: 1.15rem; }
-.st-result-bad { color: #c0392b; font-size: 1.05rem; }
+@keyframes st-panel-pop {
+  from { transform: scale(0.96); opacity: 0; }
+  to   { transform: scale(1);     opacity: 1; }
+}
+
+.st-success-panel {
+  background: rgba(34, 197, 94, 0.12);
+  border: 2px solid #22c55e;
+  box-shadow: 0 4px 0 rgba(22, 163, 74, 0.18);
+}
+.st-success-msg {
+  font-family: 'Nunito', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: #166534;
+  margin: 0;
+  text-align: center;
+}
+
+.st-wrong-panel {
+  background: rgba(248, 113, 113, 0.10);
+  border: 2px solid #f87171;
+  box-shadow: 0 4px 0 rgba(220, 38, 38, 0.15);
+}
+.st-wrong-msg {
+  font-family: 'Nunito', sans-serif;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #1a1a2e;
+  margin: 0;
+  text-align: center;
+}
+
+.st-word-big {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #1a1a2e;
+  letter-spacing: 0.05em;
+  line-height: 1.2;
+}
+.st-word-big--correct { color: #16a34a; }
+
+.st-result-detail {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #4b5563;
+  margin: 0;
+}
+
+/* Auto-advance fill that mirrors the success-panel timer in MemorySpell. */
+.st-cta--auto {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.st-cta-auto-fill {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateX(-100%);
+  animation: st-cta-auto-progress 3s linear forwards;
+  pointer-events: none;
+  z-index: 0;
+}
+.st-cta-auto-label { position: relative; z-index: 1; }
+@keyframes st-cta-auto-progress {
+  to { transform: translateX(0); }
+}
+
+/* ── Complete screen ── */
+
+.st-title {
+  font-family: 'Nunito', sans-serif;
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: #1a1a2e;
+  margin: 1.25rem 0 0.5rem;
+}
+
 .st-complete .st-score {
   font-size: 1.5rem;
-  font-weight: 700;
+  font-weight: 800;
+  color: #6b21a8;
   margin: 0.5rem 0 1.5rem;
 }
+
 .st-summary {
   list-style: none;
   padding: 0;
   width: 100%;
-  max-width: 380px;
+  /* +20% on the prior 380px max-width so each word row reads more easily. */
+  max-width: 456px;
   margin: 0 0 1.5rem;
 }
 .st-summary-row {
   display: flex;
   justify-content: space-between;
-  padding: 0.5rem 0.75rem;
+  padding: 0.55rem 0.85rem;
   border-radius: 8px;
   margin-bottom: 0.4rem;
+  font-weight: 700;
 }
-.st-summary-row--ok  { background: #e8f6ec; color: #1e7e34; }
+.st-summary-row--ok  { background: #e8f6ec; color: #16a34a; }
 .st-summary-row--bad { background: #fdecec; color: #c0392b; }
-.st-summary-counts { font-size: 0.85rem; opacity: 0.85; }
+.st-summary-counts   { font-size: 0.85rem; opacity: 0.85; }
