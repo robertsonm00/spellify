@@ -6,8 +6,17 @@ import { letterBoxSize } from '../utils/letterBoxSize';
 import GameHeader from './GameHeader';
 import GameProgressStrip from './GameProgressStrip';
 import RestartButton from './RestartButton';
+import BuddyAvatar from './BuddyAvatar';
 import './QuizQuest.css';
 import { speakWord as speak } from '../utils/speech';
+
+const QUESTION_H1 = {
+  choose_spelling:  'Which is the right spelling?',
+  hear_and_choose:  'Which word did you hear?',
+  match_definition: 'Match the word to its meaning',
+  fix_the_word:     'Fix the spelling!',
+  missing_letters:  'Fill in the missing letters',
+};
 
 // ── Success fanfare ──────────────────────────────────────────────────────────
 
@@ -353,6 +362,7 @@ function QuestionCard({ question, onAnswer, dyslexiaMode }) {
 export default function QuizQuest({
   words,
   wordObjects = [],
+  childCharacter = null,
   savedProgress = null,
   onSaveProgress,
   onComplete,
@@ -369,6 +379,28 @@ export default function QuizQuest({
   const [lastResult,      setLastResult]      = useState(null);
 
   const question = questions[qIdx] ?? null;
+
+  const autoAdvanceTimerRef = useRef(null);
+  const [buddyCheering, setBuddyCheering] = useState(false);
+
+  // Auto-advance 3 s after a correct answer, matching MemorySpell behaviour.
+  useEffect(() => {
+    if (phase === 'feedback' && lastResult?.correct) {
+      autoAdvanceTimerRef.current = setTimeout(handleNext, 3000);
+      return () => clearTimeout(autoAdvanceTimerRef.current);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, lastResult]);
+
+  // Buddy cheer pose for ~1 s on correct answer.
+  useEffect(() => {
+    if (lastResult?.correct) {
+      setBuddyCheering(true);
+      const t = setTimeout(() => setBuddyCheering(false), 1000);
+      return () => clearTimeout(t);
+    }
+    setBuddyCheering(false);
+  }, [lastResult]);
 
   // ── Phase transitions ──────────────────────────────────────────────────────
 
@@ -468,10 +500,11 @@ export default function QuizQuest({
       <div className={wrapClass}>
         {topbar}
         <div className="qq-stage">
-          <div className="qq-card qq-card--start">
-            {/* FUTURE: replace emoji with animated buddy character */}
-            <span className="qq-buddy-emoji" aria-hidden="true">🦉</span>
-            <h3 className="qq-start-heading">Quiz Quest</h3>
+          <div className="qq-phase">
+            <span className="qq-buddy" aria-hidden="true">
+              <BuddyAvatar id={childCharacter?.id} size={120} fallback={childCharacter?.emoji || '🦉'} />
+            </span>
+            <h1 className="qq-h1">Let's do Quiz Quest!</h1>
             <p className="qq-start-sub">Solve quick word challenges with your buddy</p>
             <p className="qq-start-meta">{questions.length} questions</p>
             <button className="qq-btn qq-btn--primary qq-btn--large" onClick={handleStart}>
@@ -529,62 +562,71 @@ export default function QuizQuest({
 
   // ── Question / feedback ────────────────────────────────────────────────────
 
-  const progressPct = (results.length / questions.length) * 100;
-
   return (
     <div className={wrapClass}>
       {topbar}
 
-      <div className="qq-progress-bar-track">
-        <div className="qq-progress-bar-fill" style={{ width: `${progressPct}%` }} />
-      </div>
-      <p className="qq-progress-label">Question {qIdx + 1} of {questions.length}</p>
-
       <div className="qq-stage">
+        <div className="qq-phase">
+          <span className="qq-buddy" aria-hidden="true">
+            <BuddyAvatar
+              id={childCharacter?.id}
+              size={120}
+              fallback={childCharacter?.emoji || '🦉'}
+              cheering={buddyCheering}
+            />
+          </span>
 
-        {phase === 'question' && question && (
-          // key={question.id} resets internal state when the question changes
-          <QuestionCard
-            key={question.id}
-            question={question}
-            onAnswer={handleAnswer}
-            dyslexiaMode={dyslexiaMode}
-          />
-        )}
+          {phase === 'question' && question && (
+            <>
+              <h1 className="qq-h1">{QUESTION_H1[question.type] ?? 'Answer the question'}</h1>
+              <QuestionCard
+                key={question.id}
+                question={question}
+                onAnswer={handleAnswer}
+                dyslexiaMode={dyslexiaMode}
+              />
+            </>
+          )}
 
-        {phase === 'feedback' && lastResult && (
-          <div className={`qq-card qq-card--feedback${lastResult.correct ? ' qq-card--correct' : ' qq-card--wrong'}`}>
-            {lastResult.correct ? (
-              <>
-                {/* FUTURE: bigger animated reaction here */}
-                <span className="qq-feedback-emoji">🎉</span>
-                <p className="qq-feedback-msg qq-feedback-msg--correct">Nice one!</p>
-                <span className="qq-feedback-answer">{question.answer}</span>
-              </>
-            ) : (
-              <>
-                {/* FUTURE: gentle near-miss sound */}
-                <span className="qq-feedback-emoji">🤔</span>
-                <p className="qq-feedback-msg qq-feedback-msg--wrong">
-                  Good try — let's look again
-                </p>
-                <div className="qq-feedback-detail">
-                  <span className="qq-feedback-label">You answered:</span>
-                  <span className="qq-feedback-given">{lastResult.given || '—'}</span>
-                  <span className="qq-feedback-label">Correct answer:</span>
-                  <span className="qq-feedback-answer">{question.answer}</span>
+          {phase === 'feedback' && lastResult && (
+            <>
+              <h1 className="qq-h1">
+                {lastResult.correct ? 'Brilliant — you nailed it!' : "Good try — let's look at this one"}
+              </h1>
+
+              {lastResult.correct ? (
+                <div className="qq-success-panel" role="status" aria-live="polite">
+                  <p className="qq-success-msg">🎉 You got it right!</p>
+                  <span className="qq-word-big qq-word-big--correct">{question.answer}</span>
+                  <button
+                    className="qq-btn qq-btn--primary qq-btn--large qq-btn--auto"
+                    onClick={() => { clearTimeout(autoAdvanceTimerRef.current); handleNext(); }}
+                  >
+                    <span className="qq-btn-auto-fill" aria-hidden="true" />
+                    <span className="qq-btn-auto-label">
+                      {qIdx + 1 >= questions.length ? 'See results ▶' : 'Next ▶'}
+                    </span>
+                  </button>
                 </div>
-              </>
-            )}
-
-            <button className="qq-btn qq-btn--primary qq-btn--large" onClick={handleNext}>
-              {qIdx + 1 >= questions.length ? 'See results ▶' : 'Next ▶'}
-            </button>
-          </div>
-        )}
-
+              ) : (
+                <div className="qq-wrong-panel" role="status" aria-live="polite">
+                  <p className="qq-wrong-msg">Good try! The answer was...</p>
+                  <span className="qq-word-big">{question.answer}</span>
+                  {lastResult.given && (
+                    <p className="qq-wrong-detail">
+                      You answered: <strong>{lastResult.given}</strong>
+                    </p>
+                  )}
+                  <button className="qq-btn qq-btn--primary qq-btn--large" onClick={handleNext}>
+                    {qIdx + 1 >= questions.length ? 'See results ▶' : 'Next ▶'}
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
-
     </div>
   );
 }

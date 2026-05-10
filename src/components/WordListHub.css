@@ -203,6 +203,35 @@
 }
 .hub-pixel-block:hover .hub-pixel-tip,
 .hub-pixel-block:focus-visible .hub-pixel-tip { opacity: 1; }
+
+/* Edge-clamp: first block aligns tip to its left edge so it doesn't
+   overshoot the container boundary on the left. */
+.hub-pixel-block:first-child .hub-pixel-tip {
+  left: 0;
+  transform: none;
+}
+.hub-pixel-block:first-child .hub-pixel-tip::after {
+  left: 12px;
+  transform: none;
+}
+
+/* Edge-clamp: last block aligns tip to its right edge. */
+.hub-pixel-block:last-child .hub-pixel-tip {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+.hub-pixel-block:last-child .hub-pixel-tip::after {
+  left: auto;
+  right: 12px;
+  transform: none;
+}
+
+/* Give the pixel-progress row a top gutter so tooltips have vertical
+   room in classic mode (where no card clips them). */
+.hub-pixel-progress {
+  padding-top: 8px;
+}
 .hub-pixel-block:hover:not(:disabled) {
   filter: brightness(1.04);
   transform: translate(1px, 1px);
@@ -848,8 +877,13 @@
   border-radius: 6px;
   box-shadow: 4px 4px 0 #2a2a2a;
   padding: 0;
-  overflow: hidden;
   position: relative;     /* anchor for the decorative window controls */
+}
+
+/* Progress card needs visible overflow so the pixel-block tooltips can
+   pop above the card boundary without being clipped. */
+.hub--split .hub-progress {
+  overflow: visible;
 }
 
 /* Decorative `_ □ ✕` window controls in the top-right of every panel
@@ -998,7 +1032,7 @@
   padding: 0.85rem 0.85rem 0.4rem;
 }
 .hub--split .hub-pixel-progress {
-  padding: 0 0.85rem 0.85rem;
+  padding: 8px 0.85rem 0.85rem;
 }
 
 /* ── Review callout ───────────────────────────────────────────────────────── */
