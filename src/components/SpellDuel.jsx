@@ -111,30 +111,18 @@ const KEYBOARD_ROWS = [
   ['N','O','P','Q','R','S','T','U','V','W','X','Y','Z'],
 ];
 
-// Flavour text keyed by number of lit segments remaining (0–6).
-const FLAVOUR = {
-  6: 'Your spell is ready!',
-  5: 'The duel begins…',
-  4: 'Stay focused!',
-  3: 'Halfway there — keep going!',
-  2: 'Danger! One wrong spell left!',
-  1: 'Last chance — think carefully!',
-};
-
 const SEGMENTS = 6;
 
+// Horizontal connected spell-energy bar. Drains from the right on each wrong guess.
 function SpellEnergyBar({ wrongCount, maxWrong, won, lost }) {
   const charges = maxWrong - wrongCount;
-  // Normalise to always show 6 visual segments regardless of difficulty setting.
   const dimCount = lost
     ? SEGMENTS
     : Math.round((Math.min(wrongCount, maxWrong) / maxWrong) * SEGMENTS);
-  const litSegments = SEGMENTS - dimCount;
 
   return (
     <div className="sd-energy-panel">
       <span className="sd-energy-icon" aria-hidden="true">🧙</span>
-      <p className="sd-energy-label">Spell Power</p>
       <div
         className="sd-energy-bar"
         role="meter"
@@ -144,10 +132,11 @@ function SpellEnergyBar({ wrongCount, maxWrong, won, lost }) {
         aria-valuemax={maxWrong}
       >
         {Array.from({ length: SEGMENTS }, (_, i) => {
-          const isLit = !lost && i >= dimCount;
+          // Segments fill left-to-right; rightmost drain first.
+          const isLit = !lost && i < (SEGMENTS - dimCount);
           let cls = 'sd-energy-segment';
-          if (isLit && won)       cls += ' sd-energy-segment--gold';
-          else if (isLit)         cls += ' sd-energy-segment--lit';
+          if (isLit && won) cls += ' sd-energy-segment--gold';
+          else if (isLit)   cls += ' sd-energy-segment--lit';
           return <div key={i} className={cls} />;
         })}
       </div>
@@ -158,9 +147,6 @@ function SpellEnergyBar({ wrongCount, maxWrong, won, lost }) {
           ? 'The spell is broken…'
           : `${charges} spell charge${charges === 1 ? '' : 's'} remaining`}
       </p>
-      {!won && !lost && (
-        <p className="sd-flavour-text">{FLAVOUR[litSegments] ?? FLAVOUR[6]}</p>
-      )}
     </div>
   );
 }
@@ -252,7 +238,12 @@ function SpellDuel({
         clearTimeout(shakeTimerRef.current);
         shakeTimerRef.current = setTimeout(() => setLastWrongLetter(null), 310);
       } else {
-        playCorrectChime();
+        // Only play the per-letter chime when this guess doesn't complete the word —
+        // the word-complete fanfare (playWordChime) fires separately and would overlap.
+        const newGuessed = new Set([...guessed, letter]);
+        const wordLettersLocal = new Set(queue[wordIndex].toUpperCase().split(''));
+        const willWin = [...wordLettersLocal].every(l => newGuessed.has(l));
+        if (!willWin) playCorrectChime();
         fireCorrectSparkles();
         setLastCorrectLetter(letter);
         clearTimeout(sparkleTimerRef.current);
@@ -359,59 +350,54 @@ function SpellDuel({
         {wordResults.length} of {queue.length} words done
       </GameProgressStrip>
 
-      {/* ── Game area: energy bar left | clue + word right ── */}
-      <div className="hm-game-area">
-        <div className="hm-left">
-          <SpellEnergyBar
-            wrongCount={wrongCount}
-            maxWrong={maxWrong}
-            won={phase === 'word-result' && won}
-            lost={phase === 'word-result' && lost}
-          />
-        </div>
-
-        <div className="hm-right">
-          {clue && (
-            <div className="hm-clue">
-              <p className="hm-clue-label">Clue</p>
-              <p className="hm-clue-text">{clue}</p>
-            </div>
-          )}
-
-          <div className="hm-blanks">
-            {blanks.map((ch, i) => (
-              <div
-                key={i}
-                className={[
-                  'hm-letter-box',
-                  ch ? 'revealed' : '',
-                  ch && ch === lastCorrectLetter ? 'sparkle' : '',
-                ].filter(Boolean).join(' ')}
-              >
-                {ch ?? ''}
-              </div>
-            ))}
+      {/* ── Clue + word blanks — centred ── */}
+      <div className="sd-word-area">
+        {clue && (
+          <div className="hm-clue">
+            <p className="hm-clue-label">Clue</p>
+            <p className="hm-clue-text">{clue}</p>
           </div>
+        )}
 
-          {phase === 'word-result' && (
-            <div className={`hm-word-result ${won ? 'won' : 'lost'}`}>
-              {won ? '🎉 Nice one!' : `The word was ${currentWord}`}
-              {!won && dyslexiaMode && (() => {
-                const tip = getSupportTip(queue[wordIndex]);
-                return tip ? (
-                  <div className="support-tip">
-                    <span className="support-tip-icon">💡</span>
-                    <span>{tip.support_strategy}</span>
-                  </div>
-                ) : null;
-              })()}
+        <div className="hm-blanks">
+          {blanks.map((ch, i) => (
+            <div
+              key={i}
+              className={[
+                'hm-letter-box',
+                ch ? 'revealed' : '',
+                ch && ch === lastCorrectLetter ? 'sparkle' : '',
+              ].filter(Boolean).join(' ')}
+            >
+              {ch ?? ''}
             </div>
-          )}
+          ))}
         </div>
+
+        {phase === 'word-result' && (
+          <div className={`hm-word-result ${won ? 'won' : 'lost'}`}>
+            {won ? '🎉 Nice one!' : `The word was ${currentWord}`}
+            {!won && dyslexiaMode && (() => {
+              const tip = getSupportTip(queue[wordIndex]);
+              return tip ? (
+                <div className="support-tip">
+                  <span className="support-tip-icon">💡</span>
+                  <span>{tip.support_strategy}</span>
+                </div>
+              ) : null;
+            })()}
+          </div>
+        )}
       </div>
 
-      {/* ── A–Z keyboard ── */}
+      {/* ── Spell energy bar + A–Z keyboard ── */}
       <div className="hm-keyboard-area">
+        <SpellEnergyBar
+          wrongCount={wrongCount}
+          maxWrong={maxWrong}
+          won={phase === 'word-result' && won}
+          lost={phase === 'word-result' && lost}
+        />
         <p className="hm-keyboard-label">Choose your next letter</p>
         {KEYBOARD_ROWS.map((row, ri) => (
           <div key={ri} className="hm-key-row">
