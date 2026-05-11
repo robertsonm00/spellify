@@ -54,7 +54,7 @@ export function useCustomLists(user) {
         .select()
         .single();
       if (!error && data) setLists(prev => [data, ...prev]);
-      return { error };
+      return { error, list: data || null };
     } else {
       const newList = {
         id:         `local-${Date.now()}`,
@@ -65,7 +65,7 @@ export function useCustomLists(user) {
       const updated = [newList, ...lists];
       saveToLocal(updated);
       setLists(updated);
-      return { error: null };
+      return { error: null, list: newList };
     }
   }, [useCloud, user, lists]);
 

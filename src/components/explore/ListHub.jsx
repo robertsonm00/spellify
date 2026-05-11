@@ -110,6 +110,9 @@ export default function ListHub({ list, listType = 'curriculum', session = null,
                 <span className="hub-section-label">WORD LIST</span>
                 <span className="hub-list-title">{list.name}</span>
               </div>
+              <span className="hub-section-count" aria-label={`${words.length} words`}>
+                {words.length}
+              </span>
             </div>
             <div className="hub-chips">
               {words.map((w, i) => {

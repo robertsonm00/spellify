@@ -18,6 +18,7 @@
   bottom: 0;
   width: 280px;
   border-right: 2px solid #2a2a2a;
+  box-shadow: 4px 0 0 #2a2a2a;
   background: #F5E8DB;
   z-index: 5;
   overflow: hidden;
@@ -302,6 +303,629 @@
 .ed-main .ep-list-card {
   position: relative;
 }
+
+/* ── Dotted "create list" card on My Lists ─────────────────────────────── */
+
+.ed-create-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  min-height: 120px;
+  width: 100%;
+  padding: 1.5rem;
+  background: transparent;
+  border: 3px dashed #c084fc;
+  border-radius: 8px;
+  color: #7c3aed;
+  cursor: pointer;
+  font-family: 'Press Start 2P', monospace;
+  text-align: center;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.08s ease;
+}
+
+.ed-create-card:hover {
+  background: #f5edff;
+  border-color: #7c3aed;
+  transform: translate(-1px, -1px);
+}
+
+.ed-create-card:active {
+  transform: translate(1px, 1px);
+}
+
+/* When it's the only thing on the page, take more vertical space so it
+   reads as the headline action. */
+.ed-create-card--solo {
+  min-height: 220px;
+  border-width: 4px;
+}
+
+.ed-create-card-plus {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.ed-create-card--solo .ed-create-card-plus {
+  font-size: 3rem;
+}
+
+.ed-create-card-text {
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  line-height: 1.6;
+}
+
+.ed-create-card--solo .ed-create-card-text {
+  font-size: 0.85rem;
+}
+
+/* ── Add-list chooser modal ────────────────────────────────────────────── */
+
+.ed-chooser-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 14, 30, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 1rem;
+}
+
+.ed-chooser {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  background: #fdf6e8;
+  border: 3px solid #2a2a2a;
+  border-radius: 10px;
+  box-shadow: 6px 6px 0 #2a2a2a;
+  padding: 1.5rem 1.5rem 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.ed-chooser-close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.6rem;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: #2a2a2a;
+}
+
+.ed-chooser-heading {
+  margin: 0;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.95rem;
+  color: #2a2a2a;
+  line-height: 1.35;
+}
+
+.ed-chooser-warn {
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  background: #fff7e0;
+  border: 2px solid #f59e0b;
+  border-radius: 6px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.85rem;
+  color: #6b3f00;
+}
+
+.ed-chooser-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #b45309;
+  font-weight: 800;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.ed-chooser-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  margin-top: 0.35rem;
+}
+
+.ed-chooser-option {
+  display: grid;
+  grid-template-columns: 2.2rem 1fr;
+  grid-template-rows: auto auto;
+  gap: 0.1rem 0.85rem;
+  align-items: center;
+  padding: 0.85rem 1rem;
+  background: #fff;
+  border: 2px solid #2a2a2a;
+  border-radius: 6px;
+  box-shadow: 3px 3px 0 #2a2a2a;
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.06s ease, box-shadow 0.06s ease, background 0.12s ease;
+}
+
+.ed-chooser-option:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 #2a2a2a;
+  background: #fffdf6;
+}
+
+.ed-chooser-option:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 #2a2a2a;
+}
+
+.ed-chooser-option-icon {
+  grid-row: 1 / span 2;
+  font-size: 1.6rem;
+  text-align: center;
+}
+
+.ed-chooser-option-title {
+  font-family: 'Nunito', sans-serif;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #2a2a2a;
+}
+
+.ed-chooser-option-hint {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #6b5d52;
+}
+
+/* ── Create-list overlay (reuses the onboarding canvas) ───────────────── */
+
+/* GeneratedWords / AddWordsManual already style themselves via
+   OnboardingFlow.css; we just need to float the canvas above the dashboard
+   and offer a close button so the user can bail out. */
+.ed-creator-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+}
+
+.ed-creator-close {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fdf6e8;
+  border: 2px solid #2a2a2a;
+  border-radius: 50%;
+  box-shadow: 3px 3px 0 #2a2a2a;
+  font-size: 1rem;
+  color: #2a2a2a;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.ed-creator-close:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 #2a2a2a;
+}
+
+.ed-creator-close:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 #2a2a2a;
+}
+
+/* ── Home page — 70/30 two-column grid with three retro card panels ──── */
+
+.ed-shell:has(.ed-main--home) {
+  height: calc(100vh - 56px);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ed-main--home {
+  display: grid;
+  grid-template-columns: 7fr 3fr;
+  gap: 1rem;
+  align-items: stretch;
+  height: calc(100vh - 56px);
+  overflow: hidden;
+  padding: 1rem 1.25rem 1rem 1rem;
+}
+
+.ed-home-left {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 1rem;
+  min-height: 0;
+}
+
+.ed-home-right {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Card chrome — same retro treatment as the GAMES panel on the activity
+   page so the home feels visually consistent. */
+.ed-main--home .hub-phase {
+  background: #fff;
+  border: 2px solid #2a2a2a;
+  border-radius: 6px;
+  box-shadow: 4px 4px 0 #2a2a2a;
+  margin-right: 4px;        /* room for the shadow */
+  margin-bottom: 4px;       /* room for the shadow */
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.ed-main--home .hub-phase::after { display: none; }
+
+.ed-main--home .hub-phase-header {
+  flex: 0 0 auto;
+  padding: 0.65rem 0.85rem;
+  border-bottom: 2px solid #2a2a2a;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+}
+
+.ed-main--home .ep-assignments-phase .hub-phase-header { background: #ffd97c; }
+.ed-main--home .ep-curriculum-phase .hub-phase-header { background: #87d1c1; }
+.ed-main--home .ep-your-lists-phase .hub-phase-header { background: #c8a3e5; }
+
+.ed-main--home .hub-phase-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.ed-main--home .hub-phase-label {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  color: #2a2a2a;
+}
+
+.ed-main--home .hub-phase-hint {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #4d3a25;
+}
+
+/* Assignments — sliver row in the left column. Sized to content; the
+   empty state is short so it stays compact. */
+.ed-main--home .ep-assignments-phase {
+  /* sliver — caps at ~20% of viewport so it never dominates the left col */
+  max-height: 22vh;
+}
+
+/* Curriculum + My Lists own the bulk of vertical space and scroll their
+   grids internally. */
+.ed-main--home .ep-curriculum-phase,
+.ed-main--home .ep-your-lists-phase {
+  flex: 1;
+  min-height: 0;
+}
+
+.ed-main--home .ep-curriculum-phase .hub-grid,
+.ed-main--home .ep-your-lists-phase .hub-grid {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #c8a3e5 transparent;
+}
+
+/* Cards inside each scrolling card column stay single-column full-width
+   (we already enforce this on .ed-main .hub-grid above). */
+
+/* ── Activity page (ListHub embedded in dashboard) ────────────────────── */
+
+/* The activity page fills the viewport beneath the TopNav and never
+   scrolls at the page level — each column manages its own internal
+   overflow. */
+.ed-main--list {
+  height: calc(100vh - 56px);
+  overflow: hidden;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── List banner: editable name + date, sits above the columns ──────── */
+
+.ed-list-banner {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #fff;
+  border-bottom: 2px solid #2a2a2a;
+}
+
+.ed-list-banner-icon {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.ed-list-name-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.4rem 0.5rem;
+  background: transparent;
+  border: 2px dashed transparent;
+  border-radius: 4px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #2a2a2a;
+  letter-spacing: 0.01em;
+}
+
+.ed-list-name-input:hover {
+  border-color: #c2b09a;
+  background: #fdf6e8;
+}
+
+.ed-list-name-input:focus {
+  outline: none;
+  border-color: #2a2a2a;
+  border-style: solid;
+  background: #fdf6e8;
+}
+
+.ed-list-name-static {
+  flex: 1;
+  min-width: 0;
+  padding: 0.4rem 0.5rem;
+  font-family: 'Nunito', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #2a2a2a;
+}
+
+.ed-list-banner-meta {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.55rem;
+  color: #6b5d52;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* When the activity page is mounted, clamp the shell to the viewport so
+   the page itself never scrolls — each column manages its own overflow.
+   The dashboard sidebar stays in place; the word list sits beside it and
+   the games stretch to fill the rest of the viewport. */
+.ed-shell:has(.ed-main--list) {
+  height: calc(100vh - 56px);
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* The split fills the remaining vertical space below the banner. */
+.ed-main--list .hub-shell--split {
+  flex: 1;
+  min-height: 0;
+  padding: 0;
+  background: transparent;
+  background-image: none;
+}
+
+.ed-main--list .hub--split {
+  height: 100%;
+  /* Default .hub caps at max-width: 860px — let the split fill the
+     viewport when it stands in for the sidebar. */
+  max-width: none;
+  width: 100%;
+  padding: 1rem;
+  grid-template-columns: 280px 1fr;
+  gap: 1rem;
+  align-items: stretch;
+}
+
+/* The ListHub's player card lives in the left column — hide it; the
+   sidebar player card already represents the user. */
+.ed-main--list .hub-player-card {
+  display: none;
+}
+
+/* The list name now lives in the banner above the split — drop it from
+   the WORD LIST panel header so the header is one line, matching the
+   PLAYER / GAMES headers in height. */
+.ed-main--list .hub-section-title-block .hub-list-title {
+  display: none;
+}
+
+/* Unify panel header heights — WORD LIST + GAMES + (PLAYER in sidebar)
+   all share the same vertical rhythm so the page reads as a consistent
+   panel grid. The header is a 3-column flex: title (left), spacer, count
+   (right) — matches the sidebar nav-link count chip. */
+.ed-main--list .hub-words .hub-section-header {
+  min-height: 40px;
+  padding: 0.6rem 0.85rem;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.ed-main--list .hub-words .hub-section-count {
+  background: #2a2a2a;
+  color: #fff;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.55rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+  min-width: 1.4rem;
+  text-align: center;
+  letter-spacing: 0.02em;
+}
+
+.ed-main--list .hub-activities::before {
+  min-height: 40px;
+  padding: 0.6rem 0.85rem;
+  display: flex;
+  align-items: center;
+}
+
+/* ── Left: word list, full height, internal scroll ─────────────────────── */
+
+/* Allow the panel's retro shadow to extend past the column edge — clipping
+   it (overflow:hidden) flattens it visually. The inner chip list owns its
+   own overflow:auto, so we don't need the column itself to clip. */
+.ed-main--list .hub-split-left {
+  height: 100%;
+  min-height: 0;        /* let the flex child shrink so overflow can engage */
+  overflow: visible;
+  padding-right: 4px;   /* room for the WORD LIST panel's 4px shadow */
+}
+
+.ed-main--list .hub-sticky-block {
+  position: static;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  gap: 0;
+}
+
+.ed-main--list .hub-words {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ed-main--list .hub-words .hub-section-header {
+  flex: 0 0 auto;
+}
+
+.ed-main--list .hub-words .hub-chips {
+  flex: 1;
+  /* Single column: each chip is its own row. Long lists scroll
+     vertically; horizontal overflow is clipped so a long word never
+     introduces a sideways scrollbar. The base `.hub-chips` style sets
+     flex-wrap:wrap — override to nowrap so the column doesn't break
+     into multiple side-by-side columns when the list is taller than
+     the viewport. */
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #c8a3e5 transparent;
+}
+
+.ed-main--list .hub-words .hub-chip {
+  width: 100%;
+  flex: 0 0 auto;
+  overflow-wrap: anywhere;   /* wrap rather than overflow on extra-long words */
+}
+
+/* Sidebar already provides "All lists" navigation — drop ListHub's
+   built-in EXPLORE back panel. */
+.ed-main--list .hub-word-lists {
+  display: none;
+}
+
+/* ── Right: progress + game grid, full height, internal scroll ─────────── */
+
+.ed-main--list .hub-split-right {
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+  scrollbar-width: thin;
+  scrollbar-color: #c8a3e5 transparent;
+}
+
+/* Flatten the phase containers so every activity card lives in a single
+   2-column grid inside one panel. We can't rearrange the DOM, so
+   `display: contents` lifts .hub-phase and .hub-grid's children directly
+   into .hub-activities. The two columns each flex with the available
+   width. The ::before pseudo provides a single "GAMES" header strip
+   replacing the three phase headers. */
+.ed-main--list .hub-activities {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  background: #fff;
+  border: 2px solid #2a2a2a;
+  border-radius: 6px;
+  box-shadow: 4px 4px 0 #2a2a2a;
+  padding: 0 1rem 1rem;
+  margin-right: 4px;     /* room for the box-shadow */
+  position: relative;
+}
+
+.ed-main--list .hub-activities::before {
+  content: 'GAMES';
+  grid-column: 1 / -1;
+  background: #c8a3e5;
+  border-bottom: 2px solid #2a2a2a;
+  margin: 0 -1rem 0.25rem;
+  padding: 0.75rem 1rem;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.7rem;
+  color: #2a2a2a;
+  letter-spacing: 0.06em;
+}
+
+.ed-main--list .hub-activities > .hub-section-label,
+.ed-main--list .hub-phase-header {
+  display: none;
+}
+
+.ed-main--list .hub-phase,
+.ed-main--list .hub-phase > .hub-grid {
+  display: contents;
+}
+
+.ed-main--list .hub-phase::after { display: none; }
+
+/* Each game card is a standalone tile in the flat grid. */
+.ed-main--list .hub-card {
+  margin: 0;
+  background: #fff;
+}
+
+/* "Not Started" → bright "▶ PLAY" CTA. We can't change the markup, so we
+   hide the original label (font-size:0) and inject the new text via
+   ::before. Vivid coral with retro chunky shadow → calls the kid to tap. */
+.ed-main--list .hub-card--not-started .hub-badge--not-started {
+  background: #ff6b6b !important;
+  color: #fff !important;
+  border: 2px solid #2a2a2a !important;
+  box-shadow: 2px 2px 0 #2a2a2a;
+  border-radius: 5px !important;
+  padding: 0.42rem 0.7rem !important;
+  font-size: 0;          /* hide original "NOT STARTED" text */
+  letter-spacing: 0;
+}
+
+.ed-main--list .hub-card--not-started .hub-badge--not-started::before {
+  content: '▶ PLAY';
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+  color: #fff;
+}
+
 
 /* ── Responsive: stack on small screens ────────────────────────────────── */
 

@@ -20,9 +20,10 @@ import { useCustomLists } from '../../hooks/useCustomLists';
 import { useProgress }    from '../../hooks/useProgress';
 import { ACTIVITIES }     from '../../data/activities';
 import ListHub            from './ListHub';
-import CreateListModal    from './CreateListModal';
 import SignInModal        from './SignInModal';
 import { HubPlayerCard }  from '../WordListHub';
+import { GeneratedWords } from '../OnboardingFlow';
+import AddWordsManual     from '../AddWordsManual';
 import '../WordListHub.css';
 import './ExplorePage.css';
 import './ExploreDashboard.css';
@@ -101,6 +102,37 @@ function ListCard({ list, onClick, progress, isFavourite, onToggleFavourite }) {
   );
 }
 
+// ── Add-list chooser modal ───────────────────────────────────────────────────
+
+function AddListChooser({ isGuest, onPickRandom, onPickManual, onSignIn, onClose }) {
+  return (
+    <div className="ed-chooser-overlay" onClick={onClose}>
+      <div className="ed-chooser" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Create a word list">
+        <button className="ed-chooser-close" onClick={onClose} aria-label="Close">✕</button>
+        <h2 className="ed-chooser-heading">Create a word list</h2>
+        {isGuest && (
+          <p className="ed-chooser-warn">
+            You're not signed in — your list will be saved on this device only.
+            {' '}<button className="ed-chooser-link" onClick={onSignIn}>Sign in to save permanently</button>.
+          </p>
+        )}
+        <div className="ed-chooser-options">
+          <button className="ed-chooser-option" onClick={onPickRandom}>
+            <span className="ed-chooser-option-icon" aria-hidden="true">🎲</span>
+            <span className="ed-chooser-option-title">Create a random list</span>
+            <span className="ed-chooser-option-hint">Picks 8 words for your year</span>
+          </button>
+          <button className="ed-chooser-option" onClick={onPickManual}>
+            <span className="ed-chooser-option-icon" aria-hidden="true">✍️</span>
+            <span className="ed-chooser-option-title">Create my own list</span>
+            <span className="ed-chooser-option-hint">Type your own words</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Sidebar nav link ─────────────────────────────────────────────────────────
 
 function NavLink({ icon, label, count, active, onClick }) {
@@ -146,7 +178,8 @@ export default function ExploreDashboard({
 }) {
   const [page,          setPage]          = useState('home');   // 'home'|'mylists'|'explore'|'favourites'|'recent'
   const [selectedList,  setSelectedList]  = useState(null);     // when set, ListHub takes the right pane
-  const [showCreate,    setShowCreate]    = useState(false);
+  const [creator,       setCreator]       = useState(null);     // null | 'random' | 'manual'
+  const [showChooser,   setShowChooser]   = useState(false);
   const [showSignIn,    setShowSignIn]    = useState(false);
   const [progressCache, setProgressCache] = useState({});
 
@@ -156,7 +189,7 @@ export default function ExploreDashboard({
   useEffect(() => { localStorage.setItem(FAV_KEY, JSON.stringify(favourites)); }, [favourites]);
   useEffect(() => { localStorage.setItem(RECENT_KEY, JSON.stringify(recent));     }, [recent]);
 
-  const { lists: customLists, addList } = useCustomLists(user);
+  const { lists: customLists, addList, updateList } = useCustomLists(user);
   const { getListProgress, markComplete } = useProgress(user);
 
   const selectedYear      = session?.year ?? 1;
@@ -214,6 +247,58 @@ export default function ExploreDashboard({
   const openList = (list, listType) => {
     pushRecent(list.id);
     setSelectedList({ list, listType });
+    setListNameDraft(list.name);
+  };
+
+  // ── Editable list name (custom lists only) ────────────────────────────
+  const [listNameDraft, setListNameDraft] = useState('');
+
+  const saveListName = async () => {
+    if (!selectedList || selectedList.listType !== 'custom') return;
+    const trimmed = listNameDraft.trim();
+    if (!trimmed || trimmed === selectedList.list.name) {
+      setListNameDraft(selectedList.list.name);
+      return;
+    }
+    await updateList(selectedList.list.id, { name: trimmed });
+    setSelectedList(prev => prev ? { ...prev, list: { ...prev.list, name: trimmed } } : null);
+  };
+
+  // Pretty-formatted date for the banner.
+  const formatBannerDate = (iso) => {
+    if (!iso) return '';
+    try {
+      return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+    } catch { return ''; }
+  };
+
+  // Sidebar / dotted-card entry point: opens the chooser, which then routes
+  // to one of the onboarding's existing list-creation screens.
+  const startAddList = () => setShowChooser(true);
+
+  // Single create-list handler — same path for random + manual.
+  // Naming mirrors what the onboarding gives us: prefer ruleLabel if the
+  // user picked a phonics rule, otherwise generic stamps.
+  const dateStamp = () => new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+
+  const handleCreate = async ({ words, mode, ruleLabel }) => {
+    if (!words || words.length === 0) return;
+    const name =
+      mode === 'random'
+        ? (ruleLabel ? `${ruleLabel} — ${dateStamp()}` : `Random list — ${dateStamp()}`)
+        : `My list — ${dateStamp()}`;
+    const { list } = await addList({ name, words });
+    setCreator(null);
+    if (list) {
+      const normalised = {
+        ...list,
+        category: 'Custom',
+        words: Array.isArray(list.words)
+          ? list.words.map(w => (typeof w === 'string' ? { word: w, definition: '' } : w))
+          : [],
+      };
+      openList(normalised, 'custom');
+    }
   };
 
   const handleMarkComplete = async (listId, activity, opts) => {
@@ -245,8 +330,34 @@ export default function ExploreDashboard({
   const renderPage = () => {
     if (selectedList) {
       const backHome = () => setSelectedList(null);
+      const isCustom = selectedList.listType === 'custom';
+      const meta = isCustom
+        ? formatBannerDate(selectedList.list.created_at)
+        : (selectedList.list.category || '');
       return (
         <main className="ed-main ed-main--list">
+          <header className="ed-list-banner">
+            <span className="ed-list-banner-icon" aria-hidden="true">
+              {isCustom ? '📝' : '🔭'}
+            </span>
+            {isCustom ? (
+              <input
+                className="ed-list-name-input"
+                value={listNameDraft}
+                onChange={(e) => setListNameDraft(e.target.value)}
+                onBlur={saveListName}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') e.target.blur();
+                  if (e.key === 'Escape') { setListNameDraft(selectedList.list.name); e.target.blur(); }
+                }}
+                aria-label="List name (click to rename)"
+                spellCheck={false}
+              />
+            ) : (
+              <span className="ed-list-name-static">{selectedList.list.name}</span>
+            )}
+            {meta && <span className="ed-list-banner-meta">{meta}</span>}
+          </header>
           <ListHub
             list={selectedList.list}
             listType={selectedList.listType}
@@ -264,43 +375,56 @@ export default function ExploreDashboard({
     if (page === 'home') {
       return (
         <main className="ed-main ed-main--home">
-          <PaneSection headerClass="ep-assignments-phase" label="Assignments" hint="Word lists from your teacher">
-            <p className="ep-phase-empty">No word lists assigned</p>
-          </PaneSection>
-          <PaneSection headerClass="ep-curriculum-phase" label="Curriculum Lists" hint={`${yearLabel} spelling lists`}>
-            {renderGrid(
-              curriculumForYear.map(l => ({ list: l, listType: 'curriculum' })),
-              'No curriculum lists for this year.',
-            )}
-          </PaneSection>
-          <PaneSection headerClass="ep-your-lists-phase" label="Your Lists" hint="Custom word lists">
-            {user
-              ? renderGrid(
-                  normalisedCustom.map(l => ({ list: l, listType: 'custom' })),
-                  'No lists yet — create one to get started.',
-                )
-              : <p className="ep-phase-empty">Sign in to create and save your own word lists.</p>}
-          </PaneSection>
+          <div className="ed-home-left">
+            <PaneSection headerClass="ep-assignments-phase" label="Assignments" hint="Word lists from your teacher">
+              <p className="ep-phase-empty">No word lists assigned</p>
+            </PaneSection>
+            <PaneSection headerClass="ep-curriculum-phase" label="Curriculum Lists" hint={`${yearLabel} spelling lists`}>
+              {renderGrid(
+                curriculumForYear.map(l => ({ list: l, listType: 'curriculum' })),
+                'No curriculum lists for this year.',
+              )}
+            </PaneSection>
+          </div>
+          <div className="ed-home-right">
+            <PaneSection headerClass="ep-your-lists-phase" label="My Lists" hint="Your custom word lists">
+              {user
+                ? renderGrid(
+                    normalisedCustom.map(l => ({ list: l, listType: 'custom' })),
+                    'No lists yet — create one to get started.',
+                  )
+                : <p className="ep-phase-empty">Sign in to create and save your own word lists.</p>}
+            </PaneSection>
+          </div>
         </main>
       );
     }
 
     if (page === 'mylists') {
+      const hasLists = normalisedCustom.length > 0;
       return (
         <main className="ed-main ed-main--mylists">
           <PaneSection headerClass="ep-your-lists-phase" label="My Lists" hint="Your custom word lists">
-            {user
-              ? renderGrid(
-                  normalisedCustom.map(l => ({ list: l, listType: 'custom' })),
-                  'No lists yet. Use the + button below to create one.',
-                )
-              : <p className="ep-phase-empty">Sign in to create and save your own word lists.</p>}
-            <div className="ep-phase-footer">
+            <div className="hub-grid">
+              {hasLists && normalisedCustom.map(list => (
+                <ListCard
+                  key={list.id}
+                  list={list}
+                  progress={progressCache[list.id] || {}}
+                  isFavourite={favourites.includes(list.id)}
+                  onToggleFavourite={toggleFavourite}
+                  onClick={() => openList(list, 'custom')}
+                />
+              ))}
               <button
-                className="ep-phase-add-btn"
-                onClick={() => user ? setShowCreate(true) : setShowSignIn(true)}
+                className={`ed-create-card${hasLists ? '' : ' ed-create-card--solo'}`}
+                onClick={startAddList}
+                type="button"
               >
-                ＋ Create a word list
+                <span className="ed-create-card-plus" aria-hidden="true">＋</span>
+                <span className="ed-create-card-text">
+                  {hasLists ? 'Add another list' : 'Create your first list'}
+                </span>
               </button>
             </div>
           </PaneSection>
@@ -398,14 +522,47 @@ export default function ExploreDashboard({
 
       {renderPage()}
 
-      {showCreate && (
-        <CreateListModal
-          onClose={() => setShowCreate(false)}
-          onSave={async (newList) => {
-            await addList(newList);
-            setShowCreate(false);
-          }}
+      {showChooser && (
+        <AddListChooser
+          isGuest={!user}
+          onPickRandom={() => { setShowChooser(false); setCreator('random'); }}
+          onPickManual={() => { setShowChooser(false); setCreator('manual'); }}
+          onSignIn={() => { setShowChooser(false); setShowSignIn(true); }}
+          onClose={() => setShowChooser(false)}
         />
+      )}
+      {creator && (
+        <div className="ob-wrap ed-creator-overlay">
+          <button
+            className="ed-creator-close"
+            onClick={() => setCreator(null)}
+            aria-label="Close"
+          >
+            ✕
+          </button>
+          <div className="ob-card">
+            {creator === 'random' && (
+              <GeneratedWords
+                yearGroup={selectedYear}
+                onConfirm={({ words, ruleLabel }) =>
+                  handleCreate({ words, mode: 'random', ruleLabel })
+                }
+              />
+            )}
+            {creator === 'manual' && (
+              <div className="ob-step">
+                <div className="ob-step-header">
+                  <div className="ob-step-icon">✏️</div>
+                  <h2 className="ob-step-title">Add your words</h2>
+                  <p className="ob-step-sub">Type one at a time · min 3 words</p>
+                </div>
+                <AddWordsManual
+                  onWordsReady={(words) => handleCreate({ words, mode: 'manual' })}
+                />
+              </div>
+            )}
+          </div>
+        </div>
       )}
       {showSignIn && (
         <SignInModal
