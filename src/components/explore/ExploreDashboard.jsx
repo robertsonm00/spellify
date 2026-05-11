@@ -176,7 +176,7 @@ export default function ExploreDashboard({
   signInWithGoogle,
   onOpenSettings,
 }) {
-  const [page,          setPage]          = useState('home');   // 'home'|'mylists'|'explore'|'favourites'|'recent'
+  const [page,          setPage]          = useState('home');   // 'home'|'assignments'|'mylists'|'explore'|'favourites'|'recent'
   const [selectedList,  setSelectedList]  = useState(null);     // when set, ListHub takes the right pane
   const [creator,       setCreator]       = useState(null);     // null | 'random' | 'manual' | 'edit'
   const [showChooser,   setShowChooser]   = useState(false);
@@ -437,6 +437,16 @@ export default function ExploreDashboard({
       );
     }
 
+    if (page === 'assignments') {
+      return (
+        <main className="ed-main ed-main--assignments">
+          <PaneSection headerClass="ep-assignments-phase" label="Assignments" hint="Word lists from your teacher">
+            <p className="ep-phase-empty">No word lists assigned</p>
+          </PaneSection>
+        </main>
+      );
+    }
+
     if (page === 'mylists') {
       const hasLists = normalisedCustom.length > 0;
       return (
@@ -524,6 +534,7 @@ export default function ExploreDashboard({
 
           <nav className="ed-nav" aria-label="Explore navigation">
             <NavLink icon="🏠" label="Home"            active={page === 'home'        && !selectedList} onClick={() => { setSelectedList(null); setPage('home'); }} />
+            <NavLink icon="📬" label="Assignments"     count={0}                                          active={page === 'assignments' && !selectedList} onClick={() => { setSelectedList(null); setPage('assignments'); }} />
             <NavLink icon="📝" label="My lists"        count={user ? normalisedCustom.length : null}     active={page === 'mylists'     && !selectedList} onClick={() => { setSelectedList(null); setPage('mylists'); }} />
             <NavLink icon="🔭" label="Explore"         count={curriculumForYear.length}                  active={page === 'explore'     && !selectedList} onClick={() => { setSelectedList(null); setPage('explore'); }} />
             <NavLink icon="⭐" label="Favourites"      count={favouriteEntries.length}                   active={page === 'favourites'  && !selectedList} onClick={() => { setSelectedList(null); setPage('favourites'); }} />

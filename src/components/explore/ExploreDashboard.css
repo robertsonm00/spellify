@@ -993,7 +993,139 @@
 }
 
 
-/* ── Responsive: stack on small screens ────────────────────────────────── */
+/* ──────────────────────────────────────────────────────────────────────── */
+/* Pixel UI inspiration: bevelled keys + window chrome + sparkle accents.
+   All scoped to .ed-shell so deleting this block reverts the dashboard to
+   the flat-button look without touching any other surface. */
+/* ──────────────────────────────────────────────────────────────────────── */
+
+/* Shared keycap recipe — apply inset highlight (top) and inset shadow
+   (bottom) so every button reads like a physical 3-D key. The existing
+   hard outer drop shadow stays for the chunky retro feel. */
+.ed-shell .ed-nav-link,
+.ed-shell .ed-footer-signin,
+.ed-shell .ed-icon-btn,
+.ed-shell .ed-listfoot-btn,
+.ed-shell .ed-main--list .hub-badge--not-started {
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.18),
+    3px 3px 0 #2a2a2a;
+}
+
+.ed-shell .ed-nav-link:hover {
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.7),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.18),
+    4px 4px 0 #2a2a2a;
+}
+
+.ed-shell .ed-nav-link:active,
+.ed-shell .ed-listfoot-btn:active,
+.ed-shell .ed-footer-signin:active,
+.ed-shell .ed-icon-btn:active:not(:disabled) {
+  box-shadow:
+    inset 0 -2px 0 rgba(255, 255, 255, 0.5),
+    inset 0 2px 0 rgba(0, 0, 0, 0.22),
+    1px 1px 0 #2a2a2a;
+}
+
+/* The icon buttons already have a dark "screen" — keep the inset glow but
+   override the shared rule to preserve their inset-2px frame and slimmer
+   shadow rhythm. */
+.ed-shell .ed-icon-btn {
+  box-shadow:
+    inset 0 2px 0 rgba(255, 217, 124, 0.35),
+    inset 0 0 0 2px #1a1a2e,
+    3px 3px 0 #2a2a2a;
+}
+
+/* PLAY badge — coral keycap. Slim its shadow so it fits inside the card
+   without colliding with the card edge, while still reading as 3-D. */
+.ed-shell .ed-main--list .hub-badge--not-started {
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -1.5px 0 rgba(0, 0, 0, 0.22),
+    2px 2px 0 #2a2a2a;
+}
+
+/* Window controls (_ □ ✕) removed by request — panel headers stay clean. */
+
+/* ── Sparkle accent on the GAMES label ────────────────────────────────── */
+
+/* Tuck a tiny pixel sparkle into the GAMES header — visible because we
+   replaced the ::before content string. */
+.ed-main--list .hub-activities::before {
+  content: '✦  GAMES';
+}
+
+/* ── Pixel-UI flourishes for the activity page ───────────────────────── */
+
+/* Dotted/sparkle texture behind the chip list — almost-invisible cream
+   dots break up the empty space below short word lists without
+   distracting from the chips themselves. */
+.ed-main--list .hub-words .hub-chips {
+  background-image:
+    radial-gradient(circle at 25% 30%, rgba(180, 150, 110, 0.18) 1.3px, transparent 1.6px),
+    radial-gradient(circle at 75% 70%, rgba(180, 150, 110, 0.12) 1.3px, transparent 1.6px);
+  background-size: 32px 24px;
+  background-position: 0 0, 16px 12px;
+}
+
+/* Pep sticker pinned to the top of the activity area — tilted, retro,
+   sits like a paper sticker stuck on a window. */
+.ed-main--list {
+  position: relative;       /* anchor for ::before pep sticker */
+}
+
+.ed-main--list::before {
+  content: '★  PICK A GAME!';
+  position: absolute;
+  top: 0.5rem;
+  right: 1.1rem;
+  z-index: 4;
+  transform: rotate(5deg);
+  padding: 0.4rem 0.7rem;
+  background: #ffd97c;
+  color: #2a2a2a;
+  border: 2px solid #2a2a2a;
+  border-radius: 4px;
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -1.5px 0 rgba(0, 0, 0, 0.18),
+    3px 3px 0 #2a2a2a;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.5rem;
+  letter-spacing: 0.08em;
+  pointer-events: none;
+}
+
+/* Gentle sparkle blink on the WORD LIST count pill — flickers like an
+   old monitor pixel. Disabled when the user prefers reduced motion. */
+@keyframes ed-sparkle-pulse {
+  0%, 60%, 100% { transform: scale(1); filter: none; }
+  72%           { transform: scale(1.08); filter: brightness(1.25); }
+  84%           { transform: scale(1);    filter: none; }
+}
+
+.ed-main--list .hub-words .hub-section-count {
+  animation: ed-sparkle-pulse 4.2s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ed-main--list .hub-words .hub-section-count { animation: none; }
+}
+
+/* Soft glowing aura around the PLAY buttons on hover — like the buttons
+   are heating up. Cheap to do with a layered box-shadow. */
+.ed-main--list .hub-card--not-started:hover .hub-badge--not-started {
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -1.5px 0 rgba(0, 0, 0, 0.22),
+    3px 3px 0 #2a2a2a,
+    0 0 12px rgba(255, 107, 107, 0.55);
+}
 
 @media (max-width: 820px) {
   .ed-shell {
