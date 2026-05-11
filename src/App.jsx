@@ -10,6 +10,7 @@ import { isActivityAvailable } from './utils/activityAvailability';
 import TopNav         from './components/TopNav';
 import { fireBuddyCheer } from './components/BuddyAvatar';
 import ExplorePage    from './components/explore/ExplorePage';
+import ExploreDashboard from './components/explore/ExploreDashboard';
 import SignInModal    from './components/explore/SignInModal';
 import Settings       from './components/Settings';
 import { GeneratedWords } from './components/OnboardingFlow';
@@ -219,7 +220,7 @@ function App() {
 
   if (!session || !session.words || session.words.length === 0) {
     // Show Explore even without a session — welcome screen not needed if they go via Explore
-    if (section === 'explore') {
+    if (section === 'explore' || section === 'exploreDashboard') {
       return (
         <>
           <TopNav
@@ -230,15 +231,28 @@ function App() {
             onSignInClick={() => setShowSignIn(true)}
             onSignOut={signOut}
             onExit={() => setScreen('welcome')}
+            onSettings={() => setSettingsOpen(true)}
           />
-          <ExplorePage
-            session={session}
-            user={user}
-            profile={profile}
-            signIn={signIn}
-            signUp={signUp}
-            signInWithGoogle={signInWithGoogle}
-          />
+          {section === 'explore' ? (
+            <ExplorePage
+              session={session}
+              user={user}
+              profile={profile}
+              signIn={signIn}
+              signUp={signUp}
+              signInWithGoogle={signInWithGoogle}
+            />
+          ) : (
+            <ExploreDashboard
+              session={session}
+              user={user}
+              profile={profile}
+              signIn={signIn}
+              signUp={signUp}
+              signInWithGoogle={signInWithGoogle}
+              onOpenSettings={() => setSettingsOpen(true)}
+            />
+          )}
         </>
       );
     }
@@ -308,6 +322,19 @@ function App() {
           signIn={signIn}
           signUp={signUp}
           signInWithGoogle={signInWithGoogle}
+        />
+      )}
+
+      {/* ── Explore Dashboard (experimental) ── */}
+      {section === 'exploreDashboard' && (
+        <ExploreDashboard
+          session={session}
+          user={user}
+          profile={profile}
+          signIn={signIn}
+          signUp={signUp}
+          signInWithGoogle={signInWithGoogle}
+          onOpenSettings={() => setSettingsOpen(true)}
         />
       )}
 

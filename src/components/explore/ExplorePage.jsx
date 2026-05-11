@@ -172,7 +172,7 @@ export default function ExplorePage({ session = null, user, profile, signIn, sig
   return (
     <>
     <div className="hub-shell hub-shell--split">
-    <div className="hub hub--split">
+    <div className="hub hub--split hub--split-explore">
 
       {/* ── Left column ── */}
       <div className="hub-split-left">

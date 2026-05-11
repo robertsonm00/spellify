@@ -1,5 +1,28 @@
 /* ── ExplorePage — hub split layout ─────────────────────────────────────── */
 
+/* Left column is fixed while the page scrolls; only the right column
+   (assignments + curriculum lists) moves with the scroll. */
+.hub--split-explore .hub-split-left {
+  position: sticky;
+  top: calc(56px + 1.5rem);
+  align-self: start;
+  max-height: calc(100vh - 56px - 3rem);
+  overflow-y: auto;
+  /* room for the retro 4px box-shadow on inner panels */
+  padding-right: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: #c8a3e5 transparent;
+}
+
+@media (max-width: 720px) {
+  .hub--split-explore .hub-split-left {
+    position: static;
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
+  }
+}
+
 /* ── List card preview words ─────────────────────────────────────────────── */
 
 .ep-card-preview {
