@@ -178,7 +178,7 @@ export default function ExploreDashboard({
 }) {
   const [page,          setPage]          = useState('home');   // 'home'|'mylists'|'explore'|'favourites'|'recent'
   const [selectedList,  setSelectedList]  = useState(null);     // when set, ListHub takes the right pane
-  const [creator,       setCreator]       = useState(null);     // null | 'random' | 'manual'
+  const [creator,       setCreator]       = useState(null);     // null | 'random' | 'manual' | 'edit'
   const [showChooser,   setShowChooser]   = useState(false);
   const [showSignIn,    setShowSignIn]    = useState(false);
   const [progressCache, setProgressCache] = useState({});
@@ -277,17 +277,24 @@ export default function ExploreDashboard({
   const startAddList = () => setShowChooser(true);
 
   // Single create-list handler — same path for random + manual.
-  // Naming mirrors what the onboarding gives us: prefer ruleLabel if the
-  // user picked a phonics rule, otherwise generic stamps.
-  const dateStamp = () => new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+  // Names progress as "My word list 1", "My word list 2", ... — we scan the
+  // existing custom lists for the next free index so reused/renamed lists
+  // don't create collisions. The creation date lives separately in the
+  // banner so the title stays clean.
+  const nextCustomListName = () => {
+    const used = new Set();
+    customLists.forEach((l) => {
+      const m = (l?.name || '').match(/^My word list (\d+)$/i);
+      if (m) used.add(parseInt(m[1], 10));
+    });
+    let n = 1;
+    while (used.has(n)) n += 1;
+    return `My word list ${n}`;
+  };
 
-  const handleCreate = async ({ words, mode, ruleLabel }) => {
+  const handleCreate = async ({ words }) => {
     if (!words || words.length === 0) return;
-    const name =
-      mode === 'random'
-        ? (ruleLabel ? `${ruleLabel} — ${dateStamp()}` : `Random list — ${dateStamp()}`)
-        : `My list — ${dateStamp()}`;
-    const { list } = await addList({ name, words });
+    const { list } = await addList({ name: nextCustomListName(), words });
     setCreator(null);
     if (list) {
       const normalised = {
@@ -299,6 +306,21 @@ export default function ExploreDashboard({
       };
       openList(normalised, 'custom');
     }
+  };
+
+  // "Edit list" replaces the words of the currently-open custom list, then
+  // stays on the activity page so the user immediately sees the new chips.
+  const handleEditListWords = async (words) => {
+    if (!selectedList || selectedList.listType !== 'custom' || !words?.length) return;
+    await updateList(selectedList.list.id, { words });
+    setSelectedList(prev => prev ? {
+      ...prev,
+      list: {
+        ...prev.list,
+        words: words.map(w => (typeof w === 'string' ? { word: w, definition: '' } : w)),
+      },
+    } : null);
+    setCreator(null);
   };
 
   const handleMarkComplete = async (listId, activity, opts) => {
@@ -336,28 +358,6 @@ export default function ExploreDashboard({
         : (selectedList.list.category || '');
       return (
         <main className="ed-main ed-main--list">
-          <header className="ed-list-banner">
-            <span className="ed-list-banner-icon" aria-hidden="true">
-              {isCustom ? '📝' : '🔭'}
-            </span>
-            {isCustom ? (
-              <input
-                className="ed-list-name-input"
-                value={listNameDraft}
-                onChange={(e) => setListNameDraft(e.target.value)}
-                onBlur={saveListName}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') e.target.blur();
-                  if (e.key === 'Escape') { setListNameDraft(selectedList.list.name); e.target.blur(); }
-                }}
-                aria-label="List name (click to rename)"
-                spellCheck={false}
-              />
-            ) : (
-              <span className="ed-list-name-static">{selectedList.list.name}</span>
-            )}
-            {meta && <span className="ed-list-banner-meta">{meta}</span>}
-          </header>
           <ListHub
             list={selectedList.list}
             listType={selectedList.listType}
@@ -367,6 +367,43 @@ export default function ExploreDashboard({
             markComplete={handleMarkComplete}
             onBack={backHome}
             onCreateAccount={() => setShowSignIn(true)}
+            listNamePanel={
+              <div className="ed-listname-panel">
+                {isCustom ? (
+                  <input
+                    className="ed-listname-input"
+                    value={listNameDraft}
+                    onChange={(e) => setListNameDraft(e.target.value)}
+                    onBlur={saveListName}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') e.target.blur();
+                      if (e.key === 'Escape') {
+                        setListNameDraft(selectedList.list.name);
+                        e.target.blur();
+                      }
+                    }}
+                    aria-label="List name (click to rename)"
+                    spellCheck={false}
+                  />
+                ) : (
+                  <span className="ed-listname-static">{selectedList.list.name}</span>
+                )}
+              </div>
+            }
+            listFooter={
+              isCustom ? (
+                <div className="ed-listfoot">
+                  <button
+                    className="ed-listfoot-btn"
+                    type="button"
+                    onClick={() => setCreator('edit')}
+                  >
+                    ✎ Edit list
+                  </button>
+                  {meta && <span className="ed-listfoot-date">{meta}</span>}
+                </div>
+              ) : null
+            }
           />
         </main>
       );
@@ -544,9 +581,7 @@ export default function ExploreDashboard({
             {creator === 'random' && (
               <GeneratedWords
                 yearGroup={selectedYear}
-                onConfirm={({ words, ruleLabel }) =>
-                  handleCreate({ words, mode: 'random', ruleLabel })
-                }
+                onConfirm={({ words }) => handleCreate({ words })}
               />
             )}
             {creator === 'manual' && (
@@ -556,9 +591,17 @@ export default function ExploreDashboard({
                   <h2 className="ob-step-title">Add your words</h2>
                   <p className="ob-step-sub">Type one at a time · min 3 words</p>
                 </div>
-                <AddWordsManual
-                  onWordsReady={(words) => handleCreate({ words, mode: 'manual' })}
-                />
+                <AddWordsManual onWordsReady={(words) => handleCreate({ words })} />
+              </div>
+            )}
+            {creator === 'edit' && selectedList && (
+              <div className="ob-step">
+                <div className="ob-step-header">
+                  <div className="ob-step-icon">✏️</div>
+                  <h2 className="ob-step-title">Edit {selectedList.list.name}</h2>
+                  <p className="ob-step-sub">Replace the words for this list · min 3 words</p>
+                </div>
+                <AddWordsManual onWordsReady={handleEditListWords} />
               </div>
             )}
           </div>

@@ -25,7 +25,20 @@ const STATUS_LABEL = {
   'completed':   'Done ✓',
 };
 
-export default function ListHub({ list, listType = 'curriculum', session = null, onBack, getListProgress, markComplete, user, onCreateAccount = null }) {
+export default function ListHub({
+  list,
+  listType = 'curriculum',
+  session = null,
+  onBack,
+  getListProgress,
+  markComplete,
+  user,
+  onCreateAccount = null,
+  /* Optional injection slots so wrappers (e.g. ExploreDashboard) can drop
+     custom UI inside the WORD LIST panel without forking ListHub. */
+  listNamePanel = null,
+  listFooter   = null,
+}) {
   const [activeActivity, setActiveActivity] = useState(null);
   const [progress,       setProgress]       = useState({});
 
@@ -114,6 +127,7 @@ export default function ListHub({ list, listType = 'curriculum', session = null,
                 {words.length}
               </span>
             </div>
+            {listNamePanel}
             <div className="hub-chips">
               {words.map((w, i) => {
                 const { bg, border } = WORD_CHIP_COLORS[i % WORD_CHIP_COLORS.length];
@@ -131,6 +145,7 @@ export default function ListHub({ list, listType = 'curriculum', session = null,
                 );
               })}
             </div>
+            {listFooter}
           </section>
 
           {/* Back to lists CTA — mirrors the Browse section in the master hub */}

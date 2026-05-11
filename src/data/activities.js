@@ -52,7 +52,9 @@ export const ACTIVITIES = [
   },
   {
     id: 'syllabletap', name: 'Syllable Tap', icon: '👂',
-    timeEstimate: '5 mins', color: '#9fdfc4', dark: '#4f9d80',
+    /* Aqua — distinct from Memory Spell's mint so the two warm-up panels
+       don't read as the same colour. */
+    timeEstimate: '5 mins', color: '#a8e0e0', dark: '#4a9da8',
     phase: 'warmup', component: SyllableTap,
     buildProps: () => ({}),
   },
@@ -60,7 +62,9 @@ export const ACTIVITIES = [
   // ── Explore: active production with cues ────────────────────────
   {
     id: 'writeit', name: 'Write It', icon: '✏️',
-    timeEstimate: '10 mins', color: '#d9c0f7', dark: '#8c5fc9',
+    /* Coral — keeps Spell Duel as the only purple game and gives the
+     "Explore" phase its own warm anchor. */
+    timeEstimate: '10 mins', color: '#f5c2b8', dark: '#c95d4d',
     phase: 'explore', component: WriteIt,
     buildProps: (s) => ({ childName: s.childName || '' }),
   },
@@ -72,7 +76,9 @@ export const ACTIVITIES = [
   },
   {
     id: 'crossword', name: 'Crossword', icon: '✏️',
-    timeEstimate: '10 mins', color: '#e2c5f5', dark: '#9a5dc7',
+    /* Soft lime/sage — distinct from the mint of Memory Spell and aqua of
+     Syllable Tap so the trio of green-family tiles each read differently. */
+    timeEstimate: '10 mins', color: '#d4ea9c', dark: '#7a9a3d',
     phase: 'explore', component: Crossword,
     buildProps: (s) => ({ userAge: s.age || 8, difficulty: s.difficulty || 'medium' }),
   },

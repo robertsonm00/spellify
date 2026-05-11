@@ -70,7 +70,7 @@
   height: auto !important;
 }
 
-/* ── Nav links (replaced the old accordion) ────────────────────────────── */
+/* ── Nav links — individual retro buttons ──────────────────────────────── */
 
 .ed-nav {
   display: flex;
@@ -109,10 +109,7 @@
   box-shadow: 1px 1px 0 #2a2a2a;
 }
 
-.ed-nav-link--active {
-  background: #ffd97c;
-}
-
+.ed-nav-link--active,
 .ed-nav-link--active:hover {
   background: #ffd97c;
 }
@@ -646,64 +643,102 @@
   flex-direction: column;
 }
 
-/* ── List banner: editable name + date, sits above the columns ──────── */
+/* ── List name panel: sits inside the WORD LIST card, under the header ─ */
 
-.ed-list-banner {
+.ed-listname-panel {
   flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  background: #fff;
+  padding: 0.6rem 0.7rem;
+  background: #fdf6e8;
   border-bottom: 2px solid #2a2a2a;
 }
 
-.ed-list-banner-icon {
-  font-size: 1.4rem;
-  line-height: 1;
-}
-
-.ed-list-name-input {
-  flex: 1;
-  min-width: 0;
-  padding: 0.4rem 0.5rem;
+.ed-listname-input {
+  width: 100%;
+  padding: 0.35rem 0.5rem;
   background: transparent;
   border: 2px dashed transparent;
   border-radius: 4px;
   font-family: 'Nunito', sans-serif;
-  font-size: 1.25rem;
+  font-size: 1.05rem;
   font-weight: 800;
   color: #2a2a2a;
   letter-spacing: 0.01em;
 }
 
-.ed-list-name-input:hover {
+.ed-listname-input:hover {
   border-color: #c2b09a;
-  background: #fdf6e8;
+  background: #fff;
 }
 
-.ed-list-name-input:focus {
+.ed-listname-input:focus {
   outline: none;
   border-color: #2a2a2a;
   border-style: solid;
-  background: #fdf6e8;
+  background: #fff;
 }
 
-.ed-list-name-static {
-  flex: 1;
-  min-width: 0;
-  padding: 0.4rem 0.5rem;
+.ed-listname-static {
+  display: block;
+  padding: 0.35rem 0.5rem;
   font-family: 'Nunito', sans-serif;
-  font-size: 1.25rem;
+  font-size: 1.05rem;
   font-weight: 800;
   color: #2a2a2a;
 }
 
-.ed-list-banner-meta {
+/* ── List footer: 100% black bar with Edit-list button + date stamp ──── */
+
+.ed-listfoot {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.55rem 0.7rem;
+  background: #1a1a1a;
+  border-top: 2px solid #2a2a2a;
+}
+
+.ed-listfoot-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.7rem;
+  background: #ff6b6b;
+  color: #fff;
+  border: 2px solid #2a2a2a;
+  border-radius: 4px;
+  box-shadow: 2px 2px 0 #000;
   font-family: 'Press Start 2P', monospace;
   font-size: 0.55rem;
-  color: #6b5d52;
   letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: transform 0.06s ease, box-shadow 0.06s ease;
+}
+
+.ed-listfoot-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 #000;
+}
+
+.ed-listfoot-btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 #000;
+}
+
+.ed-listfoot-tag {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.06em;
+  color: #ffd97c;
+  text-transform: uppercase;
+}
+
+.ed-listfoot-date {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.06em;
+  color: #fdf6e8;
   text-transform: uppercase;
   white-space: nowrap;
 }
@@ -808,6 +843,10 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
+  /* Clip the coloured header strip to the panel's rounded outer corners —
+     matches the PLAYER card's overflow:hidden treatment. Internal chip
+     scroll still works because .hub-chips owns its own overflow:auto. */
+  overflow: hidden;
 }
 
 .ed-main--list .hub-words .hub-section-header {
@@ -843,15 +882,23 @@
   display: none;
 }
 
-/* ── Right: progress + game grid, full height, internal scroll ─────────── */
+/* ── Right: GAMES panel fills the column; internal scroll on overflow ─── */
 
 .ed-main--list .hub-split-right {
   height: 100%;
   min-height: 0;
-  overflow-y: auto;
-  padding-right: 0.25rem;
-  scrollbar-width: thin;
-  scrollbar-color: #c8a3e5 transparent;
+  /* The GAMES panel owns its own scroll — the column doesn't scroll. */
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding-right: 4px;     /* room for the panel's 4px box-shadow */
+}
+
+/* When the progress panel is hidden, drop it out of the layout entirely.
+   Without this, its 2px top/bottom borders still take 4px and push the
+   GAMES panel down so it no longer aligns with WORD LIST's top edge. */
+.ed-main--list .hub-progress--hidden {
+  display: none;
 }
 
 /* Flatten the phase containers so every activity card lives in a single
@@ -859,27 +906,46 @@
    `display: contents` lifts .hub-phase and .hub-grid's children directly
    into .hub-activities. The two columns each flex with the available
    width. The ::before pseudo provides a single "GAMES" header strip
-   replacing the three phase headers. */
+   replacing the three phase headers. The panel fills the column height
+   and scrolls internally when there are more games than will fit. */
 .ed-main--list .hub-activities {
+  flex: 1;
+  min-height: 0;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;       /* keep cards top-aligned; don't stretch rows */
   gap: 1rem;
   background: #fff;
   border: 2px solid #2a2a2a;
   border-radius: 6px;
   box-shadow: 4px 4px 0 #2a2a2a;
   padding: 0 1rem 1rem;
-  margin-right: 4px;     /* room for the box-shadow */
+  overflow-y: auto;           /* internal scroll for the game grid */
+  scrollbar-width: thin;
+  scrollbar-color: #c8a3e5 transparent;
   position: relative;
 }
 
 .ed-main--list .hub-activities::before {
   content: 'GAMES';
   grid-column: 1 / -1;
-  background: #c8a3e5;
+  /* Warm coral header — distinct from the PLAYER (purple) and WORD LIST
+     (teal) headers so each panel reads as its own zone. Sticky so the
+     label stays pinned at the top while the grid scrolls beneath. The
+     rounded top corners match the panel's 6px outer radius (minus the
+     2px border) so the header reads as part of the panel chrome rather
+     than a square strip clashing with the round outer edge. */
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f4a5a0;
   border-bottom: 2px solid #2a2a2a;
+  border-radius: 4px 4px 0 0;
   margin: 0 -1rem 0.25rem;
-  padding: 0.75rem 1rem;
+  padding: 0.65rem 0.85rem;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
   font-family: 'Press Start 2P', monospace;
   font-size: 0.7rem;
   color: #2a2a2a;
