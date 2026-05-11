@@ -1,124 +1,185 @@
-.ws-shell {
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 1.5rem 1rem 3rem;
+/* ── Layout ───────────────────────────────────────────────────────────────── */
+
+.ws-stage {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 1rem 1rem 2rem;
+}
+
+.ws-phase {
+  width: 100%;
+  max-width: 540px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 1.25rem;
   text-align: center;
+  padding: 0.5rem 1rem;
 }
-.ws-header {
-  width: 100%;
+
+/* ── Letter row — uniform fixed-size boxes ───────────────────────────────── */
+
+.ws-letter-row {
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+
+/* Every box — flash, fixed, and input — shares identical dimensions */
+.ws-box {
+  width: var(--box-size, 48px);
+  height: calc(var(--box-size, 48px) * 1.15);
+  display: flex;
   align-items: center;
-  margin-bottom: 1rem;
-}
-.ws-exit {
-  border: none;
-  background: transparent;
-  font-size: 1rem;
-  color: #555;
-  cursor: pointer;
-}
-.ws-progress { font-size: 0.9rem; color: #777; }
-.ws-title { font-size: 1.6rem; margin: 0.5rem 0 1rem; }
-.ws-instructions { color: #555; margin: 0 0 1.25rem; }
-.ws-word-flash {
-  font-size: 3rem;
+  justify-content: center;
+  font-family: 'Nunito', sans-serif;
+  font-size: calc(var(--box-size, 48px) * 0.52);
   font-weight: 800;
-  letter-spacing: 0.04em;
-  color: #1a1a2e;
+  border-radius: 8px;
+  border: 2px solid #d8b4fe;
+  background: #fff;
+  color: #1e293b;
+  user-select: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+/* Flash phase — golden highlight, all letters visible */
+.ws-box--flash {
+  border-color: #fcd34d;
   background: #fff8e1;
-  padding: 1.25rem 2rem;
-  border-radius: 16px;
-  border: 3px solid #ffd93d;
-  animation: ws-flash 1.5s ease-in-out;
+  color: #1a1a2e;
+  animation: ws-flash-pop 0.25s ease-out;
 }
-@keyframes ws-flash {
-  0%   { transform: scale(0.92); opacity: 0; }
-  20%  { transform: scale(1);    opacity: 1; }
-  100% { transform: scale(1);    opacity: 1; }
+
+@keyframes ws-flash-pop {
+  from { transform: scale(0.9); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
 }
+
+/* Fixed (non-editable) letters during type phase */
+.ws-box--fixed {
+  border-color: #e2d9f3;
+  background: #f5f0ff;
+  color: #6b21a8;
+  opacity: 0.8;
+}
+
+/* Input boxes (inside the missing group) */
+.ws-box--input {
+  border-color: #c084fc;
+  background: #faf5ff;
+  color: #6b21a8;
+}
+
+.ws-box--cursor {
+  border-color: #a855f7;
+  background: #faf5ff;
+  animation: ws-box-blink 1s step-end infinite;
+}
+
+@keyframes ws-box-blink {
+  0%, 100% { border-color: #a855f7; }
+  50%       { border-color: #d8b4fe; }
+}
+
+.ws-box--filled {
+  border-color: #a855f7;
+  background: #f5f0ff;
+}
+
+.ws-box--empty {
+  color: transparent;
+}
+
+/* Success state */
+.ws-box--ok {
+  border-color: #22c55e;
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+/* Highlighted missing section on wrong result */
+.ws-box--highlight {
+  border-color: #f87171;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+/* ── Missing group — wraps input boxes + hidden input ────────────────────── */
+
+.ws-missing-group {
+  display: flex;
+  gap: 6px;
+  cursor: text;
+  position: relative;
+  align-items: center;
+}
+
+.ws-hidden-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  border: none;
+  padding: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* ── Form ─────────────────────────────────────────────────────────────────── */
+
 .ws-form {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1rem;
+  gap: 1.25rem;
+  width: 100%;
 }
-.ws-word-blank {
-  font-size: 2.4rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  color: #1a1a2e;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.1rem;
-  background: #f5f0ff;
-  padding: 1rem 1.25rem;
-  border-radius: 14px;
-  border: 2px solid #c77dff;
-}
-.ws-letters {
-  white-space: pre;
-}
-.ws-input {
-  font-size: 2.4rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  color: #6b21a8;
-  background: #fff;
-  border: 2px solid #c77dff;
-  border-radius: 8px;
-  padding: 0 0.4rem;
-  text-align: center;
-  text-transform: lowercase;
-  min-width: 2ch;
-  outline: none;
-}
-.ws-input:focus {
-  border-color: #6b21a8;
-  box-shadow: 0 0 0 3px rgba(107, 33, 168, 0.18);
-}
-.ws-cta {
-  border: none;
-  background: #1a1a2e;
-  color: #fff;
-  padding: 0.75rem 1.75rem;
-  font-size: 1rem;
+
+/* ── Attempt note (wrong panel) ──────────────────────────────────────────── */
+
+.ws-attempt-note {
+  font-size: 0.95rem;
   font-weight: 700;
-  border-radius: 999px;
-  cursor: pointer;
+  color: #6b7280;
+  margin: 0;
 }
-.ws-cta:disabled { opacity: 0.4; cursor: not-allowed; }
-.ws-result {
-  margin-top: 1rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-}
-.ws-result-ok  { color: #1e7e34; font-size: 1.15rem; }
-.ws-result-bad { color: #c0392b; font-size: 1.05rem; }
-.ws-complete .ws-score {
-  font-size: 1.4rem;
-  font-weight: 700;
-  margin: 0.5rem 0 1.25rem;
-}
+
+/* ── Complete screen ─────────────────────────────────────────────────────── */
+
 .ws-summary {
   list-style: none;
   padding: 0;
   width: 100%;
-  max-width: 380px;
-  margin: 0 0 1.5rem;
+  max-width: 420px;
+  margin: 0;
 }
+
 .ws-summary-row {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 0.25rem;
   padding: 0.5rem 0.75rem;
   border-radius: 8px;
   margin-bottom: 0.4rem;
+  font-size: 0.9rem;
+  font-weight: 700;
 }
-.ws-summary-row--ok  { background: #e8f6ec; color: #1e7e34; }
-.ws-summary-row--bad { background: #fdecec; color: #c0392b; }
-.ws-summary-attempt { font-size: 0.85rem; opacity: 0.85; }
+
+.ws-summary-row--ok  { background: #f0fdf4; color: #15803d; border: 1px solid #86efac; }
+.ws-summary-row--bad { background: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; }
+
+.ws-summary-word    { font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; }
+.ws-summary-attempt { font-size: 0.8rem; opacity: 0.8; width: 100%; }
+
+.ws-done-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}

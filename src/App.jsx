@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 import Welcome        from './components/Welcome';
 import OnboardingFlow from './components/OnboardingFlow';
@@ -39,6 +39,7 @@ function App() {
   });
   const [activeActivity, setActiveActivity] = useState(null);
   const [showExitModal,  setShowExitModal]  = useState(false);
+  const [isFirstVisit,   setIsFirstVisit]   = useState(false);
 
   useEffect(() => {
     saveSession(session);
@@ -58,8 +59,11 @@ function App() {
       childCharacter: character || null,
       difficulty: difficulty || 'medium',
       activityStatuses: INITIAL_STATUSES,
+      welcomeBonus: 100,
     });
+    setIsFirstVisit(true);
     setScreen('hub');
+    setTimeout(fireBuddyCheer, 600);
   };
 
   const handleLaunch = (id) => {
@@ -228,6 +232,7 @@ function App() {
             onExit={() => setScreen('welcome')}
           />
           <ExplorePage
+            session={session}
             user={user}
             profile={profile}
             signIn={signIn}
@@ -272,6 +277,9 @@ function App() {
               reviewQueue={session.reviewQueue || []}
               childName={session.childName || ''}
               childCharacter={session.childCharacter || null}
+              welcomeBonus={session.welcomeBonus || 0}
+              isFirstVisit={isFirstVisit}
+              onWelcomeSeen={() => setIsFirstVisit(false)}
               onLaunch={handleLaunch}
               onReview={() => handleLaunch('review')}
               onChangeWords={handleChangeWords}
@@ -294,6 +302,7 @@ function App() {
       {/* ── Explore ── */}
       {section === 'explore' && (
         <ExplorePage
+          session={session}
           user={user}
           profile={profile}
           signIn={signIn}

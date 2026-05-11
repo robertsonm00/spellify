@@ -223,7 +223,7 @@ function WriteIt({
     'minmax(200px, 260px)',
     ...Array.from({ length: numPractices }, (_, i) => {
       if (i < currentRound || currentRound >= numPractices) return '80px';
-      if (i === currentRound) return 'minmax(150px, 1fr)';
+      if (i === currentRound) return 'minmax(90px, 0.6fr)';
       return '72px';
     }),
   ].join(' ');

@@ -779,47 +779,15 @@
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
-   LAYOUT TOGGLE BUTTON
-   ──────────────────────────────────────────────────────────────────────────── */
-
-.hub-section-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.hub-layout-toggle {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 0.85rem;
-  line-height: 1;
-  width: 38px;
-  height: 38px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: #1a1a2e;
-  color: #fff;
-  border: 2px solid #1a1a2e;
-  border-radius: 6px;
-  box-shadow: 3px 3px 0 #1a1a2e;
-  cursor: pointer;
-  transition: transform 0.08s ease, box-shadow 0.08s ease;
-}
-.hub-layout-toggle:hover  { transform: translate(1px, 1px); box-shadow: 2px 2px 0 #1a1a2e; }
-.hub-layout-toggle:active { transform: translate(3px, 3px); box-shadow: none; }
-
-/* ════════════════════════════════════════════════════════════════════════════
    SPLIT LAYOUT — retro 90s window theme
    Soft pastel page bg + grid pattern, white panels with coloured pixel-font
    title bars and hard offset shadows. Two-column grid: narrow words column
-   on the left (with Change Words anchored to the bottom), full-width
-   activity cards stacked in the right column.
+   on the left, full-width activity cards stacked in the right column.
    ──────────────────────────────────────────────────────────────────────────── */
 
-/* Hide whichever Change Words button doesn't belong to the active layout */
-.hub-change-btn--bottom { display: none; }
-.hub--split .hub-change-btn--top    { display: none; }
-.hub--split .hub-change-btn--bottom { display: inline-flex; }
+/* Only the bottom Change Words button is used in the split layout */
+.hub-change-btn--top    { display: none; }
+.hub-change-btn--bottom { display: inline-flex; }
 
 /* Pastel cream + grid covers the whole viewport, not just the centred .hub */
 .hub-shell--split {
@@ -853,13 +821,6 @@
   align-self: start;
 }
 
-/* Classic mode: the wrappers are invisible — children fall back into the
-   .hub flex column flow as if the wrappers weren't there. */
-.hub--classic .hub-split-left,
-.hub--classic .hub-split-right {
-  display: contents;
-}
-
 /* The old welcome heading + "Practising:" line are replaced by the player
    card across both layouts. */
 .hub-welcome-heading,
@@ -884,6 +845,17 @@
    pop above the card boundary without being clipped. */
 .hub--split .hub-progress {
   overflow: visible;
+  max-height: 300px;
+  transition: max-height 0.45s ease-out, opacity 0.35s ease-out, margin-bottom 0.45s ease-out;
+}
+
+/* Hidden until first activity completes — higher specificity wins over the rules above */
+.hub--split .hub-progress.hub-progress--hidden {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  pointer-events: none;
+  margin-bottom: -1rem;
 }
 
 /* Decorative `_ □ ✕` window controls in the top-right of every panel
@@ -949,22 +921,6 @@
   letter-spacing: 0.06em;
   text-shadow: none;
 }
-
-.hub--split .hub-section-actions { gap: 0; }
-
-.hub--split .hub-layout-toggle {
-  width: 28px;
-  height: 28px;
-  font-family: 'Press Start 2P', monospace;
-  font-size: 0.65rem;
-  background: #fff;
-  color: #2a2a2a;
-  border: 2px solid #2a2a2a;
-  border-radius: 3px;
-  box-shadow: 2px 2px 0 #2a2a2a;
-}
-.hub--split .hub-layout-toggle:hover  { box-shadow: 1px 1px 0 #2a2a2a; }
-.hub--split .hub-layout-toggle:active { box-shadow: none; }
 
 /* Chips stack vertically — no inner scroll. The whole panel scrolls with
    the page and uses sticky positioning so the list stays in view. */
@@ -1238,19 +1194,32 @@
   font-size: 0.7rem;
   color: #2a2a2a;
   letter-spacing: 0.06em;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-/* Decorative window controls in the title bar — match the other panels */
-.hub-player-card::after {
-  content: '_  □  ✕';
-  position: absolute;
-  top: 0.6rem;
-  right: 0.75rem;
-  font-family: 'Press Start 2P', monospace;
-  font-size: 0.55rem;
-  letter-spacing: 0.18em;
+.hub-player-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
   color: #2a2a2a;
-  pointer-events: none;
+  padding: 2px;
+  line-height: 0;
+  opacity: 0.7;
+  transition: opacity 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hub-player-toggle:hover { opacity: 1; }
+
+/* Chevron rotates to point right when card is collapsed */
+.hub-player-toggle-icon {
+  transition: transform 0.22s ease;
+}
+.hub-player-card--collapsed .hub-player-toggle-icon {
+  transform: rotate(-90deg);
 }
 
 .hub-player-body {
@@ -1261,6 +1230,14 @@
   gap: 0.85rem;
   text-align: center;
   background: #F5E8DB;
+  max-height: 600px;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out;
+}
+
+.hub-player-card--collapsed .hub-player-body {
+  max-height: 10px;
+  transition: max-height 0.25s ease-in;
 }
 
 .hub-player-buddy {
@@ -1346,6 +1323,114 @@
   font-size: 0.55rem;
   color: #5a5a5a;
   letter-spacing: 0.06em;
+}
+
+/* ── Guest pill ────────────────────────────────────────────────────────────── */
+
+.hub-guest-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.22rem 0.65rem;
+  background: #e63946;
+  color: #fff;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.48rem;
+  letter-spacing: 0.1em;
+  border-radius: 20px;
+  border: 2px solid #2a2a2a;
+  box-shadow: 2px 2px 0 #2a2a2a;
+  position: relative;
+  cursor: default;
+  user-select: none;
+}
+
+/* Tooltip that appears below the pill on hover */
+.hub-guest-pill-tip {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: normal;
+  /* 160px fits comfortably in the ~220px player card column */
+  width: 160px;
+  text-align: center;
+  background: #fff;
+  color: #1a1a2e;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.45rem 0.75rem;
+  border-radius: 6px;
+  border: 2px solid #1a1a2e;
+  box-shadow: 3px 3px 0 rgba(0,0,0,0.25);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  z-index: 50;
+}
+/* Caret arrow pointing up at the pill */
+.hub-guest-pill-tip::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-bottom-color: #1a1a2e;
+}
+.hub-guest-pill:hover .hub-guest-pill-tip {
+  opacity: 1;
+  transition-delay: 0.5s;
+}
+
+/* ── Guest footer panel ────────────────────────────────────────────────────── */
+
+.hub-player-footer {
+  background: #1a1a2e;
+  border-top: 2px solid #2a2a2a;
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  max-height: 120px;
+  overflow: hidden;
+  transition: max-height 0.28s ease-in, padding 0.28s ease-in, opacity 0.2s ease-in;
+}
+.hub-player-card--collapsed .hub-player-footer {
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  opacity: 0;
+}
+
+.hub-player-footer-text {
+  margin: 0;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #c8c8e0;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.hub-player-footer-btn {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.06em;
+  padding: 0.55rem 1rem;
+  background: transparent;
+  color: #fff;
+  border: 2px dashed rgba(255,255,255,0.55);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+.hub-player-footer-btn:hover {
+  border-color: #fff;
+  background: rgba(255,255,255,0.08);
 }
 
 /* ════════════════════════════════════════════════════════════════════════════

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import confetti from 'canvas-confetti';
 import './SpellDuel.css';
 import GameHeader from './GameHeader';
@@ -6,6 +6,7 @@ import GameProgressStrip from './GameProgressStrip';
 import RestartButton from './RestartButton';
 import { getSupportTip } from '../data/spelling/dyslexiaPatterns';
 import { resolveDefinition } from '../utils/wordDefinitions';
+import { generateSpellDuelKeyboard } from '../utils/generateSpellDuelKeyboard';
 
 function playWordChime() {
   try {
@@ -106,14 +107,9 @@ function fireWrongFizzle() {
 
 const MAX_WRONG = { easy: 8, medium: 6, hard: 4 };
 
-const KEYBOARD_ROWS = [
-  ['A','B','C','D','E','F','G','H','I','J','K','L','M'],
-  ['N','O','P','Q','R','S','T','U','V','W','X','Y','Z'],
-];
-
 const SEGMENTS = 6;
 
-// Horizontal connected spell-energy bar. Drains from the right on each wrong guess.
+// Individual gem-style spell charges. Drains from the right on each wrong guess.
 function SpellEnergyBar({ wrongCount, maxWrong, won, lost }) {
   const charges = maxWrong - wrongCount;
   const dimCount = lost
@@ -124,7 +120,7 @@ function SpellEnergyBar({ wrongCount, maxWrong, won, lost }) {
     <div className="sd-energy-panel">
       <span className="sd-energy-icon" aria-hidden="true">🧙</span>
       <div
-        className="sd-energy-bar"
+        className="sd-energy-gems"
         role="meter"
         aria-label={`${charges} spell charges remaining`}
         aria-valuenow={charges}
@@ -132,21 +128,25 @@ function SpellEnergyBar({ wrongCount, maxWrong, won, lost }) {
         aria-valuemax={maxWrong}
       >
         {Array.from({ length: SEGMENTS }, (_, i) => {
-          // Segments fill left-to-right; rightmost drain first.
           const isLit = !lost && i < (SEGMENTS - dimCount);
-          let cls = 'sd-energy-segment';
-          if (isLit && won) cls += ' sd-energy-segment--gold';
-          else if (isLit)   cls += ' sd-energy-segment--lit';
+          let cls = 'sd-energy-gem';
+          if (isLit && won) cls += ' sd-energy-gem--gold';
+          else if (isLit)   cls += ' sd-energy-gem--lit';
           return <div key={i} className={cls} />;
         })}
       </div>
-      <p className="sd-charges-text">
-        {won
-          ? 'You won the duel! ⚡'
-          : lost
-          ? 'The spell is broken…'
-          : `${charges} spell charge${charges === 1 ? '' : 's'} remaining`}
-      </p>
+      <div className="sd-charges-display">
+        <span className={`sd-charges-number${won ? ' sd-charges-number--won' : lost ? ' sd-charges-number--lost' : ''}`}>
+          {won ? '⚡' : lost ? '✗' : charges}
+        </span>
+        <span className="sd-charges-label">
+          {won
+            ? 'You won the duel!'
+            : lost
+            ? 'The spell is broken…'
+            : `spell charge${charges === 1 ? '' : 's'} remaining`}
+        </span>
+      </div>
     </div>
   );
 }
@@ -154,6 +154,7 @@ function SpellEnergyBar({ wrongCount, maxWrong, won, lost }) {
 function SpellDuel({
   words,
   difficulty = 'medium',
+  yearGroup = null,
   dyslexiaMode = false,
   childName = '',
   childCharacter = null,
@@ -191,6 +192,11 @@ function SpellDuel({
   const wrongCount  = [...guessed].filter((l) => !wordLetters.has(l)).length;
   const won         = [...wordLetters].every((l) => guessed.has(l));
   const lost        = wrongCount >= maxWrong;
+
+  const adaptiveKeys = useMemo(
+    () => generateSpellDuelKeyboard(currentWord, yearGroup, difficulty),
+    [currentWord, yearGroup, difficulty] // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   useEffect(() => {
     if (phase !== 'playing') return;
@@ -354,7 +360,7 @@ function SpellDuel({
       <div className="sd-word-area">
         {clue && (
           <div className="hm-clue">
-            <p className="hm-clue-label">Clue</p>
+            <p className="hm-clue-label">Use this clue to find your answer.</p>
             <p className="hm-clue-text">{clue}</p>
           </div>
         )}
@@ -399,32 +405,41 @@ function SpellDuel({
           lost={phase === 'word-result' && lost}
         />
         <p className="hm-keyboard-label">Choose your next letter</p>
-        {KEYBOARD_ROWS.map((row, ri) => (
-          <div key={ri} className="hm-key-row">
-            {row.map((letter) => {
-              const isGuessed = guessed.has(letter);
-              const isWrong   = isGuessed && !wordLetters.has(letter);
-              const isRight   = isGuessed && wordLetters.has(letter);
-              const isShaking = letter === lastWrongLetter;
-              return (
-                <button
-                  key={letter}
-                  className={[
-                    'hm-key',
-                    isWrong   ? 'wrong' : '',
-                    isRight   ? 'right' : '',
-                    isShaking ? 'shake' : '',
-                  ].filter(Boolean).join(' ')}
-                  disabled={isGuessed || phase !== 'playing'}
-                  onClick={() => handleGuess(letter)}
-                  aria-label={`${letter}${isGuessed ? (isWrong ? ', incorrect' : ', correct') : ''}`}
-                >
-                  {letter}
-                </button>
-              );
-            })}
-          </div>
-        ))}
+        {(() => {
+          const topCount  = Math.ceil(adaptiveKeys.length / 2);
+          const rows = [adaptiveKeys.slice(0, topCount), adaptiveKeys.slice(topCount)];
+          return rows.map((row, ri) => (
+            <div key={ri} className="hm-key-row hm-key-row--adaptive">
+              {row.map((letter) => {
+                const isGuessed = guessed.has(letter);
+                const isWrong   = isGuessed && !wordLetters.has(letter);
+                const isRight   = isGuessed && wordLetters.has(letter);
+                const isShaking = letter === lastWrongLetter;
+                return (
+                  <button
+                    key={letter}
+                    className={[
+                      'hm-key',
+                      isWrong   ? 'wrong' : '',
+                      isRight   ? 'right' : '',
+                      isShaking ? 'shake' : '',
+                    ].filter(Boolean).join(' ')}
+                    disabled={isGuessed || phase !== 'playing'}
+                    onClick={() => handleGuess(letter)}
+                    aria-label={`${letter}${isGuessed ? (isWrong ? ', incorrect' : ', correct') : ''}`}
+                  >
+                    {letter}
+                  </button>
+                );
+              })}
+            </div>
+          ));
+        })()}
+        {process.env.NODE_ENV === 'development' && (
+          <p className="hm-keyboard-label" style={{ opacity: 0.45, fontSize: '0.65rem' }}>
+            {adaptiveKeys.length} of 26 letters shown
+          </p>
+        )}
       </div>
     </div>
   );

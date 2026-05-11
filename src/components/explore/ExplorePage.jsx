@@ -4,94 +4,115 @@ import { useCustomLists } from '../../hooks/useCustomLists';
 import { useProgress }    from '../../hooks/useProgress';
 import { ACTIVITIES }     from '../../data/activities';
 import ListHub            from './ListHub';
-import ListHubV2          from './ListHubV2';
-import ListHubV3          from './ListHubV3';
 import CreateListModal    from './CreateListModal';
 import SignInModal        from './SignInModal';
+import { HubPlayerCard } from '../WordListHub';
+import '../WordListHub.css';
 import './ExplorePage.css';
 
 const CATEGORY_COLOURS = {
-  'Statutory':    '#6b7280',
-  'Phonics':      '#a855f7',
-  'Patterns':     '#1D9E75',
-  'Etymology':    '#EF9F27',
-  'Vowels':       '#f97316',
-  'Sight words':  '#22c55e',
+  'Statutory':   '#6b7280',
+  'Phonics':     '#a855f7',
+  'Patterns':    '#1D9E75',
+  'Etymology':   '#EF9F27',
+  'Vowels':      '#f97316',
+  'Sight words': '#22c55e',
+  'Custom':      '#4d96ff',
 };
 
-// ── List card ──────────────────────────────────────────────────────────────────
+const CATEGORY_DARK = {
+  'Statutory':   '#374151',
+  'Phonics':     '#7c3aed',
+  'Patterns':    '#0f6b50',
+  'Etymology':   '#b45309',
+  'Vowels':      '#c2410c',
+  'Sight words': '#15803d',
+  'Custom':      '#1a5cbf',
+};
 
-function ListCard({ list, listType, onClick, progress }) {
-  const colour      = CATEGORY_COLOURS[list.category] || '#6b7280';
-  const words       = list.words || [];
-  const previewWords = words.slice(0, 3).map(w => (typeof w === 'string' ? w : w.word));
-  const moreCount   = Math.max(0, words.length - 3);
-  // Total activities derived from the canonical registry — adding a new
-  // game makes every Explore card's progress denominator update automatically.
-  const ACTS        = ACTIVITIES.length;
+// ── List card — hub activity card style ───────────────────────────────────────
+
+function ListCard({ list, onClick, progress }) {
+  const colour     = CATEGORY_COLOURS[list.category] || '#6b7280';
+  const darkColour = CATEGORY_DARK[list.category]    || '#374151';
+  const words      = list.words || [];
+  const preview    = words.slice(0, 3).map(w => (typeof w === 'string' ? w : w.word)).join(', ');
+  const more       = Math.max(0, words.length - 3);
+
+  const ACTS          = ACTIVITIES.length;
   const completedActs = Object.values(progress || {}).filter(p => p?.status === 'completed').length;
-  const pct         = Math.round((completedActs / ACTS) * 100);
-  const allDone     = completedActs === ACTS;
+  const done          = completedActs === ACTS;
+  const status        = done ? 'completed' : completedActs > 0 ? 'in-progress' : 'not-started';
+
+  const STATUS_LABEL = { 'not-started': 'Not Started', 'in-progress': `${completedActs}/${ACTS} done`, 'completed': 'Done ✓' };
 
   return (
-    <button className={`ep-list-card${allDone ? ' ep-list-card--done' : ''}`} onClick={onClick}>
-      {/* Category bar */}
-      <div className="ep-list-card-top" style={{ background: colour + '22', borderColor: colour }}>
-        <span className="ep-list-cat" style={{ color: colour }}>{list.category || 'Custom'}</span>
-        {allDone && <span className="ep-list-done-badge">★ Done</span>}
-        {!allDone && completedActs > 0 && <span className="ep-list-progress-badge">{completedActs}/{ACTS}</span>}
+    <div
+      className={`hub-card hub-card--${status} ep-list-card`}
+      style={{
+        borderColor:    darkColour,
+        boxShadow:      done ? `3px 3px 0 ${colour}` : `5px 5px 0 ${colour}`,
+        '--card-color': colour,
+        cursor: 'pointer',
+      }}
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={e => e.key === 'Enter' && onClick()}
+    >
+      <div className="hub-card-body">
+        <h3 className="hub-card-name">{list.name}</h3>
+        <span className={`hub-badge hub-badge--${status}`}>{STATUS_LABEL[status]}</span>
+        <p className="ep-card-preview">{preview}{more > 0 ? ` +${more} more` : ''}</p>
       </div>
-
-      {/* Name & meta */}
-      <div className="ep-list-card-body">
-        <h3 className="ep-list-name">{list.name}</h3>
-        <p className="ep-list-preview">
-          {previewWords.join(', ')}{moreCount > 0 ? ` +${moreCount} more` : ''}
-        </p>
-        <div className="ep-list-footer">
-          <span className="ep-list-count">{words.length} words</span>
-          {/* Progress bar */}
-          <div className="ep-list-pbar-wrap">
-            <div className="ep-list-pbar-fill" style={{ width: `${pct}%` }} />
-          </div>
-        </div>
-      </div>
-    </button>
+    </div>
   );
 }
 
-// ── Add-list card ──────────────────────────────────────────────────────────────
+// ── Unsaved-list warning popup ────────────────────────────────────────────────
 
-function AddListCard({ onClick, locked }) {
+function AddListPrompt({ onGenerate, onGenerateAnyway, onSignIn, onClose }) {
   return (
-    <button
-      className={`ep-list-card ep-add-card${locked ? ' ep-add-card--locked' : ''}`}
-      onClick={locked ? undefined : onClick}
-      disabled={locked}
-      title={locked ? 'Sign in to save your own lists' : 'Create a new word list'}
-    >
-      <div className="ep-add-icon">{locked ? '🔒' : '＋'}</div>
-      <p className="ep-add-label">{locked ? 'Sign in to create lists' : 'Add a list'}</p>
-    </button>
+    <div className="ep-prompt-overlay" onClick={onClose}>
+      <div className="ep-prompt-modal" onClick={e => e.stopPropagation()}>
+        <p className="ep-prompt-heading">Lists won't be saved</p>
+        <p className="ep-prompt-text">
+          Lists will not be saved unless you have an account.
+        </p>
+        <div className="ep-prompt-actions">
+          <button className="ep-prompt-btn ep-prompt-btn--generate" onClick={onGenerate}>
+            Generate list
+          </button>
+          <button className="ep-prompt-btn ep-prompt-btn--anyway" onClick={onGenerateAnyway}>
+            Generate list anyway
+          </button>
+          <button className="ep-prompt-btn ep-prompt-btn--signin" onClick={onSignIn}>
+            Sign in
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
 // ── Main ExplorePage ───────────────────────────────────────────────────────────
 
-export default function ExplorePage({ user, profile, signIn, signUp, signInWithGoogle }) {
-  const [selectedYear,  setSelectedYear]  = useState(1);
-  const [selectedList,  setSelectedList]  = useState(null);   // { list, listType }
-  const [view,          setView]          = useState('yearHub'); // 'yearHub' | 'listHub'
-  const [showCreate,    setShowCreate]    = useState(false);
-  const [showSignIn,    setShowSignIn]    = useState(false);
-  const [progressCache, setProgressCache] = useState({});     // { [listId]: { ... } }
+const MAX_VISIBLE_LISTS = 8;
+
+export default function ExplorePage({ session = null, user, profile, signIn, signUp, signInWithGoogle }) {
+  const [selectedList,     setSelectedList]     = useState(null);
+  const [view,             setView]             = useState('yearHub');
+  const [showCreate,       setShowCreate]       = useState(false);
+  const [showSignIn,       setShowSignIn]       = useState(false);
+  const [showAddListPrompt, setShowAddListPrompt] = useState(false);
+  const [progressCache,    setProgressCache]    = useState({});
 
   const { lists: customLists, addList } = useCustomLists(user);
-  const { getListProgress, markComplete }            = useProgress(user);
+  const { getListProgress, markComplete } = useProgress(user);
 
+  const selectedYear      = session?.year ?? 1;
   const curriculumForYear = getListsForYear(selectedYear);
 
-  // ── Load progress for visible lists ──────────────────────────────────────
   useEffect(() => {
     const allIds = [
       ...curriculumForYear.map(l => l.id),
@@ -105,82 +126,122 @@ export default function ExplorePage({ user, profile, signIn, signUp, signInWithG
     });
   }, [selectedYear, customLists.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Open list ─────────────────────────────────────────────────────────────
   const openList = (list, listType) => {
     setSelectedList({ list, listType });
     setView('listHub');
   };
 
-  // ── Handle progress update from ListHub ───────────────────────────────────
   const handleMarkComplete = async (listId, activity, opts) => {
     await markComplete(listId, activity, opts);
-    // Refresh progress for this list
     const p = await getListProgress(listId, opts.listType);
     setProgressCache(prev => ({ ...prev, [listId]: p || {} }));
+  };
+
+  const handleAddList = () => {
+    if (user) {
+      setShowCreate(true);
+    } else {
+      setShowAddListPrompt(true);
+    }
   };
 
   // ── ListHub view ──────────────────────────────────────────────────────────
   if (view === 'listHub' && selectedList) {
     const backToYearHub = () => { setView('yearHub'); setSelectedList(null); };
-    const sharedProps = {
-      list:            selectedList.list,
-      listType:        selectedList.listType,
-      user,
-      getListProgress,
-      markComplete:    handleMarkComplete,
-      onBack:          backToYearHub,
-    };
-
-    if (selectedList.list.id === 'y1-ow-words') {
-      return <ListHubV2 {...sharedProps} />;
-    }
-    if (selectedList.list.id === 'y1-ck-words') {
-      return <ListHubV3 {...sharedProps} />;
-    }
-
-    return <ListHub {...sharedProps} />;
+    return (
+      <ListHub
+        list={selectedList.list}
+        listType={selectedList.listType}
+        session={session}
+        user={user}
+        getListProgress={getListProgress}
+        markComplete={handleMarkComplete}
+        onBack={backToYearHub}
+        onCreateAccount={() => setShowSignIn(true)}
+      />
+    );
   }
+
+  const yearGroup = YEAR_GROUPS.find(g => g.year === selectedYear);
+  const yearLabel = yearGroup ? yearGroup.label : `Year ${selectedYear}`;
+
+  const curriculumCapped = curriculumForYear.length > MAX_VISIBLE_LISTS;
+  const customCapped     = customLists.length > MAX_VISIBLE_LISTS;
 
   // ── Year Hub view ─────────────────────────────────────────────────────────
   return (
-    <div className="ep-wrap">
-      {/* ── Guest banner ── */}
-      {!user && (
-        <div className="ep-guest-banner">
-          <span>🎮 Playing as guest — </span>
-          <button className="ep-guest-signin" onClick={() => setShowSignIn(true)}>
-            sign in to save your progress
-          </button>
-        </div>
-      )}
+    <>
+    <div className="hub-shell hub-shell--split">
+    <div className="hub hub--split">
 
-      <div className="ep-content">
-        {/* ── Year group tabs ── */}
-        <nav className="ep-year-tabs" aria-label="Year groups">
-          {YEAR_GROUPS.map(({ year, label, ageRange }) => (
-            <button
-              key={year}
-              className={`ep-year-tab${selectedYear === year ? ' ep-year-tab--active' : ''}`}
-              onClick={() => setSelectedYear(year)}
-            >
-              {label}
-              <span className="ep-year-age">{ageRange}</span>
+      {/* ── Left column ── */}
+      <div className="hub-split-left">
+
+        <HubPlayerCard
+          childName={session?.childName || ''}
+          childCharacter={session?.childCharacter || null}
+          year={session?.year ?? null}
+          activityStatuses={session?.activityStatuses || {}}
+          mastery={session?.mastery || {}}
+          welcomeBonus={session?.welcomeBonus || 0}
+          user={user}
+          onCreateAccount={() => setShowSignIn(true)}
+        />
+
+        {/* Guest sign-in panel */}
+        {!user && (
+          <section className="ep-guest-panel">
+            <div className="ep-guest-panel-header">GUEST MODE</div>
+            <div className="ep-guest-panel-body">
+              <p className="ep-guest-panel-text">
+                Sign in to save your progress and create your own word lists.
+              </p>
+              <button className="ep-guest-panel-btn" onClick={() => setShowSignIn(true)}>
+                Sign In →
+              </button>
+            </div>
+          </section>
+        )}
+
+        {/* Add a word list panel */}
+        <section className="ep-add-list-panel">
+          <div className="ep-add-list-header">ADD A LIST</div>
+          <div className="ep-add-list-body">
+            <button className="ep-add-list-btn" onClick={handleAddList}>
+              ＋ Create a word list
             </button>
-          ))}
-        </nav>
+          </div>
+        </section>
 
-        {/* ── Curriculum lists ── */}
-        <section className="ep-section">
-          <h2 className="ep-section-heading">
-            📚 Curriculum Lists
-            <span className="ep-section-sub">{curriculumForYear.length} lists</span>
-          </h2>
-          <div className="ep-grid">
-            {curriculumForYear.map(list => (
+      </div>
+
+      {/* ── Right column ── */}
+      <div className="hub-split-right">
+
+        {/* Assignments */}
+        <section className="hub-phase ep-assignments-phase">
+          <div className="hub-phase-header">
+            <div className="hub-phase-text">
+              <strong className="hub-phase-label">Assignments</strong>
+              <span className="hub-phase-hint">Word lists from your teacher</span>
+            </div>
+          </div>
+          <p className="ep-phase-empty">No word lists assigned</p>
+        </section>
+
+        {/* Curriculum Lists */}
+        <section className="hub-phase ep-curriculum-phase">
+          <div className="hub-phase-header">
+            <div className="hub-phase-text">
+              <strong className="hub-phase-label">Curriculum Lists</strong>
+              <span className="hub-phase-hint">{yearLabel} spelling lists</span>
+            </div>
+          </div>
+          <div className={`hub-grid${curriculumCapped ? ' ep-list-grid--capped' : ''}`}>
+            {curriculumForYear.slice(0, curriculumCapped ? MAX_VISIBLE_LISTS : undefined).map(list => (
               <ListCard
                 key={list.id}
                 list={list}
-                listType="curriculum"
                 progress={progressCache[list.id] || {}}
                 onClick={() => openList(list, 'curriculum')}
               />
@@ -188,72 +249,78 @@ export default function ExplorePage({ user, profile, signIn, signUp, signInWithG
           </div>
         </section>
 
-        {/* ── My Lists ── */}
-        <section className="ep-section">
-          <h2 className="ep-section-heading">
-            ✏️ My Lists
-            {user && <span className="ep-section-sub">{customLists.length} lists</span>}
-          </h2>
-          <div className="ep-grid">
-            {/* Custom list cards (logged-in users only) */}
-            {user && customLists.map(list => {
-              const normalised = {
-                ...list,
-                category: 'Custom',
-                words: Array.isArray(list.words)
-                  ? list.words.map(w => (typeof w === 'string' ? { word: w, definition: '' } : w))
-                  : [],
-              };
-              return (
-                <ListCard
-                  key={list.id}
-                  list={normalised}
-                  listType="custom"
-                  progress={progressCache[list.id] || {}}
-                  onClick={() => openList(normalised, 'custom')}
-                />
-              );
-            })}
-
-            {/* Add a list card */}
-            <AddListCard
-              locked={!user}
-              onClick={() => setShowCreate(true)}
-            />
+        {/* Your Lists */}
+        <section className="hub-phase ep-your-lists-phase">
+          <div className="hub-phase-header">
+            <div className="hub-phase-text">
+              <strong className="hub-phase-label">Your Lists</strong>
+              <span className="hub-phase-hint">Custom word lists</span>
+            </div>
           </div>
-
-          {/* Guest locked hint */}
-          {!user && (
-            <p className="ep-my-lists-hint">
-              <button className="ep-inline-link" onClick={() => setShowSignIn(true)}>
-                Sign in
-              </button>{' '}
-              to create and save your own word lists.
-            </p>
+          {user ? (
+            customLists.length > 0 ? (
+              <div className={`hub-grid${customCapped ? ' ep-list-grid--capped' : ''}`}>
+                {customLists.map(list => {
+                  const normalised = {
+                    ...list,
+                    category: 'Custom',
+                    words: Array.isArray(list.words)
+                      ? list.words.map(w => (typeof w === 'string' ? { word: w, definition: '' } : w))
+                      : [],
+                  };
+                  return (
+                    <ListCard
+                      key={list.id}
+                      list={normalised}
+                      progress={progressCache[list.id] || {}}
+                      onClick={() => openList(normalised, 'custom')}
+                    />
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="ep-phase-empty">No lists yet — add one using the button on the left.</p>
+            )
+          ) : (
+            <p className="ep-phase-empty">Sign in to create and save your own word lists.</p>
           )}
+          <div className="ep-phase-footer">
+            <button className="ep-phase-add-btn" onClick={handleAddList}>
+              ＋ Add a word list
+            </button>
+          </div>
         </section>
+
       </div>
 
-      {/* ── Modals ── */}
-      {showCreate && (
-        <CreateListModal
-          isGuest={!user}
-          onClose={() => setShowCreate(false)}
-          onSave={async ({ name, words }) => {
-            await addList({ name, words });
-            setShowCreate(false);
-          }}
-        />
-      )}
-
-      {showSignIn && (
-        <SignInModal
-          onClose={() => setShowSignIn(false)}
-          signIn={signIn}
-          signUp={signUp}
-          signInWithGoogle={signInWithGoogle}
-        />
-      )}
     </div>
+    </div>
+
+    {showAddListPrompt && (
+      <AddListPrompt
+        onGenerate={() => { setShowAddListPrompt(false); setShowCreate(true); }}
+        onGenerateAnyway={() => { setShowAddListPrompt(false); setShowCreate(true); }}
+        onSignIn={() => { setShowAddListPrompt(false); setShowSignIn(true); }}
+        onClose={() => setShowAddListPrompt(false)}
+      />
+    )}
+    {showCreate && (
+      <CreateListModal
+        onClose={() => setShowCreate(false)}
+        onSave={async (newList) => {
+          await addList(newList);
+          setShowCreate(false);
+        }}
+      />
+    )}
+    {showSignIn && (
+      <SignInModal
+        onClose={() => setShowSignIn(false)}
+        signIn={signIn}
+        signUp={signUp}
+        signInWithGoogle={signInWithGoogle}
+      />
+    )}
+    </>
   );
 }

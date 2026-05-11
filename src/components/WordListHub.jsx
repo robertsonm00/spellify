@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './WordListHub.css';
 import { scoreWord, scoreToBand } from '../utils/difficultyEngine';
 import DEFINITIONS from '../data/definitions';
@@ -217,11 +217,60 @@ function computeProfileStats(activityStatuses = {}, mastery = {}) {
   return { points, levelIdx, levelName: LEVEL_NAMES[levelIdx], levelPct };
 }
 
-function HubPlayerCard({ childName, childCharacter, year, activityStatuses, mastery }) {
-  const { points, levelIdx, levelName, levelPct } = computeProfileStats(activityStatuses, mastery);
+export function HubPlayerCard({ childName, childCharacter, year, activityStatuses, mastery, welcomeBonus = 0, isFirstVisit = false, onWelcomeSeen, user = null, onCreateAccount = null }) {
+  const { points: rawPoints, levelIdx, levelName, levelPct } = computeProfileStats(activityStatuses, mastery);
+  const points = rawPoints + welcomeBonus;
+
+  const [collapsed,     setCollapsed]     = useState(false);
+  const [displayPoints, setDisplayPoints] = useState(isFirstVisit ? 0 : points);
+  const rafRef = useRef(null);
+
+  // Animate 0 → points on first visit; otherwise sync immediately.
+  useEffect(() => {
+    if (!isFirstVisit) {
+      setDisplayPoints(points);
+      return;
+    }
+    const duration = 1600;
+    const startTime = performance.now();
+    const target = points;
+    const tick = (now) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - (1 - progress) ** 3; // cubic ease-out
+      setDisplayPoints(Math.round(eased * target));
+      if (progress < 1) {
+        rafRef.current = requestAnimationFrame(tick);
+      } else {
+        onWelcomeSeen?.();
+      }
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [isFirstVisit]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Keep display in sync with actual points after animation.
+  useEffect(() => {
+    if (!isFirstVisit) setDisplayPoints(points);
+  }, [points, isFirstVisit]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const isGuest = !user;
+
   return (
-    <section className="hub-player-card">
-      <div className="hub-player-header">PLAYER</div>
+    <section className={`hub-player-card${collapsed ? ' hub-player-card--collapsed' : ''}`}>
+      <div className="hub-player-header">
+        <span>PLAYER</span>
+        <button
+          className="hub-player-toggle"
+          onClick={() => setCollapsed(c => !c)}
+          aria-label={collapsed ? 'Show player card' : 'Hide player card'}
+        >
+          {/* Chevron SVG — rotates to point right when collapsed */}
+          <svg className="hub-player-toggle-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0.715064 6L4.99494e-07 6.67273L12.0886 18L24 6.6702L23.2796 6.00253L12.0839 16.6515L0.715064 6Z" fill="currentColor"/>
+          </svg>
+        </button>
+      </div>
       <div className="hub-player-body">
         <div className="hub-player-buddy">
           {/* Click the buddy → cheer pose + confetti + sound for ~3s */}
@@ -232,6 +281,13 @@ function HubPlayerCard({ childName, childCharacter, year, activityStatuses, mast
             fallback={childCharacter?.emoji || '⭐'}
           />
         </div>
+        {/* Guest pill — only shown when not signed in */}
+        {isGuest && (
+          <div className="hub-guest-pill">
+            GUEST
+            <span className="hub-guest-pill-tip">Progress lost when you leave — create an account to keep it.</span>
+          </div>
+        )}
         <div className="hub-player-info">
           <div className="hub-player-name">
             {/* Swap hyphens for non-breaking hyphens so names like
@@ -241,7 +297,7 @@ function HubPlayerCard({ childName, childCharacter, year, activityStatuses, mast
           <div className="hub-player-year">Year {year ?? '—'}</div>
         </div>
         <div className="hub-player-points">
-          <div className="hub-player-points-num">{points.toLocaleString()}</div>
+          <div className="hub-player-points-num">{displayPoints.toLocaleString()}</div>
           <div className="hub-player-points-label">POINTS</div>
         </div>
         <div className="hub-player-level">
@@ -249,15 +305,24 @@ function HubPlayerCard({ childName, childCharacter, year, activityStatuses, mast
           <div className="hub-player-level-bar" aria-label={`Level progress ${levelPct}%`}>
             <div className="hub-player-level-fill" style={{ width: `${levelPct}%` }} />
           </div>
-          <div className="hub-player-level-num">Level {levelIdx + 1} / {LEVEL_NAMES.length}</div>
+          <div className="hub-player-level-num">Level {levelIdx + 1}</div>
         </div>
       </div>
+      {/* Guest footer — only shown when not signed in */}
+      {isGuest && (
+        <div className="hub-player-footer">
+          <p className="hub-player-footer-text">Save your progress and word lists.</p>
+          <button className="hub-player-footer-btn" onClick={onCreateAccount}>
+            Create account →
+          </button>
+        </div>
+      )}
     </section>
   );
 }
 
 // ── Mastery dot ───────────────────────────────────────────────────────────────
-function MasteryDot({ rate }) {
+export function MasteryDot({ rate }) {
   if (rate === null) return <span className="hub-mastery-dot hub-mastery-dot--new"    title="Not tried yet" />;
   if (rate >= 0.6)   return <span className="hub-mastery-dot hub-mastery-dot--mastered" title="Mastered!" />;
   return               <span className="hub-mastery-dot hub-mastery-dot--learning"  title="Keep practising" />;
@@ -275,6 +340,9 @@ function WordListHub({
   reviewQueue = [],
   childName = '',
   childCharacter = null,
+  welcomeBonus = 0,
+  isFirstVisit = false,
+  onWelcomeSeen,
   session = null,   // full session — passed to availability checks
   user = null,      // current user — passed to availability checks
   onLaunch,
@@ -289,26 +357,24 @@ function WordListHub({
   const [activeWord,      setActiveWord]      = useState(null); // { word, chipColor }
   const [lockedInfo,      setLockedInfo]      = useState(null); // { name, message, color }
 
-  // Layout toggle — 'classic' (vertical scroll) or 'split' (two-column).
-  // Persisted so the user's choice survives reloads.
-  const [layout, setLayout] = useState(() => {
-    if (typeof window === 'undefined') return 'classic';
-    return window.localStorage.getItem('hubLayout') === 'split' ? 'split' : 'classic';
-  });
+  // Only count activities that are applicable to this list (exclude 'unsupported').
+  const availableActivities = ACTIVITIES.filter(
+    a => getActivityAvailability(a, { session, user }).reason !== 'unsupported'
+  );
+  const completedCount = availableActivities.filter((a) => activityStatuses[a.id] === 'completed').length;
+  const progressPct    = Math.round((completedCount / availableActivities.length) * 100);
+
+  const [progressRevealed, setProgressRevealed] = useState(completedCount > 0);
+
   useEffect(() => {
-    if (typeof window !== 'undefined') window.localStorage.setItem('hubLayout', layout);
-  }, [layout]);
-  const toggleLayout = () => setLayout((l) => (l === 'classic' ? 'split' : 'classic'));
-
-  const completedCount = ACTIVITIES.filter((a) => activityStatuses[a.id] === 'completed').length;
-  const progressPct    = Math.round((completedCount / ACTIVITIES.length) * 100);
-
-  // Pixel progress: 4 blocks, one per activity
-  const progressBlocks = ACTIVITIES.map((a) => activityStatuses[a.id] === 'completed');
+    if (completedCount > 0 && !progressRevealed) {
+      setProgressRevealed(true);
+    }
+  }, [completedCount]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className={`hub-shell hub-shell--${layout}`}>
-    <div className={`hub hub--${layout}`}>
+    <div className="hub-shell hub-shell--split">
+    <div className="hub hub--split">
       {/* In split mode the left/right wrappers become independent flex columns
           so progress isn't tied to the player card's row height. In classic
           mode they use `display: contents` (see CSS) so the children flatten
@@ -321,6 +387,10 @@ function WordListHub({
         year={year}
         activityStatuses={activityStatuses}
         mastery={mastery}
+        welcomeBonus={welcomeBonus}
+        isFirstVisit={isFirstVisit}
+        onWelcomeSeen={onWelcomeSeen}
+        user={user}
       />
 
       {/* Word list + Word lists CTA travel together as a sticky group:
@@ -333,16 +403,6 @@ function WordListHub({
           <div className="hub-section-title-block">
             <span className="hub-section-label">WORD LIST</span>
             <span className="hub-list-title">{ruleLabel || 'Untitled list'}</span>
-          </div>
-          <div className="hub-section-actions">
-            <button
-              className="hub-layout-toggle"
-              onClick={toggleLayout}
-              aria-label={layout === 'classic' ? 'Switch to split layout' : 'Switch to classic layout'}
-              title={layout === 'classic' ? 'Switch to split layout' : 'Switch to classic layout'}
-            >
-              {layout === 'classic' ? '▦' : '☰'}
-            </button>
           </div>
         </div>
         <div className="hub-chips">
@@ -382,19 +442,19 @@ function WordListHub({
 
       <div className="hub-split-right">
       {/* ── Pixel progress bar ── */}
-      <section className="hub-progress">
+      <section className={`hub-progress${!progressRevealed ? ' hub-progress--hidden' : ''}`}>
         <div className="hub-progress-labels">
-          <span>{completedCount} of {ACTIVITIES.length} activities done</span>
+          <span>{completedCount} of {availableActivities.length} activities done</span>
           <span className="hub-progress-pct">{progressPct}%</span>
         </div>
         <div className="hub-pixel-progress">
-          {progressBlocks.map((filled, i) => {
-            const activity = ACTIVITIES[i];
-            const avail    = getActivityAvailability(activity, { session, user });
-            const locked   = avail.locked;
+          {availableActivities.map((activity) => {
+            const filled = activityStatuses[activity.id] === 'completed';
+            const avail  = getActivityAvailability(activity, { session, user });
+            const locked = avail.locked;
             return (
               <button
-                key={i}
+                key={activity.id}
                 type="button"
                 className={`hub-pixel-block${filled ? ' hub-pixel-block--filled' : ''}${locked ? ' hub-pixel-block--locked' : ''}`}
                 aria-label={locked ? `${activity.name} — locked. Tap for details.` : `Open ${activity.name}`}

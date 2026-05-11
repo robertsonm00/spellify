@@ -47,15 +47,26 @@ function fireBuddyConfetti() {
 // ── Buddy renderers ──────────────────────────────────────────────────────
 
 function RaccoonSprite({ size, cheering }) {
-  const src = cheering ? raccoonCheer : raccoonStill;
+  // Both frames are rendered from the start so the browser loads and caches
+  // raccoon-cheer.svg immediately — no blank flash when the user first clicks.
+  const imgStyle = { maxWidth: size, maxHeight: size, width: 'auto', height: 'auto' };
   return (
-    <img
-      className="buddy-sprite"
-      src={src}
-      alt=""
-      aria-hidden="true"
-      style={{ maxWidth: size, maxHeight: size, width: 'auto', height: 'auto' }}
-    />
+    <>
+      <img
+        className="buddy-sprite"
+        src={raccoonStill}
+        alt=""
+        aria-hidden="true"
+        style={{ ...imgStyle, display: cheering ? 'none' : undefined }}
+      />
+      <img
+        className="buddy-sprite"
+        src={raccoonCheer}
+        alt=""
+        aria-hidden="true"
+        style={{ ...imgStyle, display: cheering ? undefined : 'none' }}
+      />
+    </>
   );
 }
 

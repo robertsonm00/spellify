@@ -1,25 +1,39 @@
 import React, { useState, useEffect } from 'react';
-import { ACTIVITIES } from '../../data/activities';
+import { ACTIVITIES, PHASES } from '../../data/activities';
 import { getActivityAvailability } from '../../utils/activityAvailability';
 import { renderExploreActivity } from './exploreActivityRunner';
+import { scoreWord, scoreToBand } from '../../utils/difficultyEngine';
+import ActivityIcon from '../ActivityIcon';
+import { HubPlayerCard, MasteryDot } from '../WordListHub';
+import '../WordListHub.css';
 import './ListHub.css';
 
-const CATEGORY_COLOURS = {
-  'Statutory':    '#6b7280',
-  'Phonics':      '#a855f7',
-  'Patterns':     '#1D9E75',
-  'Etymology':    '#EF9F27',
-  'Vowels':       '#f97316',
-  'Sight words':  '#22c55e',
+const WORD_CHIP_COLORS = [
+  { bg: '#fff0f0', border: '#ff6b6b' },
+  { bg: '#fff8e1', border: '#ffd93d' },
+  { bg: '#f0fff4', border: '#6bcb77' },
+  { bg: '#e8f4ff', border: '#4d96ff' },
+  { bg: '#f5f0ff', border: '#c77dff' },
+  { bg: '#fff4ec', border: '#ff9f43' },
+  { bg: '#f0ffff', border: '#00d2d3' },
+  { bg: '#fff0f8', border: '#ff6b9d' },
+];
+
+const STATUS_LABEL = {
+  'not-started': 'Not Started',
+  'in-progress': 'In Progress',
+  'completed':   'Done ✓',
 };
 
-export default function ListHub({ list, listType = 'curriculum', onBack, getListProgress, markComplete, user }) {
+export default function ListHub({ list, listType = 'curriculum', session = null, onBack, getListProgress, markComplete, user, onCreateAccount = null }) {
   const [activeActivity, setActiveActivity] = useState(null);
-  const [progress, setProgress] = useState({});
+  const [progress,       setProgress]       = useState({});
 
   const words = (list.words || []).map(w => (typeof w === 'string' ? w : w.word));
 
-  // ── Load progress ────────────────────────────────────────────────────────
+  // Derived up-front so availableActivities can use it for filtering.
+  const exploreSession = { year: list.year, words, age: list.ageRange?.[0] };
+
   useEffect(() => {
     (async () => {
       if (getListProgress) {
@@ -29,9 +43,21 @@ export default function ListHub({ list, listType = 'curriculum', onBack, getList
     })();
   }, [list.id, listType, getListProgress]);
 
-  const completedCount = ACTIVITIES.filter(a => progress[a.id]?.status === 'completed').length;
+  // Only count activities applicable to this list (exclude 'unsupported').
+  const availableActivities = ACTIVITIES.filter(
+    a => getActivityAvailability(a, { session: exploreSession, user }).reason !== 'unsupported'
+  );
+  const completedCount = availableActivities.filter(a => progress[a.id]?.status === 'completed').length;
+  const progressPct    = Math.round((completedCount / availableActivities.length) * 100);
 
-  // ── Handle game complete ─────────────────────────────────────────────────
+  const [progressRevealed, setProgressRevealed] = useState(completedCount > 0);
+
+  useEffect(() => {
+    if (completedCount > 0 && !progressRevealed) {
+      setProgressRevealed(true);
+    }
+  }, [completedCount]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleComplete = async (activityId, results = []) => {
     const accuracy = results.length > 0
       ? Math.round((results.filter(r => r.correct).length / results.length) * 100)
@@ -46,123 +72,181 @@ export default function ListHub({ list, listType = 'curriculum', onBack, getList
     setActiveActivity(null);
   };
 
-  // ── Render active game (delegated to the canonical registry) ─────────────
+  // ── Active game ──────────────────────────────────────────────────────────
   if (activeActivity) {
     const rendered = renderExploreActivity(activeActivity, {
-      list,
-      words,
-      user,
+      list, words, user,
       onComplete: handleComplete,
       onExit: () => setActiveActivity(null),
     });
     if (rendered) return rendered;
   }
 
-  // ── List Hub view ────────────────────────────────────────────────────────
-  const categoryColour = CATEGORY_COLOURS[list.category] || '#6b7280';
-
+  // ── List hub view ────────────────────────────────────────────────────────
   return (
-    <div className="lh-wrap">
-      {/* Header */}
-      <div className="lh-header">
-        <button className="lh-back" onClick={onBack}>← Back</button>
+    <div className="hub-shell hub-shell--split">
+    <div className="hub hub--split">
 
-        <div className="lh-header-center">
-          <h1 className="lh-title">{list.name}</h1>
-          <div className="lh-meta">
-            <span className="lh-badge" style={{ background: categoryColour + '22', color: categoryColour, border: `1.5px solid ${categoryColour}` }}>
-              {list.category || 'Custom'}
-            </span>
-            <span className="lh-word-count">{words.length} words</span>
-            {list.year && <span className="lh-year">Year {list.year === 3 ? '3–4' : list.year === 5 ? '5–6' : list.year}</span>}
-          </div>
+      {/* ── Left column ── */}
+      <div className="hub-split-left">
+
+        {/* Player card — uses the active My Words session if available */}
+        <HubPlayerCard
+          childName={session?.childName || ''}
+          childCharacter={session?.childCharacter || null}
+          year={session?.year ?? null}
+          activityStatuses={session?.activityStatuses || {}}
+          mastery={session?.mastery || {}}
+          welcomeBonus={session?.welcomeBonus || 0}
+          user={user}
+          onCreateAccount={onCreateAccount}
+        />
+
+        <div className="hub-sticky-block">
+          {/* Word list */}
+          <section className="hub-words">
+            <div className="hub-section-header">
+              <div className="hub-section-title-block">
+                <span className="hub-section-label">WORD LIST</span>
+                <span className="hub-list-title">{list.name}</span>
+              </div>
+            </div>
+            <div className="hub-chips">
+              {words.map((w, i) => {
+                const { bg, border } = WORD_CHIP_COLORS[i % WORD_CHIP_COLORS.length];
+                const band = scoreToBand(scoreWord(w));
+                return (
+                  <button
+                    key={i}
+                    className="hub-chip"
+                    style={{ background: bg, borderColor: border }}
+                  >
+                    <MasteryDot rate={null} />
+                    {w}
+                    <span className={`hub-diff-star hub-diff-star--${band}`} title={band}>★</span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Back to lists CTA — mirrors the Browse section in the master hub */}
+          <section className="hub-word-lists">
+            <div className="hub-word-lists-header">EXPLORE</div>
+            <button className="hub-word-lists-btn" onClick={onBack}>
+              ← All Word Lists
+            </button>
+          </section>
         </div>
       </div>
 
-      {/* Progress bar */}
-      <div className="lh-progress-strip">
-        <div className="lh-progress-fill" style={{ width: `${(completedCount / ACTIVITIES.length) * 100}%` }} />
-        <span className="lh-progress-label">{completedCount} of {ACTIVITIES.length} activities done</span>
-      </div>
+      {/* ── Right column ── */}
+      <div className="hub-split-right">
 
-      <div className="lh-body">
-        {/* ── Word sidebar ── */}
-        <aside className="lh-sidebar">
-          <h3 className="lh-sidebar-title">Words</h3>
-          <ul className="lh-word-list">
-            {(list.words || []).map((item, i) => {
-              const word = typeof item === 'string' ? item : item.word;
-              const def  = typeof item === 'object' ? item.definition : '';
-              return (
-                <li key={i} className="lh-word-item">
-                  <span className="lh-word-text">{word}</span>
-                  {def && <span className="lh-word-def">{def}</span>}
-                </li>
-              );
-            })}
-          </ul>
-        </aside>
-
-        {/* ── Activity cards (driven by the canonical registry) ── */}
-        <main className="lh-activities">
-          <h2 className="lh-section-title">Choose an activity</h2>
-          <div className="lh-grid">
-            {ACTIVITIES.filter((act) => {
-              const a = getActivityAvailability(act, { session: { year: list.year, words, age: list.ageRange?.[0] }, user });
-              return a.reason !== 'unsupported';
-            }).map((act) => {
-              const status = progress[act.id]?.status || 'not_started';
-              const done   = status === 'completed';
-              const avail  = getActivityAvailability(act, { session: { year: list.year, words, age: list.ageRange?.[0] }, user });
+        {/* Progress */}
+        <section className={`hub-progress${!progressRevealed ? ' hub-progress--hidden' : ''}`}>
+          <div className="hub-progress-labels">
+            <span>{completedCount} of {availableActivities.length} activities done</span>
+            <span className="hub-progress-pct">{progressPct}%</span>
+          </div>
+          <div className="hub-pixel-progress">
+            {availableActivities.map((activity) => {
+              const filled = progress[activity.id]?.status === 'completed';
+              const avail  = getActivityAvailability(activity, { session: exploreSession, user });
               const locked = avail.locked;
-
               return (
-                <div
-                  key={act.id}
-                  className={`lh-card${locked ? ' lh-card--locked' : ''}${done ? ' lh-card--done' : ''}`}
-                  style={{
-                    borderColor: locked ? '#e0e0e0' : act.dark,
-                    boxShadow:   locked ? '4px 4px 0 #e0e0e0' : `4px 4px 0 ${act.dark}`,
-                  }}
-                  onClick={() => !locked && setActiveActivity(act.id)}
-                  role={locked ? undefined : 'button'}
-                  tabIndex={locked ? -1 : 0}
-                  onKeyDown={e => !locked && e.key === 'Enter' && setActiveActivity(act.id)}
-                  aria-label={locked ? `${act.name} — ${avail.message || 'locked'}` : act.name}
-                  title={locked ? avail.message : undefined}
+                <button
+                  key={activity.id}
+                  type="button"
+                  className={`hub-pixel-block${filled ? ' hub-pixel-block--filled' : ''}${locked ? ' hub-pixel-block--locked' : ''}`}
+                  aria-label={locked ? `${activity.name} — locked` : `Open ${activity.name}`}
+                  onClick={() => { if (!locked) setActiveActivity(activity.id); }}
                 >
-                  {/* Coloured header */}
-                  <div
-                    className="lh-card-header"
-                    style={{ background: locked ? '#f0f0f0' : act.color }}
-                  >
-                    <span className="lh-card-icon">{locked ? '🔒' : act.icon}</span>
-                    {done && <span className="lh-card-check">✓</span>}
-                  </div>
-
-                  <div className="lh-card-body">
-                    <h3 className="lh-card-name">{act.name}</h3>
-                    {locked ? (
-                      <span className="lh-card-soon">{avail.message || 'Locked'}</span>
-                    ) : (
-                      <>
-                        <span className={`lh-card-status lh-card-status--${status}`}>
-                          {status === 'completed' ? '★ Completed'
-                           : status === 'in_progress' ? '► Playing'
-                           : 'Not started'}
-                        </span>
-                        {progress[act.id]?.accuracy != null && (
-                          <span className="lh-card-accuracy">{progress[act.id].accuracy}% accuracy</span>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </div>
+                  <span className="hub-pixel-tip">
+                    {activity.name}{locked ? ' — Locked' : ''}
+                  </span>
+                </button>
               );
             })}
           </div>
-        </main>
+        </section>
+
+        {/* Activity cards grouped by phase */}
+        <section className="hub-activities">
+          <span className="hub-section-label">ACTIVITIES</span>
+          {PHASES.map((phase, phaseIdx) => {
+            const phaseActivities = ACTIVITIES.filter((a) => {
+              if (a.phase !== phase.key) return false;
+              const avail = getActivityAvailability(a, { session: exploreSession, user });
+              return avail.reason !== 'unsupported';
+            });
+            if (phaseActivities.length === 0) return null;
+            return (
+              <div key={phase.key} className="hub-phase">
+                <div className="hub-phase-header">
+                  <span className="hub-phase-num">{phaseIdx + 1}</span>
+                  <div className="hub-phase-text">
+                    <strong className="hub-phase-label">{phase.label}</strong>
+                    <span className="hub-phase-hint">{phase.hint}</span>
+                  </div>
+                </div>
+                <div className="hub-grid">
+                  {phaseActivities.map((activity) => {
+                    const raw    = progress[activity.id]?.status;
+                    const status = raw === 'completed'   ? 'completed'
+                                 : raw === 'in_progress' ? 'in-progress'
+                                 : 'not-started';
+                    const done   = status === 'completed';
+                    const avail  = getActivityAvailability(activity, { session: exploreSession, user });
+                    const locked = avail.locked;
+                    return (
+                      <div
+                        key={activity.id}
+                        className={`hub-card hub-card--${status}${locked ? ' hub-card--locked' : ''}`}
+                        style={{
+                          borderColor:    activity.dark,
+                          boxShadow:      done
+                            ? `3px 3px 0 ${activity.color}`
+                            : `5px 5px 0 ${activity.color}`,
+                          '--card-color': activity.color,
+                          opacity:        locked ? 0.55 : 1,
+                          cursor:         locked ? 'not-allowed' : 'pointer',
+                        }}
+                        onClick={() => { if (!locked) setActiveActivity(activity.id); }}
+                        role="button"
+                        tabIndex={locked ? -1 : 0}
+                        aria-disabled={locked}
+                        title={locked ? avail.message : undefined}
+                        onKeyDown={(e) => { if (!locked && e.key === 'Enter') setActiveActivity(activity.id); }}
+                      >
+                        <div className="hub-card-header" style={{ background: activity.color }}>
+                          <span className="hub-card-icon hub-card-icon--emoji">{activity.icon}</span>
+                          <span className="hub-card-icon hub-card-icon--svg" aria-hidden="true">
+                            <ActivityIcon id={activity.id} size={28} />
+                          </span>
+                          {locked && <span className="hub-card-lock" aria-hidden="true">🔒</span>}
+                        </div>
+                        <div className="hub-card-body">
+                          <h3 className="hub-card-name">{activity.name}</h3>
+                          <span className={`hub-badge hub-badge--${status}`}>
+                            {locked ? (avail.message || 'Locked') : STATUS_LABEL[status]}
+                          </span>
+                          <p className="hub-card-time">⏱ {activity.timeEstimate}</p>
+                          {!locked && progress[activity.id]?.accuracy != null && (
+                            <p className="lh-card-accuracy">{progress[activity.id].accuracy}% accuracy</p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </section>
       </div>
+
+    </div>
     </div>
   );
 }

@@ -13,7 +13,7 @@
   flex-direction: column;
   align-items: center;
   gap: 1rem;
-  padding: 1.25rem 2rem 0.5rem;
+  padding: 2.5rem 2rem 0.5rem;
   flex: 1;
 }
 
@@ -29,56 +29,122 @@
 }
 
 .sd-energy-icon {
-  font-size: 1.4rem;
+  font-size: 2.8rem;
   line-height: 1;
+  animation: sd-wizard-float 3s ease-in-out infinite;
 }
 
-/* Connected horizontal bar — 6 rectangular segments, sharp internal edges */
-.sd-energy-bar {
+@keyframes sd-wizard-float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-10px); }
+}
+
+/* ── Individual spell-charge gems ─────────────────────────────────────────── */
+
+.sd-energy-gems {
   display: flex;
   flex-direction: row;
-  width: 100%;
-  max-width: 780px;
-  height: 18px;
-  border: 2px solid rgba(127, 119, 221, 0.55);
-  border-radius: 4px;
+  gap: 8px;
+  justify-content: center;
+  padding: 4px 0;
+}
+
+.sd-energy-gem {
+  width: 52px;
+  height: 26px;
+  border-radius: 7px;
+  background: rgba(167, 139, 250, 0.08);
+  border: 1.5px solid rgba(167, 139, 250, 0.22);
+  transition: background 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  position: relative;
   overflow: hidden;
 }
 
-.sd-energy-segment {
-  flex: 1;
-  height: 100%;
-  border-radius: 0;
-  background: #ddd9f0;
-  border-right: 1px solid rgba(127, 119, 221, 0.22);
-  transition: background 0.28s ease;
+/* Inner highlight shimmer — only visible on lit gems */
+.sd-energy-gem::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 6px;
+  right: 6px;
+  height: 5px;
+  border-radius: 3px;
+  background: transparent;
+  transition: background 0.3s ease;
 }
 
-.sd-energy-segment:last-child {
-  border-right: none;
+.sd-energy-gem--lit {
+  background: linear-gradient(155deg, #c4b5fd 0%, #7c3aed 100%);
+  border-color: #7c3aed;
+  box-shadow:
+    0 0 10px rgba(124, 58, 237, 0.45),
+    0 0 22px rgba(167, 139, 250, 0.2),
+    0 2px 0 rgba(0, 0, 0, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
-.sd-energy-segment--lit {
-  background: linear-gradient(180deg, #9b8ff0 0%, #7f77dd 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
+.sd-energy-gem--lit::after {
+  background: rgba(255, 255, 255, 0.28);
 }
 
-.sd-energy-segment--gold {
-  background: linear-gradient(180deg, #fcd34d 0%, #ef9f27 100%);
+.sd-energy-gem--gold {
+  background: linear-gradient(155deg, #fde68a 0%, #f59e0b 100%);
+  border-color: #d97706;
+  box-shadow:
+    0 0 14px rgba(245, 158, 11, 0.65),
+    0 0 28px rgba(252, 211, 77, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
   animation: sd-gold-pulse 0.55s ease-in-out infinite alternate;
 }
 
-@keyframes sd-gold-pulse {
-  from { filter: brightness(1); }
-  to   { filter: brightness(1.25); }
+.sd-energy-gem--gold::after {
+  background: rgba(255, 255, 255, 0.35);
 }
 
-.sd-charges-text {
-  font-size: 0.7rem;
+@keyframes sd-gold-pulse {
+  from { filter: brightness(1);    box-shadow: 0 0 14px rgba(245,158,11,0.65), 0 0 28px rgba(252,211,77,0.3); }
+  to   { filter: brightness(1.18); box-shadow: 0 0 22px rgba(245,158,11,0.85), 0 0 40px rgba(252,211,77,0.45); }
+}
+
+.sd-charges-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  margin-top: 0.1rem;
+}
+
+.sd-charges-number {
+  font-size: 2.4rem;
+  font-weight: 900;
+  line-height: 1;
+  background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 60%, #c084fc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 6px rgba(167, 139, 250, 0.45));
+  font-family: 'Nunito', sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.sd-charges-number--won {
+  background: linear-gradient(135deg, #fcd34d 0%, #ef9f27 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  filter: drop-shadow(0 0 8px rgba(252, 211, 77, 0.6));
+}
+
+.sd-charges-number--lost {
+  background: linear-gradient(135deg, #f9a8d4 0%, #be185d 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  filter: drop-shadow(0 0 6px rgba(249, 168, 212, 0.4));
+}
+
+.sd-charges-label {
+  font-size: 1rem;
   font-weight: 700;
   color: #7c3aed;
-  margin: 0;
-  text-align: center;
   letter-spacing: 0.02em;
 }
 
@@ -194,7 +260,7 @@
   flex-direction: column;
   align-items: center;
   gap: 0.45rem;
-  padding: 0.75rem 1rem calc(1.5rem + 50px);
+  padding: 0.75rem 1rem calc(1.5rem + 30px);
   flex-shrink: 0;
   width: 100%;
 }
@@ -212,11 +278,17 @@
   gap: 0.3rem;
 }
 
+.hm-key-row--adaptive {
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 780px;
+}
+
 .hm-key {
-  width: clamp(34px, 5.4vw, 54px);
-  height: clamp(40px, 6.2vw, 62px);
+  width: clamp(41px, 6.5vw, 65px);
+  height: clamp(48px, 7.4vw, 74px);
   font-family: 'Nunito', sans-serif;
-  font-size: clamp(0.95rem, 1.6vw, 1.3rem);
+  font-size: clamp(1.14rem, 1.92vw, 1.56rem);
   font-weight: 800;
   border: 2px solid #c084fc;
   border-radius: 12px;

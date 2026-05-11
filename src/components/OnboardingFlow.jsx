@@ -138,6 +138,12 @@ function NameInput({ onSubmit }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (name.trim()) {
+      confetti({
+        particleCount: 80,
+        spread: 70,
+        origin: { x: 0.5, y: 0.35 },
+        colors: ['#ff6b6b', '#ffd93d', '#6bcb77', '#4d96ff', '#c77dff', '#ff9f43'],
+      });
       // Replace ASCII hyphens with U+2011 (NON-BREAKING HYPHEN) so names
       // like "Peter-Parker" never split across two lines anywhere downstream.
       // Visually identical, but the line-break rule ignores it.

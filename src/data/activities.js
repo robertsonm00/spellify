@@ -48,7 +48,7 @@ export const ACTIVITIES = [
     id: 'hangman', name: 'Spell Duel', icon: '⚔️',
     timeEstimate: '5 mins', color: '#d4b8f5', dark: '#7c3aed',
     phase: 'warmup', component: SpellDuel,
-    buildProps: (s) => ({ difficulty: s.difficulty || 'medium' }),
+    buildProps: (s) => ({ difficulty: s.difficulty || 'medium', yearGroup: s.year ?? null }),
   },
   {
     id: 'syllabletap', name: 'Syllable Tap', icon: '👂',
@@ -68,7 +68,7 @@ export const ACTIVITIES = [
     id: 'weakspot', name: 'Weak Spot', icon: '🎯',
     timeEstimate: '5 mins', color: '#fbe1a4', dark: '#b88828',
     phase: 'explore', component: WeakSpot,
-    buildProps: () => ({}),
+    buildProps: (s) => ({ childCharacter: s.childCharacter || null }),
   },
   {
     id: 'crossword', name: 'Crossword', icon: '✏️',
