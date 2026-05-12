@@ -141,6 +141,10 @@ export const YEAR_LABELS = Object.fromEntries(
 /**
  * Return words as objects with difficulty derived from word length.
  * length <= 4 → 'easy', length <= 7 → 'medium', else 'hard'
+ *
+ * @deprecated No callers — kept for API compatibility. Use the enriched
+ *   wordObjects returned by src/utils/wordSelectionEngine.js's selectWords,
+ *   or src/utils/wordLookup.js for direct per-word data lookups.
  */
 export function getWordObjects(year, count = 20) {
   const words = getWordsForYear(year, count);
@@ -154,6 +158,9 @@ export function getWordObjects(year, count = 20) {
 /**
  * Select words for a session.
  * dyslexiaMode is accepted but currently a no-op.
+ *
+ * @deprecated No callers — the live selectWords lives in
+ *   src/utils/wordSelectionEngine.js. Kept here for API compatibility only.
  */
 export function selectWords({ year, count = 20, dyslexiaMode }) {
   return getWordsForYear(year, count);

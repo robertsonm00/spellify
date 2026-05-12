@@ -15,7 +15,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { YEAR_GROUPS, getListsForYear, curriculumLists } from '../../data/curriculumLists';
+import { YEAR_GROUPS, getListsForYear, curriculumLists, getEnrichedLesson } from '../../data/curriculumLists';
 import { useCustomLists } from '../../hooks/useCustomLists';
 import { useProgress }    from '../../hooks/useProgress';
 import { ACTIVITIES }     from '../../data/activities';
@@ -407,7 +407,12 @@ export default function ExploreDashboard({
 
   const openList = (list, listType) => {
     pushRecent(list.id);
-    setSelectedList({ list, listType });
+    // Lazy-enrich curriculum lessons on open so the detail view has access to
+    // the rich v13/v26 data. Custom lists pass through unchanged.
+    const enriched = listType === 'curriculum'
+      ? (getEnrichedLesson(list.id) || list)
+      : list;
+    setSelectedList({ list: enriched, listType });
     setListNameDraft(list.name);
   };
 

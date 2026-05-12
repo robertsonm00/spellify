@@ -1,6 +1,8 @@
 // UK National Curriculum Spelling Lists
 // All lists include real words with short, kid-friendly definitions.
 
+import { getWordData } from '../utils/wordLookup.js';
+
 export const CATEGORY_COLOURS = {
   'Statutory':    'gray',
   'Phonics':      'purple',
@@ -830,3 +832,27 @@ export const YEAR_GROUPS = [
   { year: 3, label: 'Year 3–4', ageRange: '7–9' },
   { year: 5, label: 'Year 5–6', ageRange: '9–11' },
 ];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Lazy lesson enrichment
+//
+// curriculumLists keeps short, kid-friendly definitions inline so list cards
+// render fast without touching the heavy v13/v26 data. When the user opens a
+// single lesson's detail view, getEnrichedLesson(lessonId) attaches the full
+// v13/v26 entry (definitions per age band, syllables, sentences, tricky parts,
+// pattern group, common mistakes, related words, etc.) to each word.
+//
+// The short `definition` field on every word stays untouched — UI can keep
+// using it as the default and reach into `enriched` only when needed.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function getEnrichedLesson(lessonId) {
+  const lesson = curriculumLists.find((l) => l.id === lessonId);
+  if (!lesson) return null;
+  const words = (lesson.words || []).map((w) => {
+    const word = typeof w === 'string' ? w : w.word;
+    const definition = typeof w === 'string' ? '' : (w.definition || '');
+    return { word, definition, enriched: getWordData(word) };
+  });
+  return { ...lesson, words };
+}

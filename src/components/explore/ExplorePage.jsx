@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { YEAR_GROUPS, getListsForYear } from '../../data/curriculumLists';
+import { YEAR_GROUPS, getListsForYear, getEnrichedLesson } from '../../data/curriculumLists';
 import { useCustomLists } from '../../hooks/useCustomLists';
 import { useProgress }    from '../../hooks/useProgress';
 import { ACTIVITIES }     from '../../data/activities';
@@ -127,7 +127,10 @@ export default function ExplorePage({ session = null, user, profile, signIn, sig
   }, [selectedYear, customLists.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openList = (list, listType) => {
-    setSelectedList({ list, listType });
+    const enriched = listType === 'curriculum'
+      ? (getEnrichedLesson(list.id) || list)
+      : list;
+    setSelectedList({ list: enriched, listType });
     setView('listHub');
   };
 

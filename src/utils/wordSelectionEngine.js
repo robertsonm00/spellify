@@ -22,6 +22,7 @@
 
 import { YEAR_DATA, YEAR1_CEW, YEAR2_CEW, YEAR3_4, YEAR5_6 } from '../data/spelling/index.js';
 import { getMorphology } from '../data/morphology';
+import { getWordData } from './wordLookup.js';
 
 // ── Y1 / Y2 phonics rule buckets ───────────────────────────────────────────
 // Drawn from the NC 2014 English Appendix 1 example words for each rule.
@@ -306,11 +307,29 @@ export function selectWords({ yearGroup, count = 10, dyslexiaMode = false, group
 
   const words = dedupeByStem(candidates, count);
 
-  const wordObjects = words.map((word) => ({
-    word,
-    yearGroup: Number(yearGroup),
-    difficulty: word.length <= 4 ? 'easy' : word.length <= 7 ? 'medium' : 'hard',
-  }));
+  // Each wordObject merges the full v13/v26 entry (definitions, sentence,
+  // syllables, trickyPart, commonMistakes, relatedWords, patternGroup,
+  // statutory, etc.) with the session's yearGroup. Words missing from the
+  // database fall back to the legacy length-based difficulty heuristic and
+  // get the minimal shape, so callers never see undefined.
+  const wordObjects = words.map((word) => {
+    const entry = getWordData(word);
+    const fallbackDifficulty =
+      word.length <= 4 ? 'easy' : word.length <= 7 ? 'medium' : 'hard';
+    if (!entry) {
+      return {
+        word,
+        yearGroup: Number(yearGroup),
+        difficulty: fallbackDifficulty,
+      };
+    }
+    return {
+      ...entry,
+      word,
+      yearGroup: Number(yearGroup),
+      difficulty: entry.difficulty || fallbackDifficulty,
+    };
+  });
 
   return { words, wordObjects };
 }
