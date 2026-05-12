@@ -563,3 +563,159 @@ Examples of intended duplication:
 ---
 
 *This document lives in the Spellify project. The canonical file is `docs/curriculum-structure.md` in the repo. Any changes to lesson IDs, strand definitions, or schema fields must be reflected here before implementation.*
+
+---
+
+## 9 (revised)  Lesson Count Summary
+
+Updated following HeadStart Primary review and gap-patch session (2026-05-12).
+
+| Year | Phonics | Patterns | Morphology | Etymology | Statutory | Total |
+|---|---|---|---|---|---|---|
+| Y1 | 27 | 7 | 0 | 0 | 4 | **37** |
+| Y2 | 8 | 12 | 6 | 0 | 4 | **32** |
+| Y3 | 5 | 9 | 7 | 3 | 5 | **29** |
+| Y4 | 0 | 12 | 8 | 2 | 3 | **25** |
+| Y5 | 0 | 8 | 10 | 7 | 5 | **30** |
+| Y6 | 0 | 5 | 6 | 5 | 5 | **21** |
+| **Total** | **40** | **53** | **37** | **17** | **26** | **174** |
+
+---
+
+## 12  Patch Lessons Added (Gap-Patch Session, 2026-05-12)
+
+Following review against the HeadStart Primary Spelling Overview (Y1-Y6), 20 lessons were added
+to close NC 2014 curriculum gaps. Reviewed by an experienced primary school teacher.
+
+### Year 1 additions (9 lessons)
+
+| ID | Name | Gap closed |
+|---|---|---|
+| `y1-ph-ue-ew` | UE and EW Words | /ue/ and /ew/ vowel digraphs missing |
+| `y1-ph-oe-ore` | OE and ORE Words | /oe/ and /ore/ word endings missing |
+| `y1-ph-air-vowel` | AIR Words | /air/ vowel sound missing |
+| `y1-ph-ear-vowel` | EAR Words - Two Sounds | /ear/ two-sound distinction missing |
+| `y1-ph-are-vowel` | ARE Words | /are/ vowel sound missing |
+| `y1-ph-wh-ph-digraphs` | WH and PH Words | wh- and ph- digraphs missing |
+| `y1-ph-tch-trigraph` | -TCH Words | -tch trigraph missing |
+| `y1-ph-au-aw-sounds` | AU and AW Words | /au/ vowel sound missing |
+| `y1-pt-adding-er-est` | Adding -ER and -EST | Comparative/superlative suffixes missing |
+
+### Year 2 additions (6 lessons)
+
+| ID | Name | Gap closed |
+|---|---|---|
+| `y2-pt-a-after-w` | A After W (WA- Words) | /o/ spelt a after w (want, wash) missing |
+| `y2-pt-or-after-w` | OR and AR After W | /er/ spelt or after w (word, work) missing |
+| `y2-pt-zh-sound-s` | S Making the /ZH/ Sound | /zh/ sound spelt s (treasure) missing |
+| `y2-mo-contractions-1` | Contractions - Set 1 | Contractions entirely absent |
+| `y2-mo-contractions-2` | Contractions - Set 2 | Contractions set 2 (won't etc) |
+| `y2-mo-apostrophe` | Possessive Apostrophe | Possessive apostrophe entirely absent |
+
+### Year 3 addition (1 lesson)
+
+| ID | Name | Gap closed |
+|---|---|---|
+| `y3-pt-ou-for-u` | OU Making the /U/ Sound | /u/ sound spelt ou (touch, young) missing |
+
+### Year 4 additions (3 lessons)
+
+| ID | Name | Gap closed |
+|---|---|---|
+| `y4-mo-suffix-ally` | -ALLY Words | -ally suffix (basically, dramatically) missing |
+| `y4-pt-ous-our-drops` | -OUS When -OUR Drops the U | humour->humorous transformation missing |
+| `y4-pt-ous-keeps-e` | -OUS/-ABLE Keeping E After G or C | courageous, noticeable pattern missing |
+
+### Year 6 addition (1 lesson)
+
+| ID | Name | Gap closed |
+|---|---|---|
+| `y6-pt-ei-not-after-c` | EI Not After C | ei exceptions (weird, forfeit, caffeine) missing |
+
+---
+
+## 13  Amendment Log
+
+| Date | Version | Change | Reason |
+|---|---|---|---|
+| 2026-05-12 | 1.0 | Initial schema, strand taxonomy, 154-lesson skeleton | Phase A + B completion |
+| 2026-05-12 | 1.1 | 174-lesson skeleton + complete word lists (Phase C) | Phase C completion |
+| 2026-05-12 | 1.2 | 20 gap-patch lessons added (174 total) | HeadStart Primary review by experienced teacher |
+
+---
+
+## 14  Design Principles
+
+*Added 2026-05-12. These are the core educational and product design principles that govern how Spellify's curriculum is structured and how it should be experienced. Any future curriculum authoring, product feature, or content decision should be checked against these.*
+
+---
+
+### 14.1  Statutory Word Embedding
+
+**The principle:** Statutory words have two homes in the curriculum — not one.
+
+Their first home is the standalone statutory lessons (`y1-st-*`, `y2-st-*`, `y3-st-y34-*`, `y5-st-y56-*`). These exist for test-prep, teacher reference, and parent communication. A teacher or parent should be able to open the statutory lessons and find the complete NC word list for their year group, ready to practise.
+
+Their second home is inside pattern, morphology, and etymology lessons — wherever a statutory word exemplifies the target rule. `occasion` belongs in the `-sion` lesson. `accommodation` belongs in the double-consonant lesson. `embarrass` belongs in the double-consonant lesson. `programme` belongs in the French loanwords lesson. These placements are deliberate, not accidental.
+
+**Why this matters:** Research on vocabulary acquisition consistently shows that words are retained through multiple encounters across different contexts, not through a single dedicated lesson. A child who meets `possession` in a statutory list, then again in a `-ssion` pattern lesson, then again in a game that week, is far more likely to own that word than a child who drills it once in isolation. The dual-home structure is how Spellify replicates what good teachers do naturally — weaving high-value words through the whole curriculum.
+
+**Implementation rule:** When authoring or reviewing word lists for pattern lessons, actively check whether any statutory words for that year group fit the target pattern. If they do, include them. The standalone statutory lessons remain unchanged — the words simply also appear elsewhere.
+
+---
+
+### 14.2  NC Floor, Enrichment Ceiling
+
+**The principle:** The National Curriculum is Spellify's floor, not its ceiling.
+
+Every Spellify lesson maps to NC 2014. All statutory word lists are covered. All required spelling patterns and rules across Y1–Y6 are represented. A teacher can use Spellify as a homework tool or class supplement and be confident it covers what the NC requires.
+
+But Spellify is not limited to what the NC requires. The Etymology strand (Greek roots, Latin roots, French loanwords, word origins) and the advanced Morphology strand (word families, complex prefixes, derivational patterns) exist to stretch children who are ready to go further — and to make spelling genuinely interesting rather than merely compliant.
+
+**The three tiers this creates:**
+
+| Tier | Who it serves | Content |
+|---|---|---|
+| **Accountability** | Teachers, parents, schools | Statutory lessons, NC pattern coverage, curriculum alignment |
+| **Grade-level mastery** | Every child at the target year | Pattern lessons, morphology basics, CEW practice |
+| **Enrichment and stretch** | Curious children who want more | Etymology, word families, word origins, British vs American, register |
+
+**Why this matters commercially:** Every spelling app on the market is NC-compliant. Spelling Shed, Spelling Frame, EdShed — all cover the statutory lists. None of them take a Y5 child deep into Greek roots, or explain why `salary` comes from the Latin word for salt, or why `photograph` and `photosynthesis` share the same ancestor. That enrichment tier is Spellify's differentiation. It's what makes the product worth choosing over a cheaper competitor, and it's what gives a genuinely curious child a reason to keep coming back.
+
+**Design implication:** The product experience should reflect all three tiers without one dominating. A child should be able to open Spellify and find what they need whether they're doing homework, preparing for a spelling test, or just curious about words. The curriculum browser, filtering system, and difficulty settings exist to make all three tiers navigable.
+
+---
+
+### 14.3  Teacher List Builder (Future Feature — Deferred)
+
+*Flagged 2026-05-12. Not for current development phase. Requires teacher workflow research before design begins.*
+
+**The concept:** A teacher-facing interface that allows teachers to build custom weekly spelling lists for their class by selecting from the statutory word pool, the curriculum catalogue, or their own custom words — and deploy that list to their class in Spellify.
+
+**The problem it solves:** Primary teachers spend 20–40 minutes per week selecting or building spelling lists. St Richard's Catholic Primary School does this manually using three-column Word documents. HeadStart Primary does it with term-by-term pre-built sheets. Every school does some version of this task. Spellify should be the place where teachers do that work — not a separate tool they use after they've done their planning elsewhere.
+
+**The strategic importance:** A teacher who builds lists inside Spellify is using Spellify as infrastructure, not just as a resource. That changes adoption, retention, and the commercial model. It also makes Spellify a genuine classroom tool rather than a homework supplement, which is a significant step up in the product's role in a school's workflow.
+
+**What needs to be learned before building:**
+- When do teachers select words — start of half-term, start of each week, or reactively?
+- Do teachers work from a school-wide programme or personal professional judgement?
+- Do they want to browse words by pattern, statutory membership, difficulty, or topic?
+- Does the headteacher or literacy coordinator want oversight of what lists are set?
+- Is the list output for Spellify games only, or also for printing, parent communication, working walls?
+
+**Interview question to keep in your back pocket for any teacher conversation:**
+*"How do you choose your class's spelling words each week — what does that process look like for you?"*
+
+**Dependencies:** Requires teacher authentication (Supabase auth), teacher dashboard, and class management features. Not before those ship.
+
+---
+
+## 15  Amendment Log (continued)
+
+| Date | Version | Change | Reason |
+|---|---|---|---|
+| 2026-05-12 | 1.0 | Initial schema, strand taxonomy, 154-lesson skeleton | Phase A + B |
+| 2026-05-12 | 1.1 | 174-lesson skeleton + complete word lists | Phase C |
+| 2026-05-12 | 1.2 | 20 gap-patch lessons (174 total) | HeadStart Primary review |
+| 2026-05-12 | 1.3 | St Richard's review — confirmed same NC source, 2 minor gaps noted | School docs review |
+| 2026-05-12 | 1.4 | Design Principles section added (14.1, 14.2, 14.3) | Product philosophy capture |
