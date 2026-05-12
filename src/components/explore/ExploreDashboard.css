@@ -239,6 +239,10 @@
      dashboard list cards we always want the row to flex to content. */
   overflow: visible;
   min-height: max-content;
+  /* Border matches the card background so only the coloured drop-shadow
+     reads as the category cue. Use !important because the inline style on
+     each card sets borderColor to the dark category swatch. */
+  border-color: #fff !important;
 }
 
 /* ── Chunkier list cards across every dashboard page (~30% bigger) ───── */
@@ -748,15 +752,13 @@
   min-height: 0;
 }
 
-/* Card chrome — same retro treatment as the GAMES panel on the activity
-   page so the home feels visually consistent. */
 .ed-main--home .hub-phase {
-  background: #fff;
+  background: transparent;
   border: 2px solid #2a2a2a;
   border-radius: 6px;
   box-shadow: 4px 4px 0 #2a2a2a;
-  margin-right: 4px;        /* room for the shadow */
-  margin-bottom: 4px;       /* room for the shadow */
+  margin-right: 4px;
+  margin-bottom: 4px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
