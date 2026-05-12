@@ -119,6 +119,18 @@
 
 .settings-buddy-emoji { font-size: 1.3rem; line-height: 1; }
 
+/* When the buddy renders a custom SVG sprite (via BuddyAvatar) instead
+   of an emoji, switch to flex so the image sits centred at the same
+   visual size as the emoji glyph. */
+.settings-buddy-emoji--svg {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  font-size: 0;
+}
+
 .settings-buddy-cname {
   font-size: 0.88rem;
   font-weight: 700;

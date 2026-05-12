@@ -19,6 +19,7 @@ import { YEAR_GROUPS, getListsForYear, curriculumLists } from '../../data/curric
 import { useCustomLists } from '../../hooks/useCustomLists';
 import { useProgress }    from '../../hooks/useProgress';
 import { ACTIVITIES }     from '../../data/activities';
+import { getMasteryState } from '../../utils/masteryEngine';
 import ListHub            from './ListHub';
 import SignInModal        from './SignInModal';
 import { HubPlayerCard }  from '../WordListHub';
@@ -57,18 +58,158 @@ function safeParse(raw, fallback) {
 
 // ── List card with favourite star ────────────────────────────────────────────
 
-function ListCard({ list, onClick, progress, isFavourite, onToggleFavourite }) {
+// Traffic-light bucket from a 0..1 ratio. We deliberately use pink (not red)
+// for the "starting" bucket — it stays warm and encouraging on a kids' card.
+function trafficLight(ratio) {
+  if (!Number.isFinite(ratio) || ratio <= 0)   return 'low';
+  if (ratio >= 1)                              return 'high';
+  if (ratio >= 0.66)                           return 'high';
+  if (ratio >= 0.33)                           return 'mid';
+  return 'low';
+}
+
+// Days until an ISO date string, calendar-wise (whole-day deltas, not 24h
+// windows). Negative when the date is in the past. Returns null if the
+// input isn't parseable.
+function daysUntil(iso) {
+  if (!iso) return null;
+  const target = new Date(iso);
+  if (Number.isNaN(target.getTime())) return null;
+  const startOf = (d) => Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+  return Math.round((startOf(target) - startOf(new Date())) / 86400000);
+}
+
+// Long-form "Friday 23 May" style. Used in the hub headline.
+function formatPrettyDate(iso) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
+// Child-friendly countdown sentence for the My Words hub. Returns:
+//   { copy: string, tone: 'past'|'today'|'tomorrow'|'soon'|'this-week'|'future' }
+// where the tone drives colour styling. Returns null when no date is set
+// so callers can render nothing.
+function testDateHeadline(testDate) {
+  const days = daysUntil(testDate);
+  if (days === null) return null;
+  if (days < 0)  return { copy: `Your spelling test was on ${formatPrettyDate(testDate)}`, tone: 'past' };
+  if (days === 0) return { copy: "Your spelling test is today — you've got this!", tone: 'today' };
+  if (days === 1) return { copy: 'Your spelling test is tomorrow',           tone: 'tomorrow' };
+  if (days <= 3)  return { copy: `Your spelling test is in ${days} days`,    tone: 'soon' };
+  if (days <= 7)  return { copy: `Your spelling test is in ${days} days`,    tone: 'this-week' };
+  return            { copy: `Your spelling test is on ${formatPrettyDate(testDate)}`, tone: 'future' };
+}
+
+// Pill content + colour bucket for the test-date display.
+//   missing → muted grey ("No test date")
+//   1 day   → alert (pink)         ← "in 1 day" / "Today"
+//   2–4     → amber
+//   5–7     → green
+//   >7      → green (still ample time)
+function testDatePill(testDate) {
+  const days = daysUntil(testDate);
+  if (days === null || days < 0) {
+    return { label: 'No test date', tone: 'muted' };
+  }
+  if (days === 0) return { label: 'Test today',         tone: 'alert' };
+  if (days === 1) return { label: 'Test in 1 day',      tone: 'alert' };
+  if (days <= 4)  return { label: `Test in ${days} days`, tone: 'warn' };
+  return            { label: `Test in ${days} days`, tone: 'ok'   };
+}
+
+// Inline test-date editor for the list header (custom lists only). Shows
+// a child-friendly countdown headline when a date is set, or a low-key
+// "+ Add test date" link when not. Clicking either opens an inline date
+// picker; saving emits `onChange(iso|null)` so the parent can persist.
+function TestDateLine({ testDate, onChange }) {
+  const [editing, setEditing] = React.useState(false);
+  const [draft, setDraft]     = React.useState(testDate || '');
+  const todayIso = new Date().toISOString().slice(0, 10);
+
+  React.useEffect(() => { setDraft(testDate || ''); }, [testDate]);
+
+  if (editing) {
+    return (
+      <div className="ed-testdate ed-testdate--editing">
+        <input
+          type="date"
+          className="ed-testdate-input"
+          min={todayIso}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          autoFocus
+        />
+        <button
+          type="button"
+          className="ed-testdate-action ed-testdate-action--primary"
+          onClick={() => { onChange(draft || null); setEditing(false); }}
+        >Save</button>
+        {testDate && (
+          <button
+            type="button"
+            className="ed-testdate-action"
+            onClick={() => { onChange(null); setEditing(false); }}
+          >Clear</button>
+        )}
+        <button
+          type="button"
+          className="ed-testdate-action"
+          onClick={() => { setDraft(testDate || ''); setEditing(false); }}
+        >Cancel</button>
+      </div>
+    );
+  }
+
+  const headline = testDateHeadline(testDate);
+  if (!headline) {
+    return (
+      <button type="button" className="ed-testdate-add" onClick={() => setEditing(true)}>
+        + Add test date
+      </button>
+    );
+  }
+  return (
+    <div className={`ed-testdate ed-testdate--${headline.tone}`}>
+      <span className="ed-testdate-copy">{headline.copy}</span>
+      <button
+        type="button"
+        className="ed-testdate-edit"
+        onClick={() => setEditing(true)}
+        aria-label="Edit test date"
+        title="Edit test date"
+      >✎</button>
+    </div>
+  );
+}
+
+function ListCard({ list, listType = 'curriculum', onClick, progress, isFavourite, onToggleFavourite }) {
   const colour     = CATEGORY_COLOURS[list.category] || '#6b7280';
   const darkColour = CATEGORY_DARK[list.category]    || '#374151';
   const words      = list.words || [];
-  const preview    = words.slice(0, 3).map(w => (typeof w === 'string' ? w : w.word)).join(', ');
+  const wordStrings = words.map(w => (typeof w === 'string' ? w : w.word));
+  const preview    = wordStrings.slice(0, 3).join(', ');
   const more       = Math.max(0, words.length - 3);
 
-  const ACTS          = ACTIVITIES.length;
+  // Word mastery — read straight from the engine for this list id.
+  const mastery       = getMasteryState(list.id);
+  const totalWords    = wordStrings.length;
+  const masteredCount = wordStrings.reduce((n, w) => {
+    return n + (mastery?.words?.[String(w).toLowerCase()]?.mastered ? 1 : 0);
+  }, 0);
+  const masteryRatio = totalWords > 0 ? masteredCount / totalWords : 0;
+  const masteryLight = trafficLight(masteryRatio);
+
+  // Games completed — count of activities marked complete in the per-list
+  // progress map. We show the raw count (not "X of Y"); the colour bucket
+  // is derived against the full activity registry so the traffic light
+  // still has a sensible high-water mark.
   const completedActs = Object.values(progress || {}).filter(p => p?.status === 'completed').length;
-  const done          = completedActs === ACTS;
-  const status        = done ? 'completed' : completedActs > 0 ? 'in-progress' : 'not-started';
-  const STATUS_LABEL  = { 'not-started': 'Not Started', 'in-progress': `${completedActs}/${ACTS} done`, 'completed': 'Done ✓' };
+  const gamesRatio    = ACTIVITIES.length > 0 ? completedActs / ACTIVITIES.length : 0;
+  const gamesLight    = trafficLight(gamesRatio);
+
+  const done   = masteryRatio >= 1 && completedActs === ACTIVITIES.length;
+  const status = done ? 'completed' : (masteredCount > 0 || completedActs > 0) ? 'in-progress' : 'not-started';
 
   return (
     <div
@@ -89,13 +230,28 @@ function ListCard({ list, onClick, progress, isFavourite, onToggleFavourite }) {
         onClick={(e) => { e.stopPropagation(); onToggleFavourite(list.id); }}
         aria-label={isFavourite ? 'Remove from favourites' : 'Add to favourites'}
         aria-pressed={isFavourite}
-        title={isFavourite ? 'Remove from favourites' : 'Add to favourites'}
+        data-tooltip={isFavourite ? 'Remove from favourites' : 'Add to favourite list'}
       >
-        {isFavourite ? '★' : '☆'}
+        ♥
       </button>
       <div className="hub-card-body">
         <h3 className="hub-card-name">{list.name}</h3>
-        <span className={`hub-badge hub-badge--${status}`}>{STATUS_LABEL[status]}</span>
+        <div className="ep-card-badges">
+          <span className={`hub-badge hub-badge--tl-${masteryLight}`}>
+            {masteredCount} of {totalWords} words mastered
+          </span>
+          <span className={`hub-badge hub-badge--tl-${gamesLight}`}>
+            {completedActs} {completedActs === 1 ? 'game' : 'games'} completed
+          </span>
+          {listType === 'custom' && (() => {
+            const { label, tone } = testDatePill(list.testDate);
+            return (
+              <span className={`hub-badge hub-badge--td-${tone}`}>
+                {label}
+              </span>
+            );
+          })()}
+        </div>
         <p className="ep-card-preview">{preview}{more > 0 ? ` +${more} more` : ''}</p>
       </div>
     </div>
@@ -151,7 +307,7 @@ function NavLink({ icon, label, count, active, onClick }) {
 
 // ── Section block for the right pane ─────────────────────────────────────────
 
-function PaneSection({ headerClass, label, hint, children }) {
+function PaneSection({ headerClass, label, hint, rightSlot, children }) {
   return (
     <section className={`hub-phase ${headerClass}`}>
       <div className="hub-phase-header">
@@ -159,6 +315,7 @@ function PaneSection({ headerClass, label, hint, children }) {
           <strong className="hub-phase-label">{label}</strong>
           {hint && <span className="hub-phase-hint">{hint}</span>}
         </div>
+        {rightSlot && <div className="hub-phase-right">{rightSlot}</div>}
       </div>
       {children}
     </section>
@@ -185,6 +342,10 @@ export default function ExploreDashboard({
 
   const [favourites, setFavourites] = useState(() => safeParse(localStorage.getItem(FAV_KEY), []));
   const [recent,     setRecent]     = useState(() => safeParse(localStorage.getItem(RECENT_KEY), []));
+  // Explore page filter — by curriculum word category. 'all' shows everything.
+  // Placeholder for now; when the richer word-type taxonomy lands this hook
+  // becomes the place to swap in a more granular filter.
+  const [exploreFilter, setExploreFilter] = useState('all');
 
   useEffect(() => { localStorage.setItem(FAV_KEY, JSON.stringify(favourites)); }, [favourites]);
   useEffect(() => { localStorage.setItem(RECENT_KEY, JSON.stringify(recent));     }, [recent]);
@@ -292,9 +453,9 @@ export default function ExploreDashboard({
     return `My word list ${n}`;
   };
 
-  const handleCreate = async ({ words }) => {
+  const handleCreate = async ({ words, testDate = null }) => {
     if (!words || words.length === 0) return;
-    const { list } = await addList({ name: nextCustomListName(), words });
+    const { list } = await addList({ name: nextCustomListName(), words, testDate });
     setCreator(null);
     if (list) {
       const normalised = {
@@ -338,6 +499,7 @@ export default function ExploreDashboard({
           <ListCard
             key={list.id}
             list={list}
+            listType={listType}
             progress={progressCache[list.id] || {}}
             isFavourite={favourites.includes(list.id)}
             onToggleFavourite={toggleFavourite}
@@ -388,6 +550,17 @@ export default function ExploreDashboard({
                 ) : (
                   <span className="ed-listname-static">{selectedList.list.name}</span>
                 )}
+                {isCustom && (
+                  <TestDateLine
+                    testDate={selectedList.list.testDate || null}
+                    onChange={async (newDate) => {
+                      await updateList(selectedList.list.id, { testDate: newDate });
+                      setSelectedList(prev => prev
+                        ? { ...prev, list: { ...prev.list, testDate: newDate } }
+                        : null);
+                    }}
+                  />
+                )}
               </div>
             }
             listFooter={
@@ -425,12 +598,10 @@ export default function ExploreDashboard({
           </div>
           <div className="ed-home-right">
             <PaneSection headerClass="ep-your-lists-phase" label="My Lists" hint="Your custom word lists">
-              {user
-                ? renderGrid(
-                    normalisedCustom.map(l => ({ list: l, listType: 'custom' })),
-                    'No lists yet — create one to get started.',
-                  )
-                : <p className="ep-phase-empty">Sign in to create and save your own word lists.</p>}
+              {renderGrid(
+                normalisedCustom.map(l => ({ list: l, listType: 'custom' })),
+                'No lists yet — go to My Lists to create one.',
+              )}
             </PaneSection>
           </div>
         </main>
@@ -457,6 +628,7 @@ export default function ExploreDashboard({
                 <ListCard
                   key={list.id}
                   list={list}
+                  listType="custom"
                   progress={progressCache[list.id] || {}}
                   isFavourite={favourites.includes(list.id)}
                   onToggleFavourite={toggleFavourite}
@@ -480,12 +652,44 @@ export default function ExploreDashboard({
     }
 
     if (page === 'explore') {
+      // Categories present in the current year's curriculum lists. The
+      // dropdown only offers options that actually have lists to filter to,
+      // so it never resolves to an empty grid through user action.
+      const presentCategories = Array.from(
+        new Set(curriculumForYear.map(l => l.category).filter(Boolean)),
+      );
+      const filteredCurriculum = exploreFilter === 'all'
+        ? curriculumForYear
+        : curriculumForYear.filter(l => l.category === exploreFilter);
+
+      const filterDropdown = (
+        <label className="ed-filter">
+          <span className="ed-filter-label">Filter</span>
+          <select
+            className="ed-filter-select"
+            value={exploreFilter}
+            onChange={(e) => setExploreFilter(e.target.value)}
+            aria-label="Filter word lists by category"
+          >
+            <option value="all">All word types</option>
+            {presentCategories.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
+        </label>
+      );
+
       return (
         <main className="ed-main ed-main--explore">
-          <PaneSection headerClass="ep-curriculum-phase" label="Explore" hint={`${yearLabel} curriculum lists`}>
+          <PaneSection
+            headerClass="ep-curriculum-phase"
+            label="Explore"
+            hint={`${yearLabel} curriculum lists`}
+            rightSlot={filterDropdown}
+          >
             {renderGrid(
-              curriculumForYear.map(l => ({ list: l, listType: 'curriculum' })),
-              'No curriculum lists for this year.',
+              filteredCurriculum.map(l => ({ list: l, listType: 'curriculum' })),
+              'No curriculum lists for this filter.',
             )}
           </PaneSection>
         </main>
@@ -495,8 +699,8 @@ export default function ExploreDashboard({
     if (page === 'favourites') {
       return (
         <main className="ed-main ed-main--favourites">
-          <PaneSection headerClass="ep-curriculum-phase" label="Favourites" hint="Star lists to see them here">
-            {renderGrid(favouriteEntries, 'No favourites yet — tap a star on a list to add it here.')}
+          <PaneSection headerClass="ep-curriculum-phase" label="Favourites" hint="Heart lists to see them here">
+            {renderGrid(favouriteEntries, 'No favourites yet — tap the heart on a list to add it here.')}
           </PaneSection>
         </main>
       );
@@ -602,7 +806,10 @@ export default function ExploreDashboard({
                   <h2 className="ob-step-title">Add your words</h2>
                   <p className="ob-step-sub">Type one at a time · min 3 words</p>
                 </div>
-                <AddWordsManual onWordsReady={(words) => handleCreate({ words })} />
+                <AddWordsManual
+                  collectTestDate
+                  onWordsReady={(words, extras) => handleCreate({ words, testDate: extras?.testDate ?? null })}
+                />
               </div>
             )}
             {creator === 'edit' && selectedList && (

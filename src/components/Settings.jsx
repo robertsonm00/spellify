@@ -3,6 +3,7 @@ import './Settings.css';
 import { YEAR_LABELS, ageToYear } from '../data/ukCurriculum';
 import { YEAR_GROUPS } from '../utils/wordSelectionEngine';
 import { CHARACTERS } from './OnboardingFlow';
+import BuddyAvatar, { DEFAULT_BUDDY, hasBuddyAvatar } from './BuddyAvatar';
 
 function Settings({ userAge, dyslexiaMode = false, childName, childCharacter, year: yearProp, onUpdate, onChangeWords, onClearProgress, onClose }) {
   const currentYear = yearProp ?? ageToYear(userAge);
@@ -61,17 +62,27 @@ function Settings({ userAge, dyslexiaMode = false, childName, childCharacter, ye
         </div>
 
         {/* ── Buddy ── */}
-        <div className="settings-field-row">
-          <span className="settings-label">Buddy</span>
-          <button
-            className="settings-buddy-trigger"
-            onClick={() => setBuddyOpen((v) => !v)}
-          >
-            <span className="settings-buddy-emoji">{editCharacter?.emoji || '⭐'}</span>
-            <span className="settings-buddy-cname">{editCharacter?.name || 'Choose one'}</span>
-            <span className="settings-buddy-edit">✎</span>
-          </button>
-        </div>
+        {/* Display uses the same BuddyAvatar component as onboarding/games
+            so buddies with custom sprites (e.g. raccoon) render the SVG
+            rather than the bare emoji — single source of truth. */}
+        {(() => {
+          const displayChar = editCharacter || DEFAULT_BUDDY;
+          return (
+            <div className="settings-field-row">
+              <span className="settings-label">Buddy</span>
+              <button
+                className="settings-buddy-trigger"
+                onClick={() => setBuddyOpen((v) => !v)}
+              >
+                <span className={`settings-buddy-emoji${hasBuddyAvatar(displayChar.id) ? ' settings-buddy-emoji--svg' : ''}`}>
+                  <BuddyAvatar id={displayChar.id} size={28} fallback={displayChar.emoji} />
+                </span>
+                <span className="settings-buddy-cname">{displayChar.name}</span>
+                <span className="settings-buddy-edit">✎</span>
+              </button>
+            </div>
+          );
+        })()}
 
         {buddyOpen && (
           <div className="settings-buddy-grid">
@@ -82,7 +93,9 @@ function Settings({ userAge, dyslexiaMode = false, childName, childCharacter, ye
                 onClick={() => handleCharacterSelect(char)}
                 title={char.name}
               >
-                {char.emoji}
+                {hasBuddyAvatar(char.id)
+                  ? <BuddyAvatar id={char.id} size={28} fallback={char.emoji} />
+                  : char.emoji}
               </button>
             ))}
           </div>

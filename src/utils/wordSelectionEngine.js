@@ -314,3 +314,112 @@ export function selectWords({ yearGroup, count = 10, dyslexiaMode = false, group
 
   return { words, wordObjects };
 }
+
+/* ════════════════════════════════════════════════════════════════════════
+ * ACTIVE-WINDOW HELPERS
+ * Added for the large-list management layer (masteryEngine + gamification).
+ * Pure functions; no side effects. They consume a mastery state shape
+ * (see src/utils/masteryEngine.js) and a plain array of words.
+ * ══════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Pick up to `windowSize` words for the next session — evergreen.
+ *
+ * Priority order:
+ *   1. Attempted-but-not-yet-mastered (the child is mid-learning these)
+ *   2. Untouched words (never seen)
+ *   3. Already-mastered words, recycled in when the unmastered pool runs
+ *      thin — so mastered words never permanently leave the game and the
+ *      session always tries to deliver `windowSize` words when the list is
+ *      big enough.
+ *
+ * If every word is mastered ("evergreen mode") we still return a randomly
+ * shuffled set of `windowSize` words from the whole list so the child can
+ * keep playing.
+ *
+ * Pure function — no side effects.
+ *
+ * @param {string} listId        included for symmetry / future per-list config
+ * @param {Array<string>} fullWordList
+ * @param {object} masteryState  see masteryEngine.getMasteryState
+ * @param {number} [windowSize=15]
+ * @returns {Array<string>}
+ */
+export function getActiveWindow(listId, fullWordList, masteryState, windowSize = 15) {
+  if (!Array.isArray(fullWordList) || fullWordList.length === 0) return [];
+
+  const shuffle = (arr) => {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  };
+
+  const wordEntry = (w) => masteryState?.words?.[String(w).toLowerCase()];
+
+  // Bucket the list. We preserve list order for "attempted" (priority
+  // practice keeps a stable sequence) and shuffle the random pools.
+  const attempted = [];
+  const untouched = [];
+  const mastered  = [];
+  for (const w of fullWordList) {
+    const entry = wordEntry(w);
+    if (entry?.mastered)              mastered.push(w);
+    else if ((entry?.attempts || 0) > 0) attempted.push(w);
+    else                                 untouched.push(w);
+  }
+
+  // Evergreen mode — every word already mastered. Pick at random from the
+  // full list so the child gets a fresh-feeling round each session.
+  if (attempted.length === 0 && untouched.length === 0) {
+    return shuffle(fullWordList).slice(0, windowSize);
+  }
+
+  // Fill attempted → untouched → mastered (padding) until we hit the cap.
+  const out = [];
+  for (const w of attempted)            { if (out.length < windowSize) out.push(w); }
+  for (const w of shuffle(untouched))   { if (out.length < windowSize) out.push(w); }
+  if (out.length < windowSize) {
+    for (const w of shuffle(mastered))  { if (out.length < windowSize) out.push(w); }
+  }
+
+  // Final shuffle so already-mastered padders aren't always at the end and
+  // the child experiences a freshly-arranged round.
+  return shuffle(out);
+}
+
+/**
+ * Summarise a list's progress against its mastery state.
+ *
+ * @param {Array<string>} fullWordList
+ * @param {object} masteryState
+ * @returns {{ status: 'notStarted'|'inProgress'|'completed',
+ *             masteredCount: number,
+ *             totalCount: number,
+ *             inWindowCount: number }}
+ */
+export function getListProgressState(fullWordList, masteryState) {
+  const total = Array.isArray(fullWordList) ? fullWordList.length : 0;
+  if (total === 0) {
+    return { status: 'notStarted', masteredCount: 0, totalCount: 0, inWindowCount: 0 };
+  }
+  let masteredCount  = 0;
+  let attemptedCount = 0;
+  for (const w of fullWordList) {
+    const entry = masteryState?.words?.[String(w).toLowerCase()];
+    if (entry?.mastered)         masteredCount  += 1;
+    if ((entry?.attempts || 0) > 0) attemptedCount += 1;
+  }
+  let status;
+  if (masteredCount === total)   status = 'completed';
+  else if (attemptedCount === 0) status = 'notStarted';
+  else                           status = 'inProgress';
+
+  const remaining = total - masteredCount;
+  const windowSize = masteryState?.windowSize || 15;
+  const inWindowCount = Math.min(windowSize, remaining);
+
+  return { status, masteredCount, totalCount: total, inWindowCount };
+}

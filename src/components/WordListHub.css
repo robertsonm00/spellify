@@ -93,9 +93,9 @@
 
 .hub-chip {
   display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.35rem 0.6rem 0.35rem 0.8rem;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
   border: 2.5px solid transparent;
   border-radius: 8px;
   font-size: 0.88rem;
@@ -104,21 +104,49 @@
   letter-spacing: 0.02em;
   font-family: 'Nunito', sans-serif;
   color: #1a1a2e;
+  overflow: hidden;
 }
 
-/* ── Difficulty star badge ── */
+.hub-chip-word {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.6rem 0.35rem 0.8rem;
+  flex: 1 1 auto;
+  min-height: 1.7em;
+}
 
-.hub-diff-star {
+/* Right-side mastery block — 24px wide, full chip height, big white star.
+   Background colour communicates the mastery level: grey = new, orange =
+   learning, green = mastered. */
+.hub-chip-mastery {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  flex: 0 0 24px;
+  align-self: stretch;
+  color: #fff;
+  font-size: 1.05rem;
   font-style: normal;
-  font-size: 0.6rem;
   line-height: 1;
-  flex-shrink: 0;
+  border-left: 2px solid #2a2a2a;
 }
 
-.hub-diff-star--easy      { color: #1e7e34; }
-.hub-diff-star--moderate  { color: #a07800; }
-.hub-diff-star--hard      { color: #c05700; }
-.hub-diff-star--challenge { color: #c0392b; }
+.hub-chip-mastery--new      { background: #b0b0b0; }
+.hub-chip-mastery--learning { background: #ff9f43; }
+.hub-chip-mastery--mastered { background: #5fa269; }
+
+/* Mastered chip — muted cream pill. The green mastery block on the right
+   communicates "done"; we keep the word in normal text (no strike-through)
+   so the child still reads it as a positive, present word. */
+.hub-chip--mastered {
+  background: #f5e8db !important;
+  border-color: #b39c80 !important;
+}
+
+.hub-chip--mastered .hub-chip-word {
+  color: #2a2a2a;
+}
 
 .hub-change-btn {
   font-family: 'Nunito', sans-serif;
@@ -296,8 +324,6 @@
   transform: translate(2px, 2px);
 }
 
-.hub-card--completed { opacity: 0.85; }
-
 .hub-card-header {
   display: flex;
   align-items: center;
@@ -335,7 +361,8 @@
   font-weight: 600;
 }
 
-/* ── Status badge ── */
+/* ── Status badge — still used by list cards (browse word lists), not by
+   game tiles (which are stateless). ── */
 
 .hub-badge {
   display: inline-block;
@@ -351,6 +378,56 @@
 .hub-badge--not-started { background: #f0f0f0; color: #888; }
 .hub-badge--in-progress  { background: #fff3e0; color: #c05700; border: 1.5px solid #ff9f43; }
 .hub-badge--completed    { background: #e8f5e9; color: #1e7e34; border: 1.5px solid #6bcb77; }
+
+/* ── Traffic-light pills ─────────────────────────────────────────────
+   Three-stop scale (pink → amber → green) used by list cards to colour
+   per-list progress chips. Pink replaces red so the "starting" state is
+   warm and encouraging rather than alarming. */
+.hub-badge--tl-low {
+  background: #fde2ec;
+  color: #a83a6b;
+  border: 1.5px solid #f5b9d3;
+}
+.hub-badge--tl-mid {
+  background: #fff3e0;
+  color: #c05700;
+  border: 1.5px solid #ff9f43;
+}
+.hub-badge--tl-high {
+  background: #e8f5e9;
+  color: #1e7e34;
+  border: 1.5px solid #6bcb77;
+}
+
+/* ── Test-date pills (only My Lists cards) ───────────────────────────
+   muted = no date set, ok = 5+ days away, warn = 2-4 days, alert = ≤1 day. */
+.hub-badge--td-muted {
+  background: #f0f0f0;
+  color: #888;
+  border: 1.5px solid #d6d6d6;
+}
+.hub-badge--td-ok {
+  background: #e8f5e9;
+  color: #1e7e34;
+  border: 1.5px solid #6bcb77;
+}
+.hub-badge--td-warn {
+  background: #fff3e0;
+  color: #c05700;
+  border: 1.5px solid #ff9f43;
+}
+.hub-badge--td-alert {
+  background: #fde2ec;
+  color: #a83a6b;
+  border: 1.5px solid #f5b9d3;
+}
+
+.ep-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.4rem;
+  margin: 0.2rem 0 0.3rem;
+}
 
 /* ── Mastery dots ── */
 
@@ -418,6 +495,109 @@
 .hub-review-btn:hover {
   transform: translateY(-2px);
   box-shadow: 3px 5px 0 #c8a800;
+}
+
+/* ── Test All game picker modal ───────────────────────────────────── */
+
+.hub-testall-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 14, 30, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  padding: 1rem;
+}
+
+.hub-testall-modal {
+  position: relative;
+  background: #fdf6e8;
+  border: 3px solid #2a2a2a;
+  border-radius: 10px;
+  box-shadow: 6px 6px 0 #2a2a2a;
+  padding: 1.5rem 1.5rem 1.4rem;
+  min-width: 280px;
+  max-width: 400px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  font-family: 'Nunito', sans-serif;
+}
+
+.hub-testall-modal-close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.6rem;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: #2a2a2a;
+}
+
+.hub-testall-modal-close:hover { color: #c0392b; }
+
+.hub-testall-modal-title {
+  margin: 0;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.9rem;
+  color: #2a2a2a;
+  line-height: 1.4;
+}
+
+.hub-testall-modal-sub {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #6b5d52;
+}
+
+.hub-testall-modal-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  margin-top: 0.25rem;
+}
+
+.hub-testall-modal .hub-testall-pick {
+  padding: 0.85rem 1rem;
+  background: #fff;
+  border: 2px solid #2a2a2a;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.04em;
+  color: #2a2a2a;
+  text-align: left;
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -1.5px 0 rgba(0, 0, 0, 0.15),
+    3px 3px 0 #2a2a2a;
+  transition: transform 0.06s ease, box-shadow 0.06s ease;
+}
+
+.hub-testall-modal .hub-testall-pick--quiz   { background: #f5b9d3; }
+.hub-testall-modal .hub-testall-pick--memory { background: #b8e4be; }
+
+.hub-testall-modal .hub-testall-pick:hover {
+  transform: translate(-1px, -1px);
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.65),
+    inset 0 -1.5px 0 rgba(0, 0, 0, 0.15),
+    4px 4px 0 #2a2a2a;
+}
+
+.hub-testall-modal .hub-testall-pick:active {
+  transform: translate(1px, 1px);
+  box-shadow:
+    inset 0 -1.5px 0 rgba(255, 255, 255, 0.55),
+    inset 0 1.5px 0 rgba(0, 0, 0, 0.2),
+    1px 1px 0 #2a2a2a;
 }
 
 /* ── Change Words modal ───────────────────────────────────────────── */
@@ -775,8 +955,33 @@
   justify-content: center;
 }
 .hub-card-header {
-  position: relative; /* lock badge positions against this */
+  position: relative; /* lock + tick badges position against this */
 }
+
+/* ── Per-activity completion ticks ──────────────────────────────────── */
+/* Three small circular badges pinned to the top-right of the card. Each
+   badge is light-grey by default (with a white check) and turns solid
+   green for every recorded completion of that game. */
+.hub-card-ticks {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  pointer-events: none;
+  z-index: 2;
+}
+.hub-card-tick {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+}
+.hub-card-tick--off { background: #c8c8c8; }
+.hub-card-tick--on  { background: #2fb84d; }
 
 /* ════════════════════════════════════════════════════════════════════════════
    SPLIT LAYOUT — retro 90s window theme
@@ -1073,6 +1278,8 @@
   width: 100%;
   padding: 0;
   margin: 0;
+  position: relative;  /* anchor for .hub-card-ticks (top-right badges) */
+  overflow: visible;   /* split cards flex to content — never clip the time line */
   /* Shadow uses each activity's pastel header colour, set as a CSS variable
      from the inline style on the card (see WordListHub.jsx). */
   box-shadow: 3px 3px 0 var(--card-color, #2a2a2a) !important;
@@ -1107,11 +1314,14 @@
 
 .hub--split .hub-card-body {
   flex: 1;
+  min-width: 0;            /* let inner content wrap rather than stretching the card */
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  gap: 0.25rem 1rem;
-  padding: 0.65rem 0.9rem;
+  gap: 0.25rem 0.75rem;
+  /* Extra top padding so the absolutely-positioned tick strip (at top:6px
+     of the card) sits above the title without overlapping it. */
+  padding: 1.6rem 0.9rem 0.8rem;
 }
 .hub--split .hub-card-body > .hub-card-name {
   grid-column: 1;
@@ -1131,27 +1341,31 @@
   color: #5a5a5a;
   margin: 0;
 }
+/* Tick strip is absolutely positioned on the card (see .hub-card-ticks). */
 
-/* Status badges styled like the chunky 90s OK / Yes / No buttons in the
-   inspiration boards: thick outline, small radius, pixel font. */
-.hub--split .hub-card-body > .hub-badge {
+/* Play CTA — pill on the right of the body, vertically centred and tinted
+   with the activity's own colour (passed via inline style). Visual only —
+   the whole card is the click target. */
+.hub--split .hub-card-body > .hub-card-play {
   grid-column: 2;
-  grid-row: 1 / 3;
+  grid-row: 1 / span 2;
   align-self: center;
   justify-self: end;
   font-family: 'Press Start 2P', monospace;
-  font-size: 0.55rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  color: #fff;
+  background: #2a2a2a;
   padding: 0.5rem 0.7rem;
   border-radius: 4px;
   border: 2px solid #2a2a2a;
-  letter-spacing: 0.06em;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.18);
   white-space: nowrap;
-  box-shadow: 2px 2px 0 #2a2a2a;
-  color: #2a2a2a;
 }
-.hub--split .hub-card-body > .hub-badge--not-started { background: #fff;    }
-.hub--split .hub-card-body > .hub-badge--in-progress { background: #ffd97c; }
-.hub--split .hub-card-body > .hub-badge--completed   { background: #87d1c1; }
+.hub--split .hub-card:hover .hub-card-play {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.18);
+}
 
 /* Below ~880px the split collapses back to a single column so it stays usable
    on phones and narrow tablets. The layout toggle still works above that. */
@@ -1516,4 +1730,221 @@
   max-width: 320px;
   margin: 0.75rem auto 0;
   width: 100%;
+}
+
+/* ──────────────────────────────────────────────────────────────────────── */
+/* Mastery pipeline + Test All — shared between My Words hub and the       */
+/* explore dashboard ListHub. Dashboard rules under `.ed-main--list` add   */
+/* extra polish on top of these baselines.                                 */
+/* ──────────────────────────────────────────────────────────────────────── */
+
+.hub--split .hub-mastery-pipeline {
+  background: #fff;
+  border: 2px solid #2a2a2a;
+  border-radius: 6px;
+  box-shadow: 4px 4px 0 #2a2a2a;
+  padding: 0.6rem 0.85rem;
+  margin-bottom: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.hub--split .hub-mastery-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.85rem;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.85rem;
+  color: #2a2a2a;
+}
+
+.hub--split .hub-mastery-text strong {
+  font-weight: 900;
+  font-size: 1.05rem;
+  color: #2a2a2a;
+}
+.hub--split .hub-mastery-dim { color: #6b5d52; font-weight: 700; }
+.hub--split .hub-mastery-sep { margin: 0 0.45rem; color: #b39c80; }
+
+.hub--split .hub-mastery-pct {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.65rem;
+  color: #c95d4d;
+  letter-spacing: 0.04em;
+}
+
+.hub--split .hub-mastery-bar {
+  height: 12px;
+  background: #f5e8db;
+  border: 2px solid #2a2a2a;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.hub--split .hub-mastery-bar-fill {
+  height: 100%;
+  background: repeating-linear-gradient(
+    45deg,
+    #5fa269 0px, #5fa269 4px,
+    #6bcb77 4px, #6bcb77 8px
+  );
+  transition: width 0.45s ease-out;
+  box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, 0.35);
+}
+
+/* When every word in the list is mastered, drop the diagonal-stripe
+   pattern in favour of a clean solid green fill — the bar reads as a
+   confident "done" state rather than an in-progress one. The count and
+   % text also go green to reinforce the success cue. */
+.hub--split .hub-mastery-pipeline--complete .hub-mastery-bar-fill {
+  background: #2fb84d;
+}
+.hub--split .hub-mastery-pipeline--complete .hub-mastery-bar {
+  border-color: #2f7d3b;
+}
+.hub--split .hub-mastery-pipeline--complete .hub-mastery-pct,
+.hub--split .hub-mastery-pipeline--complete .hub-mastery-text strong {
+  color: #2f7d3b;
+}
+
+/* Mastered-list message — celebratory but unobtrusive, sits just above the
+   progress bar. Phrasing reinforces that the child should keep playing. */
+.hub-mastery-complete-msg {
+  margin: 0;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #2f7d3b;
+  letter-spacing: 0;
+  line-height: 1.35;
+}
+
+/* ── Test All — shared between contexts ──────────────────────────────── */
+
+.hub--split .hub-testall {
+  margin-top: 0.75rem;
+}
+
+.hub--split .hub-testall-btn {
+  display: grid;
+  grid-template-columns: 1.4rem 1fr auto;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: #2a2a3e;
+  color: #ffd97c;
+  border: 2px solid #2a2a2a;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.35),
+    4px 4px 0 #2a2a2a;
+  transition: transform 0.06s ease, box-shadow 0.06s ease;
+}
+
+.hub--split .hub-testall-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.35),
+    5px 5px 0 #2a2a2a;
+}
+
+.hub--split .hub-testall-btn:active {
+  transform: translate(1px, 1px);
+  box-shadow:
+    inset 0 -2px 0 rgba(255, 255, 255, 0.18),
+    inset 0 2px 0 rgba(0, 0, 0, 0.35),
+    1px 1px 0 #2a2a2a;
+}
+
+.hub--split .hub-testall-icon {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.85rem;
+  color: #ff6b6b;
+  text-shadow: 0 0 6px rgba(255, 107, 107, 0.55);
+}
+
+.hub--split .hub-testall-label {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+}
+
+.hub--split .hub-testall-meta {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #fdf6e8;
+}
+
+.hub--split .hub-testall-chooser {
+  padding: 0.7rem 0.9rem;
+  background: #fff;
+  border: 2px solid #2a2a2a;
+  border-radius: 6px;
+  box-shadow: 4px 4px 0 #2a2a2a;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.hub--split .hub-testall-chooser-prompt {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.06em;
+  color: #2a2a2a;
+}
+
+.hub--split .hub-testall-chooser-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 0.5rem;
+}
+
+.hub--split .hub-testall-pick {
+  padding: 0.55rem 0.7rem;
+  background: #fff;
+  border: 2px solid #2a2a2a;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.04em;
+  color: #2a2a2a;
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -1.5px 0 rgba(0, 0, 0, 0.15),
+    3px 3px 0 #2a2a2a;
+}
+
+.hub--split .hub-testall-pick--quiz   { background: #f5b9d3; }
+.hub--split .hub-testall-pick--memory { background: #b8e4be; }
+
+.hub--split .hub-testall-cancel {
+  padding: 0.55rem 0.7rem;
+  background: transparent;
+  border: 2px dashed #c2b09a;
+  border-radius: 6px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.5rem;
+  color: #6b5d52;
+  cursor: pointer;
+}
+
+.hub--split .hub-testall-done {
+  padding: 0.7rem 0.95rem;
+  background: #fff;
+  border: 2px dashed #5fa269;
+  border-radius: 6px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #2f7d3b;
+  text-align: center;
 }

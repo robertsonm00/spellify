@@ -339,7 +339,7 @@ export default function MemorySpell({
               <BuddyAvatar
                 id={childCharacter?.id}
                 size={120}
-                fallback={childCharacter?.emoji || '🦉'}
+                fallback={childCharacter?.emoji}
               />
             </span>
             <h1 className="ms-h1">Let's study this one together!</h1>
@@ -356,7 +356,7 @@ export default function MemorySpell({
               <BuddyAvatar
                 id={childCharacter?.id}
                 size={120}
-                fallback={childCharacter?.emoji || '🦉'}
+                fallback={childCharacter?.emoji}
               />
             </span>
             <h1 className="ms-h1">Study this word carefully</h1>
@@ -382,7 +382,7 @@ export default function MemorySpell({
               <BuddyAvatar
                 id={childCharacter?.id}
                 size={120}
-                fallback={childCharacter?.emoji || '🦉'}
+                fallback={childCharacter?.emoji}
                 cheering={buddyCheering}
               />
             </span>

@@ -31,7 +31,8 @@ export function createSession({ year, age, words = [], wordObjects = [], sourceM
     ruleKey,         // RULE_BUCKET_PICKER — null or e.g. 'splitDigraphs'
     ruleLabel,       // RULE_BUCKET_PICKER — null or e.g. 'Split digraphs (a-e / i-e / o-e)'
     activityStatuses: { ...INITIAL_STATUSES },
-    activityProgress: {},  // keyed by activity id — mid-session snapshots
+    activityProgress: {},      // keyed by activity id — mid-session snapshots
+    activityCompletions: {},   // keyed by activity id — completion count (for the 3-tick card UI)
     mastery:     {},
     reviewQueue: [],
   };

@@ -502,7 +502,7 @@ export default function QuizQuest({
         <div className="qq-stage">
           <div className="qq-phase">
             <span className="qq-buddy" aria-hidden="true">
-              <BuddyAvatar id={childCharacter?.id} size={120} fallback={childCharacter?.emoji || '🦉'} />
+              <BuddyAvatar id={childCharacter?.id} size={120} fallback={childCharacter?.emoji} />
             </span>
             <h1 className="qq-h1">Let's do Quiz Quest!</h1>
             <p className="qq-start-sub">Solve quick word challenges with your buddy</p>
@@ -572,7 +572,7 @@ export default function QuizQuest({
             <BuddyAvatar
               id={childCharacter?.id}
               size={120}
-              fallback={childCharacter?.emoji || '🦉'}
+              fallback={childCharacter?.emoji}
               cheering={buddyCheering}
             />
           </span>

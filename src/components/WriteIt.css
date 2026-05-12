@@ -189,7 +189,9 @@
 .wi-table-outer {
   overflow-x: auto;
   padding: 0 1rem;
-  max-width: 1100px;
+  /* Narrower than before so the table sits visually centred in the viewport
+     rather than left-aligned with a wide empty gutter on the right. */
+  max-width: 760px;
   width: 100%;
   margin: 0 auto;
 }

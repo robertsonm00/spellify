@@ -1,13 +1,27 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import './WordListHub.css';
-import { scoreWord, scoreToBand } from '../utils/difficultyEngine';
 import DEFINITIONS from '../data/definitions';
 import { isSafeDefinition } from '../utils/definitionSafety';
 import { speakWordWithInfo } from '../utils/speech';
 import { ACTIVITIES, PHASES } from '../data/activities';
 import { getActivityAvailability } from '../utils/activityAvailability';
+import { getActiveWindow } from '../utils/wordSelectionEngine';
+import {
+  getMasteryState,
+  getUnmasteredWords,
+} from '../utils/masteryEngine';
+import { getPlayerStats } from '../utils/gamificationEngine';
 import ActivityIcon from './ActivityIcon';
 import BuddyAvatar from './BuddyAvatar';
+import CompletionTicks from './CompletionTicks';
+
+// Tiny hook so the My Words hub re-reads the mastery state from localStorage
+// every time its session words change. Keeps the activeWindow / progress
+// numbers fresh after the user returns from a finished activity.
+function useMyWordsMastery(words) {
+  const wordsKey = (words || []).join('|');
+  return useMemo(() => getMasteryState('mywords'), [wordsKey]);  // eslint-disable-line react-hooks/exhaustive-deps
+}
 
 // ── Word info fetch (with module-level cache) ─────────────────────────────────
 
@@ -64,6 +78,38 @@ async function fetchWordInfo(word, userAge) {
   } catch {
     return { definition: null, phonetic: null, partOfSpeech: null, example: null };
   }
+}
+
+const MASTERY_LABELS = { new: 'Not tried yet', learning: 'Keep practising', mastered: 'Mastered!' };
+
+// ── TestAllModal ─────────────────────────────────────────────────────────────
+
+function TestAllModal({ unmasteredWords, onPick, onClose }) {
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div className="hub-testall-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label="Choose a Test All game">
+      <div className="hub-testall-modal" onClick={(e) => e.stopPropagation()}>
+        <button className="hub-testall-modal-close" onClick={onClose} aria-label="Close">✕</button>
+        <p className="hub-testall-modal-title">Pick a game</p>
+        <p className="hub-testall-modal-sub">
+          {unmasteredWords.length} word{unmasteredWords.length !== 1 ? 's' : ''} to test
+        </p>
+        <div className="hub-testall-modal-options">
+          <button className="hub-testall-pick hub-testall-pick--quiz" onClick={() => onPick('quizquest')}>
+            🏆 Quiz Quest
+          </button>
+          <button className="hub-testall-pick hub-testall-pick--memory" onClick={() => onPick('memoryspell')}>
+            🧠 Memory Spell
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ── LockedActivityModal ──────────────────────────────────────────────────────
@@ -170,12 +216,6 @@ function WordDetailModal({ word, userAge, chipColor, onClose }) {
 // file is the single source of truth for which games exist. Adding a
 // new game there makes it appear here automatically.
 
-const STATUS_LABEL = {
-  'not-started': 'Not Started',
-  'in-progress': 'In Progress',
-  'completed':   'Done ✓',
-};
-
 const WORD_CHIP_COLORS = [
   { bg: '#fff0f0', border: '#ff6b6b' },
   { bg: '#fff8e1', border: '#ffd93d' },
@@ -208,9 +248,22 @@ const LEVEL_NAMES = [
 const POINTS_PER_LEVEL = 250;
 
 function computeProfileStats(activityStatuses = {}, mastery = {}) {
-  const completed = Object.values(activityStatuses).filter((s) => s === 'completed').length;
-  const correct   = Object.values(mastery).reduce((s, m) => s + (m?.correct || 0), 0);
-  const points    = completed * 100 + correct * 10;
+  // Read the canonical point total from the gamification engine. It's the
+  // single writer (App.handleComplete → recordGameCompleted), so anything
+  // we display here matches what was actually awarded. Falls back to the
+  // legacy derived formula if no stats are stored yet (fresh device, no
+  // games played), so brand-new sessions still see a sensible number.
+  let points;
+  try {
+    points = getPlayerStats().totalPoints || 0;
+  } catch {
+    points = 0;
+  }
+  if (points === 0) {
+    const completed = Object.values(activityStatuses).filter((s) => s === 'completed').length;
+    const correct   = Object.values(mastery).reduce((s, m) => s + (m?.correct || 0), 0);
+    points = completed * 100 + correct * 10;
+  }
   const levelIdx  = Math.min(Math.floor(points / POINTS_PER_LEVEL), LEVEL_NAMES.length - 1);
   const intoLevel = points - levelIdx * POINTS_PER_LEVEL;
   const levelPct  = Math.min(100, Math.round((intoLevel / POINTS_PER_LEVEL) * 100));
@@ -278,7 +331,7 @@ export function HubPlayerCard({ childName, childCharacter, year, activityStatuse
             id={childCharacter?.id}
             size={88}
             interactive
-            fallback={childCharacter?.emoji || '⭐'}
+            fallback={childCharacter?.emoji}
           />
         </div>
         {/* Guest pill — only shown when not signed in */}
@@ -336,6 +389,7 @@ function WordListHub({
   dyslexiaMode = false,
   difficulty = 'medium',
   activityStatuses,
+  activityCompletions = {},
   mastery = {},
   reviewQueue = [],
   childName = '',
@@ -356,21 +410,29 @@ function WordListHub({
 }) {
   const [activeWord,      setActiveWord]      = useState(null); // { word, chipColor }
   const [lockedInfo,      setLockedInfo]      = useState(null); // { name, message, color }
+  const [testAllStage,    setTestAllStage]    = useState('idle'); // 'idle' | 'choose'
 
-  // Only count activities that are applicable to this list (exclude 'unsupported').
-  const availableActivities = ACTIVITIES.filter(
-    a => getActivityAvailability(a, { session, user }).reason !== 'unsupported'
+  // ── Per-list mastery layer — same engine the explore hub uses ─────────
+  // The My Words session uses a stable synthetic list id 'mywords'.
+  const masteryState  = useMyWordsMastery(words);
+  const activeWindow  = useMemo(
+    () => getActiveWindow('mywords', words, masteryState, 15),
+    [words, masteryState],
   );
-  const completedCount = availableActivities.filter((a) => activityStatuses[a.id] === 'completed').length;
-  const progressPct    = Math.round((completedCount / availableActivities.length) * 100);
+  const unmasteredWords = useMemo(
+    () => getUnmasteredWords('mywords', words),
+    [words, masteryState],   // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
-  const [progressRevealed, setProgressRevealed] = useState(completedCount > 0);
-
-  useEffect(() => {
-    if (completedCount > 0 && !progressRevealed) {
-      setProgressRevealed(true);
-    }
-  }, [completedCount]); // eslint-disable-line react-hooks/exhaustive-deps
+  const launchWith = (activityId) => {
+    // For My Words we pass the active window (≤10 words) instead of the
+    // full session.words. Same pattern as ListHub in the explore hub.
+    onLaunch?.(activityId, { words: activeWindow.length > 0 ? activeWindow : words });
+  };
+  const launchTestAll = (activityId) => {
+    setTestAllStage('idle');
+    onLaunch?.(activityId, { words: unmasteredWords, isTestAll: true });
+  };
 
   return (
     <div className="hub-shell hub-shell--split">
@@ -408,19 +470,22 @@ function WordListHub({
         <div className="hub-chips">
           {words.map((w, i) => {
             const { bg, border } = WORD_CHIP_COLORS[i % WORD_CHIP_COLORS.length];
-            const band  = scoreToBand(scoreWord(w));
-            const entry = mastery[w.toLowerCase()];
-            const rate  = entry && entry.attempts > 0 ? entry.correct / entry.attempts : null;
+            const entry = masteryState.words?.[w.toLowerCase()];
+            const mastered = !!entry?.mastered;
+            const level = mastered ? 'mastered' : (entry?.attempts > 0 ? 'learning' : 'new');
             return (
               <button
                 key={w}
-                className="hub-chip"
+                className={`hub-chip${mastered ? ' hub-chip--mastered' : ''}`}
                 style={{ background: bg, borderColor: border }}
                 onClick={() => setActiveWord({ word: w, chipColor: border })}
               >
-                <MasteryDot rate={rate} />
-                {w}
-                <span className={`hub-diff-star hub-diff-star--${band}`} title={band}>★</span>
+                <span className="hub-chip-word">{w}</span>
+                <span
+                  className={`hub-chip-mastery hub-chip-mastery--${level}`}
+                  aria-label={level}
+                  title={MASTERY_LABELS[level]}
+                >★</span>
               </button>
             );
           })}
@@ -441,43 +506,13 @@ function WordListHub({
       </div>{/* /hub-split-left */}
 
       <div className="hub-split-right">
-      {/* ── Pixel progress bar ── */}
-      <section className={`hub-progress${!progressRevealed ? ' hub-progress--hidden' : ''}`}>
-        <div className="hub-progress-labels">
-          <span>{completedCount} of {availableActivities.length} activities done</span>
-          <span className="hub-progress-pct">{progressPct}%</span>
-        </div>
-        <div className="hub-pixel-progress">
-          {availableActivities.map((activity) => {
-            const filled = activityStatuses[activity.id] === 'completed';
-            const avail  = getActivityAvailability(activity, { session, user });
-            const locked = avail.locked;
-            return (
-              <button
-                key={activity.id}
-                type="button"
-                className={`hub-pixel-block${filled ? ' hub-pixel-block--filled' : ''}${locked ? ' hub-pixel-block--locked' : ''}`}
-                aria-label={locked ? `${activity.name} — locked. Tap for details.` : `Open ${activity.name}`}
-                onClick={() => {
-                  if (locked) {
-                    setLockedInfo({
-                      name:    activity.name,
-                      message: avail.message || 'This activity is currently unavailable.',
-                      color:   activity.color,
-                    });
-                  } else {
-                    onLaunch(activity.id);
-                  }
-                }}
-              >
-                <span className="hub-pixel-tip">
-                  {activity.name}{locked ? ' — Locked' : ''}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
+
+      {/* Mastered-everything celebration — keep playing, nothing locks. */}
+      {unmasteredWords.length === 0 && words.length > 0 && (
+        <p className="hub-mastery-complete-msg">
+          🎉 You've mastered every word — well done! Keep practising to stay sharp.
+        </p>
+      )}
 
       {/* ── Activity cards (grouped by phase: Warm-Up → Explore → Consolidate) ── */}
       <section className="hub-activities">
@@ -502,29 +537,26 @@ function WordListHub({
               </div>
               <div className="hub-grid">
                 {phaseActivities.map((activity) => {
-                  const status = activityStatuses[activity.id] || 'not-started';
-                  const done   = status === 'completed';
                   const avail  = getActivityAvailability(activity, { session, user });
                   const locked = avail.locked;
+                  const completions = activityCompletions?.[activity.id] || 0;
                   return (
                     <div
                       key={activity.id}
-                      className={`hub-card hub-card--${status}${locked ? ' hub-card--locked' : ''}`}
+                      className={`hub-card${locked ? ' hub-card--locked' : ''}${completions > 0 ? ' hub-card--complete' : ''}`}
                       style={{
                         borderColor:  activity.dark,
-                        boxShadow:    done
-                          ? `3px 3px 0 ${activity.color}`
-                          : `5px 5px 0 ${activity.color}`,
+                        boxShadow:    `5px 5px 0 ${activity.color}`,
                         '--card-color': activity.color,
                         opacity: locked ? 0.55 : 1,
                         cursor:  locked ? 'not-allowed' : 'pointer',
                       }}
-                      onClick={() => { if (!locked) onLaunch(activity.id); }}
+                      onClick={() => { if (!locked) launchWith(activity.id); }}
                       role="button"
                       tabIndex={locked ? -1 : 0}
                       aria-disabled={locked}
                       title={locked ? avail.message : undefined}
-                      onKeyDown={(e) => { if (!locked && e.key === 'Enter') onLaunch(activity.id); }}
+                      onKeyDown={(e) => { if (!locked && e.key === 'Enter') launchWith(activity.id); }}
                     >
                       <div
                         className="hub-card-header"
@@ -538,10 +570,17 @@ function WordListHub({
                       </div>
                       <div className="hub-card-body">
                         <h3 className="hub-card-name">{activity.name}</h3>
-                        <span className={`hub-badge hub-badge--${status}`}>
-                          {locked ? (avail.message || 'Locked') : STATUS_LABEL[status]}
-                        </span>
                         <p className="hub-card-time">⏱ {activity.timeEstimate}</p>
+                        {!locked && <CompletionTicks count={completions} />}
+                        {!locked && (
+                          <span
+                            className="hub-card-play"
+                            style={{ background: activity.dark }}
+                            aria-hidden="true"
+                          >
+                            Play ▶
+                          </span>
+                        )}
                       </div>
                     </div>
                   );
@@ -567,6 +606,27 @@ function WordListHub({
           </div>
         </section>
       )}
+
+      {/* ── Test All — button at bottom; game picker opens as a modal.
+            When every word is mastered we hide the panel entirely; the
+            chip list + (in Explore) the top progress bar already signal
+            completion, so a separate "All mastered" callout was redundant. */}
+      {unmasteredWords.length > 0 && (
+      <section className="hub-testall mywords-testall">
+          <button
+            type="button"
+            className="hub-testall-btn"
+            onClick={() => setTestAllStage('choose')}
+          >
+            <span className="hub-testall-icon" aria-hidden="true">▶</span>
+            <span className="hub-testall-label">Test All</span>
+            <span className="hub-testall-meta">
+              {unmasteredWords.length}{' '}
+              {unmasteredWords.length === 1 ? 'word' : 'words'} to go
+            </span>
+          </button>
+      </section>
+      )}
       </div>{/* /hub-split-right */}
 
       {/* ── Word detail modal ── */}
@@ -586,6 +646,15 @@ function WordListHub({
           message={lockedInfo.message}
           color={lockedInfo.color}
           onClose={() => setLockedInfo(null)}
+        />
+      )}
+
+      {/* ── Test All game picker modal ── */}
+      {testAllStage === 'choose' && (
+        <TestAllModal
+          unmasteredWords={unmasteredWords}
+          onPick={launchTestAll}
+          onClose={() => setTestAllStage('idle')}
         />
       )}
 

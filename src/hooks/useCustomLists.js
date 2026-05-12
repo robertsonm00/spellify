@@ -46,11 +46,11 @@ export function useCustomLists(user) {
   }, [user, useCloud]);
 
   // ── Add list ───────────────────────────────────────────────────────────────
-  const addList = useCallback(async ({ name, words }) => {
+  const addList = useCallback(async ({ name, words, testDate = null }) => {
     if (useCloud) {
       const { data, error } = await supabase
         .from('custom_lists')
-        .insert({ user_id: user.id, name, words })
+        .insert({ user_id: user.id, name, words, test_date: testDate })
         .select()
         .single();
       if (!error && data) setLists(prev => [data, ...prev]);
@@ -60,6 +60,7 @@ export function useCustomLists(user) {
         id:         `local-${Date.now()}`,
         name,
         words,
+        testDate,                          // optional ISO date, defaults to null
         created_at: new Date().toISOString(),
       };
       const updated = [newList, ...lists];

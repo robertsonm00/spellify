@@ -13,7 +13,12 @@ const WORD_COLORS = [
   { bg: '#fff0f8', border: '#ff6b9d' },
 ];
 
-function AddWordsManual({ onWordsReady }) {
+function AddWordsManual({ onWordsReady, collectTestDate = false }) {
+  // Optional "Spelling test date" — only surfaced for list-creation flows
+  // (Explore Dashboard new-list manual entry). Edit-existing flows pass
+  // collectTestDate={false} so the field stays hidden.
+  const [testDate, setTestDate] = useState('');
+  const todayIso = new Date().toISOString().slice(0, 10);
   const [input,       setInput]       = useState('');
   const [words,       setWords]       = useState([]);
   const [toast,       setToast]       = useState(null);
@@ -133,9 +138,33 @@ function AddWordsManual({ onWordsReady }) {
         </button>
       </div>
 
+      {/* ── Optional test date (creation flow only) ── */}
+      {collectTestDate && (
+        <div className="aw-testdate">
+          <label className="aw-testdate-label" htmlFor="aw-testdate-input">
+            Spelling test date
+          </label>
+          <p className="aw-testdate-sub">When do you need to know these words by? (optional)</p>
+          <input
+            id="aw-testdate-input"
+            type="date"
+            className="aw-testdate-input"
+            min={todayIso}
+            value={testDate}
+            onChange={(e) => setTestDate(e.target.value)}
+          />
+        </div>
+      )}
+
       {/* ── Done ── */}
       {words.length >= 3 && (
-        <button className="aw-done-btn" onClick={() => onWordsReady(words)}>
+        <button
+          className="aw-done-btn"
+          onClick={() => onWordsReady(
+            words,
+            collectTestDate ? { testDate: testDate || null } : undefined,
+          )}
+        >
           Use These {words.length} Words ▶
         </button>
       )}

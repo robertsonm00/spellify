@@ -220,7 +220,14 @@ export default function WordSearch({ words, year = null, savedProgress = null, o
           <h2 className="ws-complete-title">All words found!</h2>
           <div className="ws-complete-actions">
             <button className="ws-done-btn ws-done-btn--primary"   onClick={startGame}>Play Again</button>
-            <button className="ws-done-btn ws-done-btn--secondary" onClick={() => { onSaveProgress?.(null); onComplete(words.map(w => ({ word: w, correct: true }))); }}>Back to Hub</button>
+            <button className="ws-done-btn ws-done-btn--secondary" onClick={() => {
+              // Per-word accuracy for the mastery engine: a word counts as
+              // "correct" only if it was found this session. Unplaced /
+              // unfound words flow through as correct: false so they don't
+              // accrue mastery credit they didn't earn.
+              onSaveProgress?.(null);
+              onComplete(words.map(w => ({ word: w, correct: foundWords.includes(w) })));
+            }}>Back to Hub</button>
           </div>
         </div>
       </div>

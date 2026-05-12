@@ -396,10 +396,16 @@ function WriteIt({
       }));
     } else {
       const next = cell.attempts + 1;
+      // On a wrong answer we reveal the original word back to the child
+      // immediately — both by un-hiding the column and by showing the
+      // helper line under the input. Previous behaviour required two
+      // wrong attempts before the hint appeared, which felt punishing
+      // for the first round.
+      setWordsHidden(false);
       updatePractice(wordIdx, practiceIdx, {
         attempts:   next,
         status:     'trying',
-        revealHint: next >= 2,
+        revealHint: true,
       });
     }
   };
@@ -411,8 +417,14 @@ function WriteIt({
     }
   };
 
-  const handleInputFocus = () => {
+  const handleInputFocus = (wordIdx) => {
     setWordsHidden(true);
+    // Auto-play the target word so the child gets an audio cue the moment
+    // they're ready to type. Browsers typically allow speech synthesis after
+    // a user gesture (the click that focused the input counts), so this is
+    // safe inside the focus handler.
+    const row = rows[wordIdx];
+    if (row?.word) speak(row.word);
   };
 
   const addPractice = () => {
@@ -579,7 +591,7 @@ function WriteIt({
                           value={cell.value}
                           onChange={(e) => handleChange(wordIdx, practiceIdx, e.target.value)}
                           onKeyDown={(e) => handleKeyDown(e, wordIdx, practiceIdx)}
-                          onFocus={handleInputFocus}
+                          onFocus={() => handleInputFocus(wordIdx)}
                           disabled={isDone}
                           placeholder="Type here…"
                           autoComplete="off"

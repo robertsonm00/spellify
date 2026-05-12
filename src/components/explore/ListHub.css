@@ -1,6 +1,17 @@
 /* ── ListHub-specific extras ─────────────────────────────────────────────── */
 /* Layout comes from WordListHub.css (imported by ListHub.jsx).               */
 
+/* ── Game fullscreen overlay — covers sidebar, TopNav, everything ─────── */
+/* Games should be distraction-free. position:fixed + z-index 1000 puts the
+   game on top of the ed-shell grid (sidebar included) and the app TopNav. */
+.lh-game-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: #fff;
+  overflow-y: auto;
+}
+
 /* Accuracy line inside activity card body */
 .lh-card-accuracy {
   font-size: 0.7rem;

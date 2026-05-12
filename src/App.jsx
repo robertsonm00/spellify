@@ -7,6 +7,7 @@ import SpellingQuiz   from './components/SpellingQuiz';
 import { loadSession, saveSession, createSession, INITIAL_STATUSES, updateMastery, rebuildReviewQueue, getActivityProgress, setActivityProgress } from './data/spelling/sessionSchema';
 import { getActivity, getActivityTitle } from './data/activities';
 import { isActivityAvailable } from './utils/activityAvailability';
+import { recordGameCompleted } from './utils/gamificationEngine';
 import TopNav         from './components/TopNav';
 import { fireBuddyCheer } from './components/BuddyAvatar';
 import ExplorePage    from './components/explore/ExplorePage';
@@ -67,11 +68,25 @@ function App() {
     setTimeout(fireBuddyCheer, 600);
   };
 
-  const handleLaunch = (id) => {
+  const handleLaunch = (id, opts = {}) => {
     // Don't mark as in-progress on launch — only after the child has actually
     // completed at least one word. That bump happens in handleSaveProgress
     // once the snapshot shows real progress.
-    setActiveActivity({ id });
+    //
+    // `opts.words` overrides session.words for this launch (used by Test All
+    // to send the whole unmastered list). `opts.isTestAll` flags the run so
+    // gamification points the streak / badge bonus.
+    //
+    // Resuming: if there's an in-progress snapshot for this activity, the
+    // word list it was started with takes precedence over a freshly-computed
+    // active window — otherwise mastery shifts could drop or reorder words
+    // mid-game and break the saved index.
+    const existing = getActivityProgress(session, id);
+    const lockedWords = existing?._words;
+    const words = (Array.isArray(lockedWords) && lockedWords.length > 0)
+      ? lockedWords
+      : opts.words;
+    setActiveActivity({ id, overrideWords: words, isTestAll: !!opts.isTestAll });
   };
 
   // Inspect a saved-progress snapshot for "did the child complete at least
@@ -87,12 +102,43 @@ function App() {
     return false;
   };
 
+  // The My Words flow uses a stable synthetic list id so the new per-list
+  // mastery / points / badges engines work the same way they do for explore
+  // lists. Activated when an activity finishes — see gamificationEngine.
+  const MY_WORDS_LIST_ID = 'mywords';
+
   const handleComplete = (id, results = []) => {
+    // ── New engine: per-word mastery + points + badges ─────────────────
+    try {
+      const accuracy = results.length > 0
+        ? Math.round((results.filter(r => r.correct).length / results.length) * 100)
+        : 0;
+      recordGameCompleted(
+        MY_WORDS_LIST_ID,
+        id,
+        accuracy,
+        results,
+        session?.words || [],
+        { isTestAll: !!activeActivity?.isTestAll },
+      );
+    } catch (err) {
+      // Best-effort; never block the existing completion flow.
+      console.error('[App] gamification engine failed', err);
+    }
+
     setSession((prev) => {
       // Mark activity as completed (review doesn't affect activityStatuses)
-      let next = id === 'review'
-        ? { ...prev }
-        : { ...prev, activityStatuses: { ...prev.activityStatuses, [id]: 'completed' } };
+      let next;
+      if (id === 'review') {
+        next = { ...prev };
+      } else {
+        const prevCompletions = prev.activityCompletions || {};
+        next = {
+          ...prev,
+          activityStatuses: { ...prev.activityStatuses, [id]: 'completed' },
+          activityCompletions: { ...prevCompletions, [id]: (prevCompletions[id] || 0) + 1 },
+        };
+      }
       // Clear any mid-session snapshot now the activity is finished
       next = setActivityProgress(next, id, null);
       // Apply mastery updates for every word result
@@ -124,6 +170,8 @@ function App() {
         ruleKey,
         ruleLabel,
         activityStatuses: { ...INITIAL_STATUSES },
+        activityProgress: {},
+        activityCompletions: {},
       };
       return rebuildReviewQueue(next);
     });
@@ -131,11 +179,23 @@ function App() {
   };
 
   const handleSettingsUpdate = (updates) => setSession((prev) => ({ ...prev, ...updates }));
-  const handleClearProgress  = () => setSession((prev) => ({ ...prev, activityStatuses: INITIAL_STATUSES, activityProgress: {}, mastery: {}, reviewQueue: [] }));
+  const handleClearProgress  = () => setSession((prev) => ({ ...prev, activityStatuses: INITIAL_STATUSES, activityProgress: {}, activityCompletions: {}, mastery: {}, reviewQueue: [] }));
 
   const handleSaveProgress = (id, progress) =>
     setSession((prev) => {
-      let next = setActivityProgress(prev, id, progress);
+      // Lock the words this run is using into the snapshot. First save
+      // captures the launch's words (overrideWords for Test-All / active
+      // window, falling back to session.words); subsequent saves inherit
+      // whatever was locked previously so the list can't shift mid-game.
+      let wrapped = progress;
+      if (progress != null) {
+        const prevLocked = getActivityProgress(prev, id)?._words;
+        const runWords = (Array.isArray(activeActivity?.overrideWords) && activeActivity.overrideWords.length > 0)
+          ? activeActivity.overrideWords
+          : (prev?.words || []);
+        wrapped = { ...progress, _words: prevLocked ?? runWords };
+      }
+      let next = setActivityProgress(prev, id, wrapped);
       // First time we see real progress (≥ 1 word completed) → mark the
       // activity in-progress. Skip review and never downgrade.
       if (id !== 'review'
@@ -167,8 +227,14 @@ function App() {
   // ── Activity screen ──────────────────────────────────────────────────────
 
   if (activeActivity && session) {
-    const { id } = activeActivity;
-    const { words, difficulty, dyslexiaMode = false, reviewQueue = [] } = session;
+    const { id, overrideWords } = activeActivity;
+    const { difficulty, dyslexiaMode = false, reviewQueue = [] } = session;
+    // Test-All path replaces session.words with the unmastered list for the
+    // duration of this run. handleComplete reads `isTestAll` straight off
+    // activeActivity (no session mutation needed).
+    const words = Array.isArray(overrideWords) && overrideWords.length > 0
+      ? overrideWords
+      : session.words;
     let Activity = null;
     let title    = '';
 
@@ -287,6 +353,7 @@ function App() {
               dyslexiaMode={session.dyslexiaMode || false}
               difficulty={session.difficulty || 'medium'}
               activityStatuses={session.activityStatuses}
+              activityCompletions={session.activityCompletions || {}}
               mastery={session.mastery || {}}
               reviewQueue={session.reviewQueue || []}
               childName={session.childName || ''}

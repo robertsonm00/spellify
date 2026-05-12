@@ -171,6 +171,43 @@
 .aw-camera-btn { border-color: #c77dff; color: #6b21a8; }
 .aw-camera-btn:hover { background: #faf0ff; border-color: #a855f7; }
 
+/* ── Optional test-date block (creation flow only) ── */
+.aw-testdate {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.75rem 0.9rem;
+  border: 2px dashed #1a1a2e;
+  border-radius: 4px;
+  background: rgba(26, 26, 46, 0.03);
+  margin-bottom: 0.85rem;
+}
+.aw-testdate-label {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.04em;
+  color: #1a1a2e;
+}
+.aw-testdate-sub {
+  margin: 0;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #5a5a5a;
+}
+.aw-testdate-input {
+  font-family: 'Nunito', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  padding: 0.45rem 0.55rem;
+  border: 2px solid #1a1a2e;
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: 2px 2px 0 #1a1a2e;
+  cursor: pointer;
+}
+
 /* ── Done button (pixel style) ── */
 .aw-done-btn {
   font-family: 'Press Start 2P', monospace;

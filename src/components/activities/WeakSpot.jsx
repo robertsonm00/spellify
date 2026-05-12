@@ -96,7 +96,7 @@ function WeakSpot({ words, childCharacter = null, onComplete, onExit }) {
         <div className="ws-stage">
           <div className="ws-phase">
             <span className="ms-buddy" aria-hidden="true">
-              <BuddyAvatar id={childCharacter?.id} size={120} fallback={childCharacter?.emoji || '⭐'} cheering={buddyCheering} />
+              <BuddyAvatar id={childCharacter?.id} size={120} fallback={childCharacter?.emoji} cheering={buddyCheering} />
             </span>
             <h1 className="ms-h1">You Did It!</h1>
             <div className="ms-results-score">
@@ -149,7 +149,7 @@ function WeakSpot({ words, childCharacter = null, onComplete, onExit }) {
       <div className="ws-stage">
         <div className="ws-phase">
           <span className="ms-buddy" aria-hidden="true">
-            <BuddyAvatar id={childCharacter?.id} size={120} fallback={childCharacter?.emoji || '⭐'}
+            <BuddyAvatar id={childCharacter?.id} size={120} fallback={childCharacter?.emoji}
               cheering={buddyCheering} />
           </span>
 

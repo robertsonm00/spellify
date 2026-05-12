@@ -74,6 +74,15 @@ const BUDDY_RENDERERS = {
   raccoon: RaccoonSprite,
 };
 
+/**
+ * Single source of truth for the default buddy used everywhere a user
+ * hasn't picked one yet (Memory Spell, Quiz Quest, Weak Spot, the player
+ * card, Settings). Raccoon has the full SVG sprite so picking it as the
+ * default means even guest users see a real character, not a fallback
+ * emoji.
+ */
+export const DEFAULT_BUDDY = { id: 'raccoon', emoji: '🦝', name: 'Raccoon' };
+
 /** True if the buddy has a custom avatar (not just the emoji). */
 export function hasBuddyAvatar(id) {
   return id in BUDDY_RENDERERS;
@@ -81,7 +90,9 @@ export function hasBuddyAvatar(id) {
 
 /**
  * Returns a custom avatar for known buddy ids. Falls back to the emoji
- * (passed as `fallback`) for buddies without a bespoke design.
+ * (passed as `fallback`) for buddies without a bespoke design. When no
+ * id and no fallback are supplied, defaults to DEFAULT_BUDDY so callers
+ * never need to spell out "use this if there's no buddy yet".
  *
  * When `interactive` is true the avatar is wrapped in a button: clicking
  * it plays a kid cheer + confetti and (for buddies with a cheer frame)
@@ -94,6 +105,12 @@ export default function BuddyAvatar({
   interactive = false,
   cheering: cheeringProp = false,
 }) {
+  // Apply the single-source default when the caller has no buddy id
+  // *and* no explicit fallback — keeps onboarding/settings/games in sync.
+  if (!id && fallback == null) {
+    id = DEFAULT_BUDDY.id;
+    fallback = DEFAULT_BUDDY.emoji;
+  }
   const [cheering, setCheering] = useState(false);
   const cheeringRef = useRef(false);
   // External `cheering` prop overrides; either route lights up the cheer pose.
