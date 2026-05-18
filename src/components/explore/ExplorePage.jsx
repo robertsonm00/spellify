@@ -61,8 +61,14 @@ function ListCard({ list, onClick, progress }) {
       onKeyDown={e => e.key === 'Enter' && onClick()}
     >
       <div className="hub-card-body">
-        <h3 className="hub-card-name">{list.name}</h3>
-        <span className={`hub-badge hub-badge--${status}`}>{STATUS_LABEL[status]}</span>
+        <div className="ep-card-title-row">
+          <h3 className="hub-card-name">{list.name}</h3>
+          {status !== 'not-started' && (
+            <div className="ep-card-badges">
+              <span className={`hub-badge hub-badge--${status}`}>{STATUS_LABEL[status]}</span>
+            </div>
+          )}
+        </div>
         <p className="ep-card-preview">{preview}{more > 0 ? ` +${more} more` : ''}</p>
       </div>
     </div>

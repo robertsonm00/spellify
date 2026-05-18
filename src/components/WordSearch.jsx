@@ -65,6 +65,7 @@ export default function WordSearch({ words, year = null, savedProgress = null, o
   const [foundWords,      setFoundWords]      = useState(savedProgress?.foundWords ?? []);
   const [foundCells,      setFoundCells]      = useState(savedProgress?.foundCells ?? []);
   const [toast,           setToast]           = useState(null);
+  const [listSide,        setListSide]        = useState('left');
 
   // Drag state in refs to avoid stale closures inside event handlers
   const isDraggingRef = useRef(false);
@@ -253,7 +254,7 @@ export default function WordSearch({ words, year = null, savedProgress = null, o
       </GameProgressStrip>
 
       {/* ── Body: grid + word list ── */}
-      <div className="ws-body">
+      <div className={`ws-body ws-body--list-${listSide}`}>
 
         {/* Grid area */}
         <div className="ws-grid-wrap">
@@ -285,17 +286,27 @@ export default function WordSearch({ words, year = null, savedProgress = null, o
         </div>
 
         {/* Word list */}
-        <ul className="ws-word-list">
-          {placedWords.map(({ word }) => {
-            const done = foundWords.includes(word);
-            return (
-              <li key={word} className={`game-word${done ? ' game-word--done' : ''}`}>
-                {done && <span className="game-word-check">✓</span>}
-                {word.toLowerCase()}
-              </li>
-            );
-          })}
-        </ul>
+        <aside className="ws-wordlist-panel">
+          <button
+            className="ws-side-btn"
+            onClick={() => setListSide(s => s === 'left' ? 'right' : 'left')}
+            title={`Move list to the ${listSide === 'left' ? 'right' : 'left'}`}
+            aria-label={`Move list to the ${listSide === 'left' ? 'right' : 'left'}`}
+          >
+            {listSide === 'left' ? '→' : '←'}
+          </button>
+          <ul className="ws-word-list">
+            {placedWords.map(({ word }) => {
+              const done = foundWords.includes(word);
+              return (
+                <li key={word} className={`game-word${done ? ' game-word--done' : ''}`}>
+                  {done && <span className="game-word-check">✓</span>}
+                  {word.toLowerCase()}
+                </li>
+              );
+            })}
+          </ul>
+        </aside>
 
       </div>
 

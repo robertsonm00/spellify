@@ -166,6 +166,7 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
   const [startTime]      = useState(Date.now);
   const [endTime,        setEndTime]        = useState(null);
   const [wordsVisible,   setWordsVisible]   = useState(true);
+  const [listSide,       setListSide]       = useState('left');
   const containerRef     = useRef(null);
 
   // Validate every word against the dictionary, then build the crossword
@@ -555,15 +556,25 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
       </GameProgressStrip>
 
       {/* ── Body ── */}
-      <div className="cw-body">
+      <div className={`cw-body cw-body--list-${listSide}`}>
         {/* Word list sidebar — always rendered so toggle button is always visible */}
         <aside className="cw-wordlist">
-          <button
-            className="cw-toggle-btn"
-            onClick={() => setWordsVisible(v => !v)}
-          >
-            {wordsVisible ? '🙈 Hide word list' : '👁 Show word list'}
-          </button>
+          <div className="cw-wordlist-controls">
+            <button
+              className="cw-toggle-btn"
+              onClick={() => setWordsVisible(v => !v)}
+            >
+              {wordsVisible ? '🙈 Hide word list' : '👁 Show word list'}
+            </button>
+            <button
+              className="cw-side-btn"
+              onClick={() => setListSide(s => s === 'left' ? 'right' : 'left')}
+              title={`Move list to the ${listSide === 'left' ? 'right' : 'left'}`}
+              aria-label={`Move list to the ${listSide === 'left' ? 'right' : 'left'}`}
+            >
+              {listSide === 'left' ? '→' : '←'}
+            </button>
+          </div>
           {wordsVisible && (
             <ul className="cw-word-rows">
               {cwWords.map((pw) => {
@@ -605,11 +616,11 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
         </aside>
 
         {/* Grid */}
-        <div className="cw-grid-area">
-          <div
-            className="cw-grid"
-            style={{ '--cols': layout.cols, '--rows': layout.rows }}
-          >
+        <div
+          className="cw-grid-area"
+          style={{ '--cols': layout.cols, '--rows': layout.rows }}
+        >
+          <div className="cw-grid">
             {Array.from({ length: layout.rows }, (_, r) =>
               Array.from({ length: layout.cols }, (_, c) => {
                 const k    = cellKey(r, c);

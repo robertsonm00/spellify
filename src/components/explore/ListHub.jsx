@@ -13,7 +13,7 @@ import {
 import { recordGameCompleted } from '../../utils/gamificationEngine';
 import ActivityIcon from '../ActivityIcon';
 import CompletionTicks from '../CompletionTicks';
-import { HubPlayerCard } from '../WordListHub';
+import { HubPlayerCard, WordDetailModal } from '../WordListHub';
 import '../WordListHub.css';
 import './ListHub.css';
 
@@ -78,6 +78,29 @@ export default function ListHub({
   // completes → back to 'idle'. While 'running', activity words are the
   // full unmastered list and isTestAll: true flows into recordGameCompleted.
   const [testAllStage, setTestAllStage] = useState('idle');
+  const [activeWord, setActiveWord] = useState(null);
+
+  // Track which activities the child has started but not finished, so we can
+  // flip the card CTA from "Play ▶" to "Continue ▶". Persisted per-list.
+  const startedKey = `spellify_started_${list.id}`;
+  const [startedActivities, setStartedActivities] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem(startedKey) || '[]')); }
+    catch { return new Set(); }
+  });
+  useEffect(() => {
+    localStorage.setItem(startedKey, JSON.stringify([...startedActivities]));
+  }, [startedActivities, startedKey]);
+
+  // Snapshot the word selection used at the moment a game was started, so
+  // mastery changes (from OTHER games) don't shuffle the list mid-session.
+  const lockedKey = `spellify_locked_words_${list.id}`;
+  const [lockedWords, setLockedWords] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(lockedKey) || '{}'); }
+    catch { return {}; }
+  });
+  useEffect(() => {
+    localStorage.setItem(lockedKey, JSON.stringify(lockedWords));
+  }, [lockedWords, lockedKey]);
 
   const fullWords = (list.words || []).map(w => (typeof w === 'string' ? w : w.word));
 
@@ -147,6 +170,8 @@ export default function ListHub({
     }
     setMasteryTick(t => t + 1);
     setTestAllStage('idle');
+    setStartedActivities(prev => { const n = new Set(prev); n.delete(activityId); return n; });
+    setLockedWords(prev => { const n = { ...prev }; delete n[activityId]; return n; });
 
     // ── Existing progress tracking (per-list activity status) ─────────
     if (markComplete) {
@@ -168,7 +193,7 @@ export default function ListHub({
   if (activeActivity) {
     const activityWords = testAllStage === 'running' && unmasteredWords.length > 0
       ? unmasteredWords
-      : words;
+      : (lockedWords[activeActivity] ?? words);
     const sessionForActivity = {
       ...(session || {}),
       words: activityWords,
@@ -232,6 +257,7 @@ export default function ListHub({
                     key={i}
                     className={`hub-chip${mastered ? ' hub-chip--mastered' : ''}`}
                     style={{ background: bg, borderColor: border }}
+                    onClick={() => setActiveWord({ word: w, chipColor: border })}
                   >
                     <span className="hub-chip-word">{w}</span>
                     <span
@@ -315,6 +341,7 @@ export default function ListHub({
                     const locked = avail.locked;
                     const completions = progress?.[activity.id]?.completions
                       || (progress?.[activity.id]?.status === 'completed' ? 1 : 0);
+                    const inProgress = startedActivities.has(activity.id);
                     return (
                       <div
                         key={activity.id}
@@ -326,12 +353,26 @@ export default function ListHub({
                           opacity:        locked ? 0.55 : 1,
                           cursor:         locked ? 'not-allowed' : 'pointer',
                         }}
-                        onClick={() => { if (!locked) setActiveActivity(activity.id); }}
+                        onClick={() => {
+                          if (locked) return;
+                          if (!lockedWords[activity.id]) {
+                            setLockedWords(prev => ({ ...prev, [activity.id]: words }));
+                          }
+                          setStartedActivities(prev => new Set(prev).add(activity.id));
+                          setActiveActivity(activity.id);
+                        }}
                         role="button"
                         tabIndex={locked ? -1 : 0}
                         aria-disabled={locked}
                         title={locked ? avail.message : undefined}
-                        onKeyDown={(e) => { if (!locked && e.key === 'Enter') setActiveActivity(activity.id); }}
+                        onKeyDown={(e) => {
+                          if (locked || e.key !== 'Enter') return;
+                          if (!lockedWords[activity.id]) {
+                            setLockedWords(prev => ({ ...prev, [activity.id]: words }));
+                          }
+                          setStartedActivities(prev => new Set(prev).add(activity.id));
+                          setActiveActivity(activity.id);
+                        }}
                       >
                         <div className="hub-card-header" style={{ background: activity.color }}>
                           <span className="hub-card-icon hub-card-icon--emoji">{activity.icon}</span>
@@ -350,7 +391,7 @@ export default function ListHub({
                               style={{ background: activity.dark }}
                               aria-hidden="true"
                             >
-                              Play ▶
+                              {inProgress ? 'Continue ▶' : 'Play ▶'}
                             </span>
                           )}
                         </div>
@@ -381,6 +422,15 @@ export default function ListHub({
               </span>
             </button>
           </section>
+        )}
+
+        {/* Word detail modal */}
+        {activeWord && (
+          <WordDetailModal
+            word={activeWord.word}
+            chipColor={activeWord.chipColor}
+            onClose={() => setActiveWord(null)}
+          />
         )}
 
         {/* Test All game picker modal */}

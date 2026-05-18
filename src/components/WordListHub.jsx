@@ -141,7 +141,7 @@ function LockedActivityModal({ name, message, color, onClose }) {
 
 // ── WordDetailModal ───────────────────────────────────────────────────────────
 
-function WordDetailModal({ word, userAge, chipColor, onClose }) {
+export function WordDetailModal({ word, userAge, chipColor, onClose }) {
   const [info, setInfo] = useState({ loading: true, definition: null, phonetic: null, partOfSpeech: null, example: null });
 
   useEffect(() => {

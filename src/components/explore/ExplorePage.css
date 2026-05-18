@@ -279,3 +279,20 @@
 }
 .ep-prompt-btn--signin:hover  { background: #2a2a4e; box-shadow: 1px 1px 0 #1a1a2e; transform: translate(1px, 1px); }
 .ep-prompt-btn--signin:active { box-shadow: none; transform: translate(2px, 2px); }
+
+/* ── Card title row: keep status/progress badges inline with the list name ── */
+.ep-list-card .ep-card-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 24px;
+  row-gap: 0.4rem;
+}
+.ep-list-card .ep-card-title-row .hub-card-name {
+  margin: 0;
+}
+.ep-list-card .ep-card-title-row .ep-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}

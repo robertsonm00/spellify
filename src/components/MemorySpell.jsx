@@ -149,7 +149,8 @@ export default function MemorySpell({
 
   useEffect(() => {
     if (phase === 'recall') inputRef.current?.focus();
-  }, [phase]);
+    if (phase === 'reveal' && word) speak(word);
+  }, [phase, word]);
 
   // ── Core submit logic ──────────────────────────────────────────────────────
   // Extracted so it can be called both from the Check button and from
@@ -203,7 +204,11 @@ export default function MemorySpell({
   const handleHint = (key) => {
     setHints(h => ({ ...h, [key]: true }));
     if (key === 'heard') speak(word);
+    inputRef.current?.focus();
   };
+
+  // Prevent buttons from stealing focus from the hidden input on click.
+  const keepFocus = (e) => e.preventDefault();
 
   const nextWord = () => {
     setLastResult(null);   // clear inline feedback as we advance
@@ -393,15 +398,15 @@ export default function MemorySpell({
             </h1>
 
             <div className="ms-hint-reveals">
-              {hints.firstLetter && (
+              {!lastResult?.correct && hints.firstLetter && (
                 <span className="ms-hint-chip">
                   First letter: <strong>{word[0].toUpperCase()}</strong>
                 </span>
               )}
-              {hints.letterCount && (
+              {!lastResult?.correct && hints.letterCount && (
                 <span className="ms-hint-chip">{word.length} letters</span>
               )}
-              {showChunkHint && (
+              {!lastResult?.correct && showChunkHint && (
                 <span className="ms-hint-chip">
                   Chunks: <strong>{chunk}</strong>
                 </span>
@@ -432,6 +437,7 @@ export default function MemorySpell({
                   <span className="ms-powerups-label">Need a hint?</span>
                   <button
                     className={`ms-hint-btn${hints.heard ? ' ms-hint-btn--used' : ''}`}
+                    onMouseDown={keepFocus}
                     onClick={() => handleHint('heard')}
                     title="Hear the word again"
                   >
@@ -439,6 +445,7 @@ export default function MemorySpell({
                   </button>
                   <button
                     className={`ms-hint-btn${hints.firstLetter ? ' ms-hint-btn--used' : ''}`}
+                    onMouseDown={keepFocus}
                     onClick={() => handleHint('firstLetter')}
                     disabled={hints.firstLetter}
                     title="Reveal the first letter"
@@ -447,6 +454,7 @@ export default function MemorySpell({
                   </button>
                   <button
                     className={`ms-hint-btn${hints.letterCount ? ' ms-hint-btn--used' : ''}`}
+                    onMouseDown={keepFocus}
                     onClick={() => handleHint('letterCount')}
                     disabled={hints.letterCount}
                     title="Show how many letters"
@@ -455,6 +463,7 @@ export default function MemorySpell({
                   </button>
                   <button
                     className={`ms-hint-btn${hints.chunk ? ' ms-hint-btn--used' : ''}`}
+                    onMouseDown={keepFocus}
                     onClick={() => handleHint('chunk')}
                     disabled={hints.chunk}
                     title="Show word chunks"

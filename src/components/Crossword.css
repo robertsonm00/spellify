@@ -141,13 +141,38 @@
 
 .cw-body {
   display: flex;
-  gap: 1rem;
+  gap: 40px;
   padding: 1rem;
   flex: 1;
   align-items: stretch;
+  justify-content: center;
   min-height: 0;
   overflow: hidden;
 }
+
+.cw-body--list-right { flex-direction: row-reverse; }
+
+.cw-wordlist-controls {
+  display: flex;
+  gap: 0.4rem;
+  align-items: stretch;
+}
+.cw-wordlist-controls .cw-toggle-btn { flex: 1; }
+
+.cw-side-btn {
+  font-family: 'Nunito', sans-serif;
+  font-size: 1rem;
+  font-weight: 800;
+  padding: 0 0.7rem;
+  border: 2px solid #d4aaff;
+  border-radius: 8px;
+  background: #f5f0ff;
+  color: #6b21a8;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+.cw-side-btn:hover { background: #ede9fe; border-color: #c77dff; }
 
 /* ── Word list sidebar ── */
 
@@ -156,7 +181,7 @@
   flex-direction: column;
   gap: 0.5rem;
   flex-shrink: 0;
-  width: 160px;
+  width: 180px;
   align-self: stretch;
   min-height: 0;
 }
@@ -194,12 +219,15 @@
 /* ── Grid area ── */
 
 .cw-grid-area {
-  flex: 1;
   display: flex;
   justify-content: center;
   align-items: center;
   min-width: 0;
   min-height: 0;
+  align-self: stretch;
+  width: calc((100vh - 280px) * var(--cols) / var(--rows));
+  max-width: 100%;
+  flex-shrink: 1;
 }
 
 .cw-grid {

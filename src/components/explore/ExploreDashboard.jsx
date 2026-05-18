@@ -235,22 +235,28 @@ function ListCard({ list, listType = 'curriculum', onClick, progress, isFavourit
         ♥
       </button>
       <div className="hub-card-body">
-        <h3 className="hub-card-name">{list.name}</h3>
-        <div className="ep-card-badges">
-          <span className={`hub-badge hub-badge--tl-${masteryLight}`}>
-            {masteredCount} of {totalWords} words mastered
-          </span>
-          <span className={`hub-badge hub-badge--tl-${gamesLight}`}>
-            {completedActs} {completedActs === 1 ? 'game' : 'games'} completed
-          </span>
-          {listType === 'custom' && (() => {
-            const { label, tone } = testDatePill(list.testDate);
-            return (
-              <span className={`hub-badge hub-badge--td-${tone}`}>
-                {label}
+        <div className="ep-card-title-row">
+          <h3 className="hub-card-name">{list.name}</h3>
+          <div className="ep-card-badges">
+            {masteredCount > 0 && (
+              <span className={`hub-badge hub-badge--tl-${masteryLight}`}>
+                {masteredCount} of {totalWords} words mastered
               </span>
-            );
-          })()}
+            )}
+            {completedActs > 0 && (
+              <span className={`hub-badge hub-badge--tl-${gamesLight}`}>
+                {completedActs} {completedActs === 1 ? 'game' : 'games'} completed
+              </span>
+            )}
+            {listType === 'custom' && (() => {
+              const { label, tone } = testDatePill(list.testDate);
+              return (
+                <span className={`hub-badge hub-badge--td-${tone}`}>
+                  {label}
+                </span>
+              );
+            })()}
+          </div>
         </div>
         <p className="ep-card-preview">{preview}{more > 0 ? ` +${more} more` : ''}</p>
       </div>
