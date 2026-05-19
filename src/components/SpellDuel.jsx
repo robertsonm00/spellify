@@ -4,6 +4,7 @@ import './SpellDuel.css';
 import GameHeader from './GameHeader';
 import GameProgressStrip from './GameProgressStrip';
 import RestartButton from './RestartButton';
+import BuddyAvatar from './BuddyAvatar';
 import { getSupportTip } from '../data/spelling/dyslexiaPatterns';
 import { resolveDefinition } from '../utils/wordDefinitions';
 import { generateSpellDuelKeyboard } from '../utils/generateSpellDuelKeyboard';
@@ -118,7 +119,6 @@ function SpellEnergyBar({ wrongCount, maxWrong, won, lost }) {
 
   return (
     <div className="sd-energy-panel">
-      <span className="sd-energy-icon" aria-hidden="true">🧙</span>
       <div
         className="sd-energy-gems"
         role="meter"
@@ -192,6 +192,35 @@ function SpellDuel({
   const wrongCount  = [...guessed].filter((l) => !wordLetters.has(l)).length;
   const won         = [...wordLetters].every((l) => guessed.has(l));
   const lost        = wrongCount >= maxWrong;
+
+  // Battle HP — player drains on wrong guesses, opponent on correct letters revealed.
+  const playerHpPct   = Math.max(0, Math.round(((maxWrong - wrongCount) / maxWrong) * 100));
+  const revealedCount = [...wordLetters].filter(l => guessed.has(l)).length;
+  const opponentHpPct = Math.max(0, Math.round(((wordLetters.size - revealedCount) / wordLetters.size) * 100));
+
+  // Brief lunge animation on the last guess outcome.
+  const playerAttack   = lastCorrectLetter != null;
+  const opponentAttack = lastWrongLetter != null;
+
+  // Cheer pose lingers a beat longer than the lunge so the swapped frame reads,
+  // then snaps back to the default still pose.
+  const [playerCheering, setPlayerCheering] = useState(false);
+  const cheerTimerRef = useRef(null);
+  useEffect(() => {
+    if (lastCorrectLetter == null) return;
+    setPlayerCheering(true);
+    clearTimeout(cheerTimerRef.current);
+    cheerTimerRef.current = setTimeout(() => setPlayerCheering(false), 1200);
+    // No cleanup: the cheer timer must outlive the brief lastCorrectLetter
+    // window (~480ms) so the cheer pose visibly snaps back to default.
+  }, [lastCorrectLetter]);
+
+  // Hard reset whenever we leave the playing phase or move to a new word —
+  // prevents the cheer pose lingering into the result/next-word screen.
+  useEffect(() => {
+    clearTimeout(cheerTimerRef.current);
+    setPlayerCheering(false);
+  }, [phase, wordIndex]);
 
   const adaptiveKeys = useMemo(
     () => generateSpellDuelKeyboard(currentWord, yearGroup, difficulty),
@@ -356,6 +385,55 @@ function SpellDuel({
         {wordResults.length} of {queue.length} words done
       </GameProgressStrip>
 
+      {/* ── Battle bar (Street Fighter style) ── */}
+      <div className="sd-battle-bar">
+
+        {/* Player portrait (left) */}
+        <div className={[
+          'sd-portrait sd-portrait--player',
+          playerAttack ? 'sd-portrait--attack' : '',
+          phase === 'word-result' && lost ? 'sd-portrait--ko' : '',
+        ].filter(Boolean).join(' ')}>
+          <BuddyAvatar
+            id={childCharacter?.id}
+            size={88}
+            fallback={childCharacter?.emoji}
+            cheering={playerCheering}
+          />
+        </div>
+
+        {/* Player HP strip — drains right→left */}
+        <div className="sd-hp-strip sd-hp-strip--player">
+          <div
+            className="sd-hp-fill"
+            style={{ width: `${playerHpPct}%` }}
+          />
+        </div>
+
+        {/* Round badge (middle) */}
+        <div className="sd-round-badge">
+          <span className="sd-round-label">ROUND</span>
+          <span className="sd-round-num">{wordIndex + 1}</span>
+        </div>
+
+        {/* Opponent HP strip — drains left→right */}
+        <div className="sd-hp-strip sd-hp-strip--opponent">
+          <div
+            className="sd-hp-fill"
+            style={{ width: `${opponentHpPct}%` }}
+          />
+        </div>
+
+        {/* Opponent portrait (right) */}
+        <div className={[
+          'sd-portrait sd-portrait--opponent',
+          opponentAttack ? 'sd-portrait--attack' : '',
+          phase === 'word-result' && won ? 'sd-portrait--ko' : '',
+        ].filter(Boolean).join(' ')}>
+          <span className="sd-portrait-emoji">🧙‍♂️</span>
+        </div>
+      </div>
+
       {/* ── Clue + word blanks — centred ── */}
       <div className="sd-word-area">
         {clue && (
@@ -396,14 +474,8 @@ function SpellDuel({
         )}
       </div>
 
-      {/* ── Spell energy bar + A–Z keyboard ── */}
+      {/* ── A–Z keyboard ── */}
       <div className="hm-keyboard-area">
-        <SpellEnergyBar
-          wrongCount={wrongCount}
-          maxWrong={maxWrong}
-          won={phase === 'word-result' && won}
-          lost={phase === 'word-result' && lost}
-        />
         <p className="hm-keyboard-label">Choose your next letter</p>
         {(() => {
           const topCount  = Math.ceil(adaptiveKeys.length / 2);

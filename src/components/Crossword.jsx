@@ -661,19 +661,22 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
       </div>
 
       {/* ── Clue bar ── */}
-      <div className={`cw-clue-bar${selectedWord ? ' cw-clue-bar--active' : ''}`}>
-        {selectedWord ? (
-          <>
+      <div className={`cw-clue-bar${selectedWord && !wordDone ? ' cw-clue-bar--active' : ''}`}>
+        {selectedWord && !wordDone ? (
+          <div key={selectedWord.id} className="cw-clue-bar-inner">
             <div className="cw-clue-bar-meta">
-              <span className="cw-clue-bar-num">
-                {selectedWord.direction === 'across' ? '→' : '↓'}
+              <span className="cw-clue-bar-badge">
+                <span className="cw-clue-bar-badge-icon">
+                  {selectedWord.direction === 'across' ? '→' : '↓'}
+                </span>
+                {selectedWord.direction === 'across' ? 'Across' : 'Down'}
               </span>
-              <span className="cw-clue-bar-letters">{selectedWord.word.length} letters</span>
+              <span className="cw-clue-bar-badge">
+                {selectedWord.word.length} letters
+              </span>
               {wordDone && <span className="cw-clue-bar-done">✓ Done!</span>}
             </div>
-            <p className="cw-clue-bar-text">
-              {definitions.get(selectedWord.word) ?? '…'}
-            </p>
+            <AutoFitClueText text={definitions.get(selectedWord.word) ?? '…'} />
             <div className="cw-clue-bar-actions">
               <button
                 className="cw-hear-btn"
@@ -699,7 +702,7 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
                 </button>
               )}
             </div>
-          </>
+          </div>
         ) : (
           <p className="cw-clue-bar-empty">
             👆 Tap a square to start — or pick a word from the list!
@@ -708,6 +711,48 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
       </div>
     </div>
   );
+}
+
+// Shrinks the clue text so it never wraps past 3 lines. Starts at the CSS
+// default and steps down until it fits (or hits the floor).
+function AutoFitClueText({ text }) {
+  const MAX_LINES = 3;
+  const MAX_PX = 32;
+  const MIN_PX = 14;
+  const stateRef = useRef({ el: null, ro: null });
+
+  const fit = (el) => {
+    if (!el || !el.isConnected || el.clientWidth === 0) return;
+    let size = MAX_PX;
+    el.style.fontSize = size + 'px';
+    let lineHeight = parseFloat(getComputedStyle(el).lineHeight) || size * 1.25;
+    while (el.scrollHeight > lineHeight * MAX_LINES + 1 && size > MIN_PX) {
+      size -= 1;
+      el.style.fontSize = size + 'px';
+      lineHeight = parseFloat(getComputedStyle(el).lineHeight) || size * 1.25;
+    }
+  };
+
+  // Ref callback fires synchronously when the DOM node attaches. We keep the
+  // ResizeObserver instance on the same DOM node across React re-renders so
+  // a re-render storm in a sibling doesn't tear down our observer.
+  const setRef = (el) => {
+    const s = stateRef.current;
+    if (s.el === el) return;
+    if (s.ro) { s.ro.disconnect(); s.ro = null; }
+    s.el = el;
+    if (!el) return;
+    fit(el);
+    s.ro = new ResizeObserver(() => fit(el));
+    s.ro.observe(el);
+  };
+
+  // Re-fit when the text content changes for the same element.
+  useEffect(() => {
+    if (stateRef.current.el) fit(stateRef.current.el);
+  }, [text]);
+
+  return <p ref={setRef} className="cw-clue-bar-text">{text}</p>;
 }
 
 export default Crossword;

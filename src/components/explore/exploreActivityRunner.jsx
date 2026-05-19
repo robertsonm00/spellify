@@ -48,7 +48,7 @@ function buildPseudoSession({ list, words }) {
  * @param {{ list, words, user, onComplete, onExit }} ctx
  * @returns {React.ReactElement|null}
  */
-export function renderExploreActivity(activityId, { list, words, user, onComplete, onExit }) {
+export function renderExploreActivity(activityId, { list, words, user, onComplete, onExit, savedProgress = null, onSaveProgress }) {
   const activity = getActivity(activityId);
   if (!activity) return null;
 
@@ -62,6 +62,8 @@ export function renderExploreActivity(activityId, { list, words, user, onComplet
     <Component
       words={words}
       dyslexiaMode={false}
+      savedProgress={savedProgress}
+      onSaveProgress={onSaveProgress}
       onComplete={(results) => onComplete(activityId, results || [])}
       onExit={onExit}
       {...extraProps}

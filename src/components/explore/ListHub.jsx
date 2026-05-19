@@ -102,7 +102,10 @@ export default function ListHub({
     localStorage.setItem(lockedKey, JSON.stringify(lockedWords));
   }, [lockedWords, lockedKey]);
 
-  const fullWords = (list.words || []).map(w => (typeof w === 'string' ? w : w.word));
+  const fullWords = useMemo(
+    () => (list.words || []).map(w => (typeof w === 'string' ? w : w.word)),
+    [list.words]
+  );
 
   // Bump this when a game finishes so we re-read mastery from localStorage
   // and rotate freshly-mastered words out of the active window.
@@ -199,9 +202,23 @@ export default function ListHub({
       words: activityWords,
       isTestAll: testAllStage === 'running',
     };
+    // Mid-game snapshot — persisted per list+activity so exit+resume
+    // restores the in-progress board (found words, filled cells, etc.).
+    const snapKey = `spellify_activity_snap_${list.id}_${activeActivity}`;
+    const savedActivityProgress = (() => {
+      try { return JSON.parse(localStorage.getItem(snapKey) || 'null'); }
+      catch { return null; }
+    })();
+    const onSaveActivityProgress = (snap) => {
+      if (snap == null) localStorage.removeItem(snapKey);
+      else { try { localStorage.setItem(snapKey, JSON.stringify(snap)); } catch {} }
+    };
+
     const rendered = renderExploreActivity(activeActivity, {
       list, words: activityWords, user,
       session: sessionForActivity,
+      savedProgress: savedActivityProgress,
+      onSaveProgress: onSaveActivityProgress,
       onComplete: handleComplete,
       onExit: () => { setActiveActivity(null); setTestAllStage('idle'); },
     });

@@ -6,6 +6,190 @@
   font-family: 'Nunito', sans-serif;
 }
 
+/* ── Battle bar (Street Fighter K.O.-style) ── */
+
+.sd-battle-bar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0.9rem 1.25rem 0.5rem;
+  margin: 0 auto;
+  max-width: 1100px;
+  width: 100%;
+}
+
+/* Portraits get a small breathing gap; HP strips butt against the round badge */
+.sd-portrait--player    { margin-right: 0.6rem; }
+.sd-portrait--opponent  { margin-left:  0.6rem; }
+
+/* Portraits (square framed avatars + name underneath) */
+.sd-portrait {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+  width: 88px;
+  height: 88px;
+}
+
+/* Avatar slot is fixed-size so cheer/attack frames swap in place without
+   reflowing the row — keeps the HP bars rock-steady. */
+.sd-portrait > :first-child {
+  width: 88px;
+  height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sd-portrait > :first-child {
+  filter: drop-shadow(2px 3px 0 rgba(0, 0, 0, 0.28));
+}
+
+.sd-portrait-emoji {
+  font-size: 4rem;
+  line-height: 1;
+  display: inline-block;
+}
+
+.sd-portrait--opponent .sd-portrait-emoji {
+  transform: scaleX(-1);
+}
+
+.sd-portrait-name {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+  color: #facc15;
+  text-shadow: 1px 1px 0 #1a1a2e, -1px -1px 0 #1a1a2e, 1px -1px 0 #1a1a2e, -1px 1px 0 #1a1a2e;
+  text-transform: uppercase;
+  max-width: 88px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Long HP strips — purple gem styling on a soft pink-tinted track */
+.sd-hp-strip {
+  flex: 1;
+  height: 28px;
+  background: rgba(167, 139, 250, 0.10);
+  border: 1.5px solid rgba(167, 139, 250, 0.35);
+  box-shadow:
+    0 0 8px rgba(167, 139, 250, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  position: relative;
+  overflow: hidden;
+}
+
+.sd-hp-strip--player {
+  border-top-left-radius: 7px;
+  border-bottom-left-radius: 7px;
+  border-right-width: 0;
+}
+
+.sd-hp-strip--opponent {
+  border-top-right-radius: 7px;
+  border-bottom-right-radius: 7px;
+  border-left-width: 0;
+}
+
+.sd-hp-fill {
+  height: 100%;
+  background: linear-gradient(155deg, #f9a8d4 0%, #c4b5fd 35%, #7c3aed 100%);
+  box-shadow:
+    0 0 10px rgba(124, 58, 237, 0.45),
+    0 0 22px rgba(167, 139, 250, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.12);
+  transition: width 0.35s ease;
+}
+
+/* Player drains right→left: fill anchored to the right (next to round) */
+.sd-hp-strip--player {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Opponent drains left→right: fill anchored to the left (next to round) */
+.sd-hp-strip--opponent {
+  display: flex;
+  justify-content: flex-start;
+}
+
+/* Round badge — purple/pink to match HP bars, butts into them on both sides */
+.sd-round-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-width: 76px;
+  padding: 0.35rem 0.85rem;
+  background: linear-gradient(155deg, #c4b5fd 0%, #7c3aed 100%);
+  border: 1.5px solid #7c3aed;
+  border-radius: 0;
+  box-shadow:
+    0 0 12px rgba(124, 58, 237, 0.45),
+    0 0 22px rgba(167, 139, 250, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  line-height: 1;
+  z-index: 1;
+}
+
+.sd-round-label {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  color: #fce7f3;
+  text-shadow: 1px 1px 0 rgba(76, 29, 149, 0.6);
+}
+
+.sd-round-num {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 1.5rem;
+  margin-top: 0.25rem;
+  background: linear-gradient(180deg, #fff 0%, #fbcfe8 50%, #f9a8d4 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 2px 2px 0 rgba(76, 29, 149, 0.45);
+  filter: drop-shadow(0 0 4px rgba(249, 168, 212, 0.5));
+}
+
+/* Attack lunge — short forward thrust on the avatar */
+.sd-portrait--player.sd-portrait--attack > :first-child {
+  animation: sd-player-attack 0.42s ease-out;
+}
+.sd-portrait--opponent.sd-portrait--attack > :first-child {
+  animation: sd-opponent-attack 0.42s ease-out;
+}
+
+@keyframes sd-player-attack {
+  0%   { transform: translate(0, 0); }
+  40%  { transform: translate(14px, -6px) rotate(-4deg); }
+  100% { transform: translate(0, 0); }
+}
+
+@keyframes sd-opponent-attack {
+  0%   { transform: translate(0, 0) scaleX(-1); }
+  40%  { transform: translate(-14px, -6px) rotate(-4deg) scaleX(-1); }
+  100% { transform: translate(0, 0) scaleX(-1); }
+}
+
+/* KO — slump + grey */
+.sd-portrait--ko > :first-child {
+  animation: sd-ko 0.7s ease-in forwards;
+  filter: grayscale(0.85) brightness(0.7);
+}
+
+@keyframes sd-ko {
+  0%   { transform: translateY(0) rotate(0); opacity: 1; }
+  100% { transform: translateY(10px) rotate(-8deg); opacity: 0.55; }
+}
+
 /* ── Centred clue + word area ── */
 
 .sd-word-area {
@@ -13,7 +197,7 @@
   flex-direction: column;
   align-items: center;
   gap: 1rem;
-  padding: 2.5rem 2rem 0.5rem;
+  padding: 1rem 2rem 0.5rem;
   flex: 1;
 }
 
