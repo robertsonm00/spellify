@@ -52,6 +52,23 @@ const FAV_KEY    = 'spellify_explore_favourites';
 const RECENT_KEY = 'spellify_explore_recent';
 const RECENT_MAX = 12;
 
+// Strand pills — colours mirror the existing CATEGORY_COLOURS map so an
+// active strand button visually echoes the ListCard it filters to.
+const STRAND_PILLS = [
+  { value: 'phonics',    label: 'Phonics',    color: '#a855f7', dark: '#7c3aed' },
+  { value: 'patterns',   label: 'Patterns',   color: '#1D9E75', dark: '#0f6b50' },
+  { value: 'morphology', label: 'Morphology', color: '#4d96ff', dark: '#1a5cbf' },
+  { value: 'etymology',  label: 'Etymology',  color: '#EF9F27', dark: '#b45309' },
+  { value: 'statutory',  label: 'Statutory',  color: '#6b7280', dark: '#374151' },
+];
+
+// Difficulty pills — traffic-light palette: green / amber / dark pink.
+const DIFFICULTY_PILLS = [
+  { value: 'easy',   label: 'Easy',   color: '#22c55e', dark: '#15803d' },
+  { value: 'medium', label: 'Medium', color: '#f59e0b', dark: '#b45309' },
+  { value: 'hard',   label: 'Hard',   color: '#be185d', dark: '#831843' },
+];
+
 function safeParse(raw, fallback) {
   try { return JSON.parse(raw) ?? fallback; } catch { return fallback; }
 }
@@ -311,6 +328,75 @@ function NavLink({ icon, label, count, active, onClick }) {
   );
 }
 
+// ── Explore filter bar (strand / difficulty pills) ──────────────────────────
+
+// Pixel-arcade strand pill — black outline + black drop shadow. White fill
+// when off, strand colour fill when on. Tap-again deselects.
+function StrandPill({ pill, on, onToggle }) {
+  return (
+    <button
+      type="button"
+      className={`ed-arcade-pill${on ? ' ed-arcade-pill--on' : ''}`}
+      style={on ? { background: pill.color, color: '#1a1a2e' } : null}
+      onClick={() => onToggle(on ? 'all' : pill.value)}
+      aria-pressed={on}
+    >
+      {pill.label}
+    </button>
+  );
+}
+
+// Pixel-arcade difficulty pill — always solid traffic-light colour with
+// white text. Active state is rendered as "pressed" (no drop shadow).
+function DifficultyPill({ pill, on, onToggle }) {
+  return (
+    <button
+      type="button"
+      className={`ed-arcade-pill ed-arcade-pill--solid${on ? ' ed-arcade-pill--pressed' : ''}`}
+      style={{ background: pill.color, color: '#ffffff' }}
+      onClick={() => onToggle(on ? 'all' : pill.value)}
+      aria-pressed={on}
+    >
+      {pill.label}
+    </button>
+  );
+}
+
+function ExploreFilters({
+  strand,
+  onStrandChange,
+  difficulty,
+  onDifficultyChange,
+  resultCount,
+}) {
+  return (
+    <div className="ed-filters">
+      <div className="ed-filters-row" role="group" aria-label="Filter lessons">
+        {STRAND_PILLS.map(p => (
+          <StrandPill
+            key={p.value}
+            pill={p}
+            on={strand === p.value}
+            onToggle={onStrandChange}
+          />
+        ))}
+        <span className="ed-filters-vdivider" aria-hidden="true" />
+        {DIFFICULTY_PILLS.map(p => (
+          <DifficultyPill
+            key={p.value}
+            pill={p}
+            on={difficulty === p.value}
+            onToggle={onDifficultyChange}
+          />
+        ))}
+      </div>
+      <p className="ed-filters-count" aria-live="polite">
+        {resultCount} {resultCount === 1 ? 'lesson' : 'lessons'}
+      </p>
+    </div>
+  );
+}
+
 // ── Section block for the right pane ─────────────────────────────────────────
 
 function PaneSection({ headerClass, label, hint, rightSlot, children }) {
@@ -348,10 +434,10 @@ export default function ExploreDashboard({
 
   const [favourites, setFavourites] = useState(() => safeParse(localStorage.getItem(FAV_KEY), []));
   const [recent,     setRecent]     = useState(() => safeParse(localStorage.getItem(RECENT_KEY), []));
-  // Explore page filter — by curriculum word category. 'all' shows everything.
-  // Placeholder for now; when the richer word-type taxonomy lands this hook
-  // becomes the place to swap in a more granular filter.
-  const [exploreFilter, setExploreFilter] = useState('all');
+  // Explore page filters — strand and difficulty pills, AND-combined.
+  // 'all' means no filter on that axis.
+  const [exploreStrand,     setExploreStrand]     = useState('all');
+  const [exploreDifficulty, setExploreDifficulty] = useState('all');
 
   useEffect(() => { localStorage.setItem(FAV_KEY, JSON.stringify(favourites)); }, [favourites]);
   useEffect(() => { localStorage.setItem(RECENT_KEY, JSON.stringify(recent));     }, [recent]);
@@ -663,44 +749,33 @@ export default function ExploreDashboard({
     }
 
     if (page === 'explore') {
-      // Categories present in the current year's curriculum lists. The
-      // dropdown only offers options that actually have lists to filter to,
-      // so it never resolves to an empty grid through user action.
-      const presentCategories = Array.from(
-        new Set(curriculumForYear.map(l => l.category).filter(Boolean)),
-      );
-      const filteredCurriculum = exploreFilter === 'all'
-        ? curriculumForYear
-        : curriculumForYear.filter(l => l.category === exploreFilter);
-
-      const filterDropdown = (
-        <label className="ed-filter">
-          <span className="ed-filter-label">Filter</span>
-          <select
-            className="ed-filter-select"
-            value={exploreFilter}
-            onChange={(e) => setExploreFilter(e.target.value)}
-            aria-label="Filter word lists by category"
-          >
-            <option value="all">All word types</option>
-            {presentCategories.map(cat => (
-              <option key={cat} value={cat}>{cat}</option>
-            ))}
-          </select>
-        </label>
-      );
+      const exploreResults = curriculumForYear
+        .filter(l => exploreStrand     === 'all' || l.strand     === exploreStrand)
+        .filter(l => exploreDifficulty === 'all' || l.difficulty === exploreDifficulty);
 
       return (
         <main className="ed-main ed-main--explore">
           <PaneSection
             headerClass="ep-curriculum-phase"
             label="Explore"
-            hint={`${yearLabel} curriculum lists`}
-            rightSlot={filterDropdown}
+            hint={`${yearLabel} curriculum`}
           >
-            {renderGrid(
-              filteredCurriculum.map(l => ({ list: l, listType: 'curriculum' })),
-              'No curriculum lists for this filter.',
+            <ExploreFilters
+              strand={exploreStrand}
+              onStrandChange={setExploreStrand}
+              difficulty={exploreDifficulty}
+              onDifficultyChange={setExploreDifficulty}
+              resultCount={exploreResults.length}
+            />
+            {exploreResults.length === 0 ? (
+              <p className="ep-phase-empty">
+                No lessons match — try a different filter.
+              </p>
+            ) : (
+              renderGrid(
+                exploreResults.map(l => ({ list: l, listType: 'curriculum' })),
+                'No lessons match — try a different filter.',
+              )
             )}
           </PaneSection>
         </main>

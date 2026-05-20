@@ -713,6 +713,70 @@
   outline-offset: 1px;
 }
 
+/* ── Explore filter bar — pixel-arcade strand + difficulty pills ────── */
+.ed-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin: 0 0 1rem;
+}
+.ed-filters-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+.ed-filters-vdivider {
+  display: inline-block;
+  width: 2px;
+  height: 24px;
+  background: #1a1a2e;
+  margin: 0 0.5rem;
+  border-radius: 1px;
+}
+.ed-arcade-pill {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  height: 32px;
+  padding: 0 0.9rem;
+  background: #fff;
+  color: #1a1a2e;
+  border: 2px solid #1a1a2e;
+  border-radius: 6px;
+  cursor: pointer;
+  box-shadow: 3px 3px 0 #1a1a2e;
+  transition: transform 0.06s, box-shadow 0.06s, filter 0.1s;
+  white-space: nowrap;
+}
+.ed-arcade-pill:hover {
+  filter: brightness(1.04);
+}
+.ed-arcade-pill:active,
+.ed-arcade-pill--pressed {
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 #1a1a2e;
+}
+.ed-arcade-pill--on {
+  /* Inline style supplies the strand fill colour when active. */
+}
+.ed-arcade-pill--solid {
+  /* Inline style supplies the traffic-light fill; text is white. */
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.35);
+}
+.ed-arcade-pill:focus-visible {
+  outline: 2px solid #4d96ff;
+  outline-offset: 2px;
+}
+.ed-filters-count {
+  margin: 0.1rem 0 0;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.05em;
+  color: #6b7280;
+}
+
 .ed-main--mylists .hub-grid,
 .ed-main--explore .hub-grid,
 .ed-main--favourites .hub-grid,

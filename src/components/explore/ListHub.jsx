@@ -289,6 +289,25 @@ export default function ListHub({
             {listFooter}
           </section>
 
+          {/* ── Test All — sits directly under the word list. Hidden once every
+                word is mastered; the mastery bar already shows 100% complete. */}
+          {unmasteredWords.length > 0 && (
+            <section className="hub-testall">
+              <button
+                type="button"
+                className="hub-testall-btn"
+                onClick={() => setTestAllStage('choose')}
+              >
+                <span className="hub-testall-icon" aria-hidden="true">▶</span>
+                <span className="hub-testall-label">Test All</span>
+                <span className="hub-testall-meta">
+                  {unmasteredWords.length}{' '}
+                  {unmasteredWords.length === 1 ? 'word' : 'words'} to go
+                </span>
+              </button>
+            </section>
+          )}
+
           {/* Back to lists CTA — mirrors the Browse section in the master hub */}
           <section className="hub-word-lists">
             <div className="hub-word-lists-header">EXPLORE</div>
@@ -420,26 +439,6 @@ export default function ListHub({
             );
           })}
         </section>
-
-        {/* ── Test All — button at bottom; game picker opens as a modal.
-              When every word is mastered we hide the panel entirely; the
-              top mastery progress bar already shows 100% complete. */}
-        {unmasteredWords.length > 0 && (
-          <section className="hub-testall">
-            <button
-              type="button"
-              className="hub-testall-btn"
-              onClick={() => setTestAllStage('choose')}
-            >
-              <span className="hub-testall-icon" aria-hidden="true">▶</span>
-              <span className="hub-testall-label">Test All</span>
-              <span className="hub-testall-meta">
-                {unmasteredWords.length}{' '}
-                {unmasteredWords.length === 1 ? 'word' : 'words'} to go
-              </span>
-            </button>
-          </section>
-        )}
 
         {/* Word detail modal */}
         {activeWord && (
