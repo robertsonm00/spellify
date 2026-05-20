@@ -80,7 +80,7 @@
 
 ### PHASE 2 — Explore section: filters + word banks
 
-- [ ] **2.1** Strand + difficulty filter pills — finish and test (in progress via Claude Code)
+- [x] **2.1** Strand + difficulty filter pills — finish and test (in progress via Claude Code)
   - Strand: Phonics / Patterns / Morphology / Etymology / Statutory
   - Difficulty: Easy / Medium / Hard
   - No labels. Divider between rows. Active = CATEGORY_COLOURS highlight. AND logic
