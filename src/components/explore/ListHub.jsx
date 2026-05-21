@@ -13,7 +13,7 @@ import {
 import { recordGameCompleted } from '../../utils/gamificationEngine';
 import ActivityIcon from '../ActivityIcon';
 import CompletionTicks from '../CompletionTicks';
-import { HubPlayerCard, WordDetailModal } from '../WordListHub';
+import { HubPlayerCard, WordDetailModal, preSeedWordInfoCache } from '../WordListHub';
 import '../WordListHub.css';
 import './ListHub.css';
 
@@ -101,6 +101,11 @@ export default function ListHub({
   useEffect(() => {
     localStorage.setItem(lockedKey, JSON.stringify(lockedWords));
   }, [lockedWords, lockedKey]);
+
+  // Pre-seed the word-info cache with the inline definitions from this list so
+  // the word detail modal never falls through to the external dictionary API
+  // for words the curriculum list already defines.
+  useEffect(() => { preSeedWordInfoCache(list.words || []); }, [list.id]);  // eslint-disable-line react-hooks/exhaustive-deps
 
   const fullWords = useMemo(
     () => (list.words || []).map(w => (typeof w === 'string' ? w : w.word)),

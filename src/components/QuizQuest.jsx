@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import confetti from 'canvas-confetti';
 import { buildQuiz } from '../utils/quizQuestionBuilder';
-import DEFINITIONS from '../data/definitions.js';
+import { getClueSync } from '../utils/clueResolver';
 import { letterBoxSize } from '../utils/letterBoxSize';
 import GameHeader from './GameHeader';
 import GameProgressStrip from './GameProgressStrip';
@@ -141,14 +141,14 @@ function FixWordBoxes({ question, onAnswer }) {
   );
 }
 
-function MissingLettersBoxes({ question, onAnswer }) {
+function MissingLettersBoxes({ question, onAnswer, year }) {
   const [typed,    setTyped]    = useState('');
   const [showClue, setShowClue] = useState(false);
   const inputRef = useRef(null);
 
   const target  = question.answer;
   const display = question.displayText;
-  const def     = DEFINITIONS[target.toLowerCase()];
+  const def     = getClueSync(target, year);
 
   // Indices in `display` that are blanks (in left-to-right order).
   const blankPositions = useMemo(() => {
@@ -272,7 +272,7 @@ function MissingLettersBoxes({ question, onAnswer }) {
 // child's answer via onAnswer(value). Internal input/selection state is reset
 // by changing the React `key` whenever the question advances.
 
-function QuestionCard({ question, onAnswer, dyslexiaMode }) {
+function QuestionCard({ question, onAnswer, dyslexiaMode, year }) {
   const [selected, setSelected] = useState(null);
 
   // Auto-play audio for hear_and_choose on mount.
@@ -348,7 +348,7 @@ function QuestionCard({ question, onAnswer, dyslexiaMode }) {
     return (
       <div className="qq-card">
         <p className="qq-prompt">{question.prompt}</p>
-        <MissingLettersBoxes question={question} onAnswer={onAnswer} />
+        <MissingLettersBoxes question={question} onAnswer={onAnswer} year={year} />
       </div>
     );
   }
@@ -362,6 +362,7 @@ function QuestionCard({ question, onAnswer, dyslexiaMode }) {
 export default function QuizQuest({
   words,
   wordObjects = [],
+  year = null,
   childCharacter = null,
   savedProgress = null,
   onSaveProgress,
@@ -371,7 +372,10 @@ export default function QuizQuest({
 }) {
   // Build the quiz once per mount. useMemo ensures we don't reshuffle on
   // every state change.
-  const questions = useMemo(() => buildQuiz(words, { count: 10 }), [words]);
+  const questions = useMemo(
+    () => buildQuiz(words, { count: 10, year, wordObjects }),
+    [words], // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   const [phase,      setPhase]      = useState(savedProgress ? 'question' : 'start');
   const [qIdx,       setQIdx]       = useState(savedProgress?.qIdx ?? 0);
@@ -585,6 +589,7 @@ export default function QuizQuest({
                 question={question}
                 onAnswer={handleAnswer}
                 dyslexiaMode={dyslexiaMode}
+                year={year}
               />
             </>
           )}

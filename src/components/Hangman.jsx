@@ -159,15 +159,15 @@ function Hangman({ words, difficulty = 'medium', dyslexiaMode = false, childName
     onSaveProgress?.({ queue, wordIndex, wordResults, guessed: [...guessed] });
   }, [wordResults, wordIndex, guessed]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Resolve clue for the current word — local map first, then API fallback.
+  // Resolve clue for the current word — database first, then API fallback.
   useEffect(() => {
     let cancelled = false;
     setClue(null);
-    resolveDefinition(currentWord).then(def => {
+    resolveDefinition(currentWord, { year: yearGroup }).then(def => {
       if (!cancelled) setClue(def);
     });
     return () => { cancelled = true; };
-  }, [currentWord]);
+  }, [currentWord, yearGroup]);
 
   const restart = () => {
     onSaveProgress?.(null);

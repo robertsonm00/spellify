@@ -303,11 +303,11 @@ function SpellDuel({
   useEffect(() => {
     let cancelled = false;
     setClue(null);
-    resolveDefinition(currentWord).then(def => {
+    resolveDefinition(currentWord, { year: yearGroup }).then(def => {
       if (!cancelled) setClue(def);
     });
     return () => { cancelled = true; };
-  }, [currentWord]);
+  }, [currentWord, yearGroup]);
 
   const restart = () => {
     onSaveProgress?.(null);

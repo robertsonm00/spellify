@@ -13,11 +13,11 @@
  * Constraints enforced (best-effort, in order):
  *   1. Mixed types — no two same type in a row when possible
  *   2. No word over-used — at most ceil(count/words.length) questions per word
- *   3. match_definition only when src/data/definitions.js has a local entry
+ *   3. match_definition only when clueResolver can produce a curated definition
  *   4. Falls back gracefully for short word lists or words with no usable distractors
  */
 
-import DEFINITIONS from '../data/definitions.js';
+import { getClueSync } from './clueResolver.js';
 import { generateDistractors } from './spellingDistractors.js';
 
 const QUESTIONS_DEFAULT = 10;
@@ -117,18 +117,30 @@ function makeMatchDefinition(word, definition, otherWords) {
 /**
  * Build a quiz of mixed-type questions for a session word list.
  *
- * @param {string[]} words  confirmed session words (string array)
+ * @param {string[]} words       confirmed session words (string array)
  * @param {object}   opts
  * @param {number}   opts.count  target number of questions (default 10)
+ * @param {number}   opts.year   school year group (1–6) for age-banded definitions
+ * @param {object[]} opts.wordObjects  enriched word entries — inline definitions take priority
  * @returns {object[]} array of question objects
  */
-export function buildQuiz(words, { count = QUESTIONS_DEFAULT } = {}) {
+export function buildQuiz(words, { count = QUESTIONS_DEFAULT, year, wordObjects = [] } = {}) {
   if (!Array.isArray(words) || words.length === 0) return [];
+
+  // Build a definition lookup: inline curriculum definition → central clue chain.
+  const inlineMap = new Map(
+    wordObjects.map(e => [
+      (typeof e === 'string' ? e : e.word).toLowerCase(),
+      typeof e === 'string' ? null : e.definition || null,
+    ])
+  );
+  const resolveDef = (word) =>
+    inlineMap.get(word.toLowerCase()) || getClueSync(word, year);
 
   // 1. Build every viable question for every word.
   const pool = [];
   for (const word of words) {
-    const def = DEFINITIONS[word.toLowerCase()];
+    const def = resolveDef(word);
     const cs  = makeChooseSpelling(word);    if (cs)  pool.push(cs);
     const fix = makeFixTheWord(word);        if (fix) pool.push(fix);
     const ml  = makeMissingLetters(word);    if (ml)  pool.push(ml);

@@ -719,3 +719,4 @@ But Spellify is not limited to what the NC requires. The Etymology strand (Greek
 | 2026-05-12 | 1.2 | 20 gap-patch lessons (174 total) | HeadStart Primary review |
 | 2026-05-12 | 1.3 | St Richard's review — confirmed same NC source, 2 minor gaps noted | School docs review |
 | 2026-05-12 | 1.4 | Design Principles section added (14.1, 14.2, 14.3) | Product philosophy capture |
+| 2026-05-21 | 1.5 | Database gap-close: KS1 v13→v14 (+167 words, 1,707 total), KS2 v26→v27 (+384 words, 3,396 total). 100% curriculum coverage confirmed across Y1–Y6. | Coverage audit found 170 curriculum words missing from databases |

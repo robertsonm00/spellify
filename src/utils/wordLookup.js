@@ -1,7 +1,7 @@
 /**
  * wordLookup — single source of truth for rich per-word DATA.
  *
- * Merges Y1 + Y2 (from ks1WordData_v13) and Y3/4 + Y5/6 (from ks2WordData_v26)
+ * Merges Y1 + Y2 (from ks1WordData_v14) and Y3/4 + Y5/6 (from ks2WordData_v27)
  * into a single case-insensitive Map keyed on word.toLowerCase(). Built once
  * at module load.
  *
@@ -15,8 +15,8 @@
  *   - future game/session UI for hints, tricky parts, common mistakes, etc.
  */
 
-import { Y1_WORD_DATA, Y2_WORD_DATA } from '../data/ks1WordData_v13.js';
-import { Y34_WORD_DATA, Y56_WORD_DATA } from '../data/ks2WordData_v26.js';
+import { Y1_WORD_DATA, Y2_WORD_DATA, KS1_GAP_WORDS } from '../data/ks1WordData_v14.js';
+import { Y34_WORD_DATA, Y56_WORD_DATA, KS2_GAP_WORDS } from '../data/ks2WordData_v27.js';
 
 const WORD_MAP = (() => {
   const map = new Map();
@@ -29,8 +29,10 @@ const WORD_MAP = (() => {
   };
   ingest(Y1_WORD_DATA);
   ingest(Y2_WORD_DATA);
+  ingest(KS1_GAP_WORDS);
   ingest(Y34_WORD_DATA);
   ingest(Y56_WORD_DATA);
+  ingest(KS2_GAP_WORDS);
   return map;
 })();
 

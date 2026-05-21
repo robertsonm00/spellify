@@ -6,61 +6,10 @@ import RestartButton from './RestartButton';
 import './WriteIt.css';
 import './WordListHub.css';
 import { speakWord as speak } from '../utils/speech';
-import DEFINITIONS from '../data/definitions';
-import { isSafeDefinition } from '../utils/definitionSafety';
+import { getWordInfo, preSeedClueCache } from '../utils/clueResolver';
 
 
-// ── Word info cache + fetch ───────────────────────────────────────────────────
-
-const wordInfoCache = {};
-
-function pickDefForAge(meanings, userAge) {
-  const ORDER = { noun: 0, verb: 1 };
-  const sorted = [...meanings].sort((a, b) => (ORDER[a.partOfSpeech] ?? 2) - (ORDER[b.partOfSpeech] ?? 2));
-  for (const m of sorted) {
-    for (const d of m.definitions || []) {
-      const t = d.definition;
-      if (!t || t.startsWith('(') || t.length < 5) continue;
-      if (!isSafeDefinition(t)) continue;
-      if (userAge < 7  && t.length > 80)  return t.slice(0, 77) + '…';
-      if (userAge < 10 && t.length > 160) return t.slice(0, 157) + '…';
-      return t;
-    }
-  }
-  return null;
-}
-
-async function fetchWordInfo(word, userAge = 7) {
-  const key = word.toLowerCase();
-  if (wordInfoCache[key]) return wordInfoCache[key];
-  const local = DEFINITIONS[key];
-  if (local) {
-    const r = { definition: local, phonetic: null, partOfSpeech: null, example: null };
-    wordInfoCache[key] = r;
-    return r;
-  }
-  try {
-    const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(key)}`);
-    if (!res.ok) return { definition: null, phonetic: null, partOfSpeech: null, example: null };
-    const data = await res.json();
-    if (!Array.isArray(data) || !data[0]) return { definition: null, phonetic: null, partOfSpeech: null, example: null };
-    const phonetic     = data[0].phonetic || data[0].phonetics?.find(p => p.text)?.text || null;
-    const allMeanings  = data.flatMap(e => e?.meanings || []);
-    const definition   = pickDefForAge(allMeanings, userAge);
-    const partOfSpeech = allMeanings[0]?.partOfSpeech || null;
-    let example = null;
-    outer: for (const m of allMeanings) {
-      for (const d of m.definitions || []) {
-        if (d.example && isSafeDefinition(d.example)) { example = d.example; break outer; }
-      }
-    }
-    const r = { definition, phonetic, partOfSpeech, example };
-    wordInfoCache[key] = r;
-    return r;
-  } catch {
-    return { definition: null, phonetic: null, partOfSpeech: null, example: null };
-  }
-}
+// Word info is delegated to the central clueResolver.
 
 // ── Word detail modal ─────────────────────────────────────────────────────────
 
@@ -70,7 +19,7 @@ function WordDetailModal({ word, userAge, onClose }) {
   useEffect(() => {
     let cancelled = false;
     setInfo({ loading: true, definition: null, phonetic: null, partOfSpeech: null, example: null });
-    fetchWordInfo(word, userAge).then(r => { if (!cancelled) setInfo({ loading: false, ...r }); });
+    getWordInfo(word, userAge).then(r => { if (!cancelled) setInfo({ loading: false, ...r }); });
     return () => { cancelled = true; };
   }, [word, userAge]);
 
@@ -192,13 +141,11 @@ function WriteIt({
     );
   });
 
-  // Pre-seed definition cache with any list-provided definitions
-  wordObjects.forEach(({ word, definition }) => {
-    const key = word.toLowerCase();
-    if (!wordInfoCache[key] && definition) {
-      wordInfoCache[key] = { definition, phonetic: null, partOfSpeech: null, example: null };
-    }
-  });
+  // Pre-seed the clue cache with any list-provided definitions so the word
+  // detail modal resolves instantly without hitting the external API.
+  useEffect(() => {
+    preSeedClueCache(wordObjects);
+  }, [words]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const inputRefs          = useRef({});
   const onSaveRef          = useRef(onSaveProgress);

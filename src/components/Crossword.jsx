@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import confetti from 'canvas-confetti';
 import { generateCrossword, wordCells } from '../utils/crosswordEngine';
-import DEFINITIONS from '../data/definitions';
+import { getClueSync } from '../utils/clueResolver';
 import { isSafeDefinition } from '../utils/definitionSafety';
 import GameHeader from './GameHeader';
 import GameProgressStrip from './GameProgressStrip';
@@ -99,15 +99,20 @@ async function lookupApi(word) {
 }
 
 // Validates a single word and resolves a kid-friendly definition.
-//   - Local DEFINITIONS map always wins (curated, safe by construction).
-//   - Otherwise the dictionary API decides validity.
+//   - Curated sources (DEFINITIONS map + word database) always win — covers
+//     all curriculum words with no API call needed.
+//   - For non-curriculum words the dictionary API decides validity.
 //   - Words confirmed to exist but with no usable kid-safe clue are
 //     marked invalid so they're excluded from the crossword.
 //   - Network/server failures keep the word but leave the clue blank.
-async function validateWord(word) {
+async function validateWord(word, year) {
   const key = word.toLowerCase();
-  if (DEFINITIONS[key]) return { word, valid: true, definition: DEFINITIONS[key] };
 
+  // Steps 1 + 2: curated sources (sync, no API — hits for all curriculum words)
+  const curated = getClueSync(key, year);
+  if (curated) return { word, valid: true, definition: curated };
+
+  // Step 3: API for non-curriculum words (validity check + definition)
   const api = await lookupApi(key);
   if (api.found === false)     return { word, valid: false, reason: 'not_a_word' };
   if (api.found === 'unknown') return { word, valid: true,  definition: null };
@@ -177,7 +182,8 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
     setValidation(null);
     setLayout(null);
     (async () => {
-      const results = await Promise.all(words.map(validateWord));
+      const approxYear = userAge <= 7 ? 2 : 4;
+      const results = await Promise.all(words.map(w => validateWord(w, approxYear)));
       if (cancelled) return;
       const valid     = results.filter(r => r.valid);
       const validList = valid.map(r => r.word);

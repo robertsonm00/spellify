@@ -9,77 +9,12 @@ import { ACTIVITIES } from '../../data/activities';
 import { getActivityAvailability } from '../../utils/activityAvailability';
 import { renderExploreActivity } from './exploreActivityRunner';
 import { scoreWord, scoreToBand } from '../../utils/difficultyEngine';
-import DEFINITIONS from '../../data/definitions';
-import { isSafeDefinition } from '../../utils/definitionSafety';
+import { getWordInfo, preSeedClueCache } from '../../utils/clueResolver';
 import { speakWord } from '../../utils/speech';
 import '../WordListHub.css';   // hub-word-modal styles
 import './ListHubV3.css';
 
-// ── Word info cache ───────────────────────────────────────────────────────────
-
-const wordInfoCache = {};
-
-function pickDefinitionForAge(meanings, userAge) {
-  const PART_ORDER = { noun: 0, verb: 1 };
-  const ordered = [...meanings].sort(
-    (a, b) => (PART_ORDER[a.partOfSpeech] ?? 2) - (PART_ORDER[b.partOfSpeech] ?? 2),
-  );
-  for (const meaning of ordered) {
-    for (const def of meaning.definitions || []) {
-      const text = def.definition;
-      if (!text || text.startsWith('(') || text.length < 5) continue;
-      if (!isSafeDefinition(text)) continue;
-      if (userAge < 7  && text.length > 80)  return text.slice(0, 77) + '…';
-      if (userAge < 10 && text.length > 160) return text.slice(0, 157) + '…';
-      return text;
-    }
-  }
-  return null;
-}
-
-async function fetchWordInfo(word, userAge) {
-  const key = word.toLowerCase();
-  if (wordInfoCache[key]) return wordInfoCache[key];
-  const localDef = DEFINITIONS[key];
-  if (localDef) {
-    const result = { definition: localDef, phonetic: null, partOfSpeech: null, example: null };
-    wordInfoCache[key] = result;
-    return result;
-  }
-  try {
-    const res = await fetch(
-      `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(key)}`,
-    );
-    if (!res.ok) return { definition: null, phonetic: null, partOfSpeech: null, example: null };
-    const data = await res.json();
-    if (!Array.isArray(data) || !data[0])
-      return { definition: null, phonetic: null, partOfSpeech: null, example: null };
-    const phonetic     = data[0].phonetic || data[0].phonetics?.find(p => p.text)?.text || null;
-    const allMeanings  = data.flatMap(e => e?.meanings || []);
-    const definition   = pickDefinitionForAge(allMeanings, userAge);
-    const partOfSpeech = allMeanings[0]?.partOfSpeech || null;
-    let example = null;
-    outer: for (const meaning of allMeanings) {
-      for (const def of meaning.definitions || []) {
-        if (def.example && isSafeDefinition(def.example)) { example = def.example; break outer; }
-      }
-    }
-    const result = { definition, phonetic, partOfSpeech, example };
-    wordInfoCache[key] = result;
-    return result;
-  } catch {
-    return { definition: null, phonetic: null, partOfSpeech: null, example: null };
-  }
-}
-
-function preSeedCache(wordObjects) {
-  for (const { word, definition } of wordObjects) {
-    const key = word.toLowerCase();
-    if (!wordInfoCache[key] && definition) {
-      wordInfoCache[key] = { definition, phonetic: null, partOfSpeech: null, example: null };
-    }
-  }
-}
+// Word info and cache seeding are delegated to clueResolver.
 
 // ── Word detail modal (reuses hub-word-* classes from WordListHub.css) ────────
 
@@ -91,7 +26,7 @@ function WordDetailModal({ word, userAge, chipColor, onClose }) {
   useEffect(() => {
     let cancelled = false;
     setInfo({ loading: true, definition: null, phonetic: null, partOfSpeech: null, example: null });
-    fetchWordInfo(word, userAge).then(result => {
+    getWordInfo(word, userAge).then(result => {
       if (!cancelled) setInfo({ loading: false, ...result });
     });
     return () => { cancelled = true; };
@@ -215,7 +150,7 @@ export default function ListHubV3({
   );
   const words = wordObjects.map(w => w.word);
 
-  preSeedCache(wordObjects);
+  preSeedClueCache(wordObjects);
 
   // ── Load progress ───────────────────────────────────────────────────────────
   useEffect(() => {

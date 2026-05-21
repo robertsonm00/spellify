@@ -88,7 +88,7 @@ export const ACTIVITIES = [
     id: 'quizquest', name: 'Quiz Quest', icon: '🏆',
     timeEstimate: '5 mins', color: '#f5b9d3', dark: '#c95d8a',
     phase: 'consolidate', component: QuizQuest,
-    buildProps: (s) => ({ wordObjects: s.wordObjects || [] }),
+    buildProps: (s) => ({ wordObjects: s.wordObjects || [], year: s.year ?? null }),
   },
   {
     id: 'wordforge', name: 'Word Forge', icon: '🔨',
