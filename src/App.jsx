@@ -13,6 +13,7 @@ import { fireBuddyCheer } from './components/BuddyAvatar';
 import ExplorePage    from './components/explore/ExplorePage';
 import ExploreDashboard from './components/explore/ExploreDashboard';
 import ExploreDashboard2 from './components/explore/ExploreDashboard2';
+import ArcadeFooter from './components/ArcadeFooter';
 import SignInModal    from './components/explore/SignInModal';
 import Settings       from './components/Settings';
 import { GeneratedWords } from './components/OnboardingFlow';
@@ -30,6 +31,9 @@ const REVIEW_TITLE = 'Spelling Quiz';
 
 function App() {
   const [section,        setSection]        = useState('myWords'); // 'myWords' | 'explore'
+  // Increments on every top-nav tab click so ExploreDashboard can clear its
+  // internal selectedList even when the user clicks the tab they're already on.
+  const [navTick,        setNavTick]        = useState(0);
   const [showSignIn,     setShowSignIn]     = useState(false);
   const [settingsOpen,     setSettingsOpen]     = useState(false);
   const [changeWordsOpen,  setChangeWordsOpen]  = useState(false);
@@ -287,12 +291,15 @@ function App() {
 
   if (!session || !session.words || session.words.length === 0) {
     // Show Explore even without a session — welcome screen not needed if they go via Explore
-    if (section === 'explore' || section === 'exploreDashboard' || section === 'exploreDashboard2') {
+    // Each arcade tab in TopNav maps to a single page inside ExploreDashboard.
+    const dashboardSections = ['home', 'assignments', 'mylists', 'exploreDashboard', 'favourites', 'recent'];
+    if (section === 'explore' || dashboardSections.includes(section) || section === 'exploreDashboard2') {
+      const dashboardPage = section === 'exploreDashboard' ? 'explore' : section; // 'home'|'assignments'|'mylists'|'explore'|'favourites'|'recent'
       return (
         <>
           <TopNav
             section={section}
-            onSectionChange={(s) => { setSection(s); if (s === 'myWords') setScreen('welcome'); }}
+            onSectionChange={(s) => { setSection(s); setNavTick(t => t + 1); if (s === 'myWords') setScreen('welcome'); }}
             user={user}
             profile={profile}
             onSignInClick={() => setShowSignIn(true)}
@@ -309,17 +316,7 @@ function App() {
               signUp={signUp}
               signInWithGoogle={signInWithGoogle}
             />
-          ) : section === 'exploreDashboard' ? (
-            <ExploreDashboard
-              session={session}
-              user={user}
-              profile={profile}
-              signIn={signIn}
-              signUp={signUp}
-              signInWithGoogle={signInWithGoogle}
-              onOpenSettings={() => setSettingsOpen(true)}
-            />
-          ) : (
+          ) : section === 'exploreDashboard2' ? (
             <ExploreDashboard2
               session={session}
               user={user}
@@ -329,7 +326,29 @@ function App() {
               signInWithGoogle={signInWithGoogle}
               onOpenSettings={() => setSettingsOpen(true)}
             />
+          ) : (
+            <ExploreDashboard
+              page={dashboardPage}
+              navTick={navTick}
+              session={session}
+              user={user}
+              profile={profile}
+              signIn={signIn}
+              signUp={signUp}
+              signInWithGoogle={signInWithGoogle}
+              onOpenSettings={() => setSettingsOpen(true)}
+            />
           )}
+          <ArcadeFooter
+            playerName="ERNEST-WREN"
+            year={5}
+            isGuest={true}
+            points={4210}
+            level={10}
+            levelTitle="Grand Wordmancer"
+            xpCurrent={650}
+            xpMax={1000}
+          />
         </>
       );
     }
@@ -341,7 +360,7 @@ function App() {
       {/* ── Top navigation ── */}
       <TopNav
         section={section}
-        onSectionChange={setSection}
+        onSectionChange={(s) => { setSection(s); setNavTick(t => t + 1); }}
         user={user}
         profile={profile}
         onSignInClick={() => setShowSignIn(true)}
@@ -403,9 +422,11 @@ function App() {
         />
       )}
 
-      {/* ── Explore Dashboard (experimental) ── */}
-      {section === 'exploreDashboard' && (
+      {/* ── ExploreDashboard pages (home / assignments / mylists / explore) ── */}
+      {(section === 'home' || section === 'assignments' || section === 'mylists' || section === 'exploreDashboard' || section === 'favourites' || section === 'recent') && (
         <ExploreDashboard
+          page={section === 'exploreDashboard' ? 'explore' : section}
+          navTick={navTick}
           session={session}
           user={user}
           profile={profile}
@@ -467,6 +488,18 @@ function App() {
           signInWithGoogle={signInWithGoogle}
         />
       )}
+
+      {/* ── Arcade footer (placeholder values for now) ── */}
+      <ArcadeFooter
+        playerName="ERNEST-WREN"
+        year={5}
+        isGuest={true}
+        points={4210}
+        level={10}
+        levelTitle="Grand Wordmancer"
+        xpCurrent={650}
+        xpMax={1000}
+      />
     </>
   );
 }

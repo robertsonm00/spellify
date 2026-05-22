@@ -451,3 +451,198 @@
   background: transparent;
 }
 .topnav--v2 .topnav-dropdown-signout:hover { background: #fff7e0; }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   MAGICAL THEME — applies to the default (.topnav--classic) variant only.
+   Matches the magical Explore/dashboard background so the page reads as
+   one continuous arcade panel from top to bottom. */
+
+.topnav.topnav--classic {
+  background:
+    radial-gradient(circle at 14% 50%, rgba(251, 191, 36, 0.35) 1px, transparent 2px),
+    radial-gradient(circle at 34% 30%, rgba(236, 72, 153, 0.30) 1px, transparent 2px),
+    radial-gradient(circle at 58% 70%, rgba(199, 125, 255, 0.30) 1px, transparent 2px),
+    radial-gradient(circle at 78% 40%, rgba(255, 255, 255, 0.30) 1px, transparent 1.5px),
+    linear-gradient(180deg, #1a0a2e 0%, #2e1065 50%, #1a0a2e 100%);
+  background-size: 60px 60px, 80px 80px, 70px 70px, 90px 90px, 100% 100%;
+  border-bottom: none;        /* gold strip removed; rainbow shimmer below carries the magical edge */
+  box-shadow:
+    0 3px 22px rgba(255, 215, 0, 0.18),
+    0 6px 28px rgba(236, 72, 153, 0.15);
+  position: fixed;          /* preserved from the base rule */
+}
+
+/* Animated rainbow shimmer along the bottom border, mirroring the footer */
+.topnav.topnav--classic::before {
+  content: '';
+  position: absolute;
+  bottom: -3px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    #ec4899 0%, #fbbf24 20%, #4ade80 40%, #60a5fa 60%, #c77dff 80%, #ec4899 100%
+  );
+  background-size: 200% 100%;
+  animation: topnav-rainbow 6s linear infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+@keyframes topnav-rainbow {
+  0%   { background-position:   0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+/* Gem corner accent on the top-right, mirroring the footer's top-left */
+.topnav.topnav--classic::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  right: 8px;
+  width: 12px;
+  height: 12px;
+  background: linear-gradient(135deg, #fbbf24 0%, #ec4899 60%, #c77dff 100%);
+  border: 2px solid #2e1065;
+  transform: rotate(45deg);
+  box-shadow: 0 0 10px rgba(251, 191, 36, 0.8),
+              0 0 18px rgba(236, 72, 153, 0.5);
+  animation: topnav-gem-pulse 3.2s ease-in-out infinite;
+  animation-delay: 1.6s;
+  pointer-events: none;
+  z-index: 2;
+}
+@keyframes topnav-gem-pulse {
+  0%, 100% { filter: brightness(1); }
+  50%      { filter: brightness(1.35); }
+}
+
+/* Exit / Settings / Sign in — violet-outlined arcade buttons */
+.topnav.topnav--classic .topnav-exit,
+.topnav.topnav--classic .topnav-settings {
+  background: linear-gradient(180deg, rgba(167, 139, 250, 0.10), rgba(46, 16, 101, 0.4));
+  border: 1.5px solid #c77dff;
+  color: #f9a8d4;
+  text-shadow: 0 0 4px rgba(236, 72, 153, 0.4);
+  box-shadow: inset 0 0 6px rgba(199, 125, 255, 0.3);
+  transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.topnav.topnav--classic .topnav-exit:hover,
+.topnav.topnav--classic .topnav-settings:hover {
+  background: linear-gradient(180deg, rgba(251, 191, 36, 0.18), rgba(46, 16, 101, 0.6));
+  color: #FFD700;
+  border-color: #FFD700;
+  box-shadow: 0 0 12px rgba(251, 191, 36, 0.45);
+}
+
+.topnav.topnav--classic .topnav-signin {
+  background: linear-gradient(180deg, #ec4899 0%, #c77dff 100%);
+  color: #fff;
+  border: 1.5px solid #FFD700;
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.45);
+  box-shadow:
+    0 0 0 #FFD700,
+    0 0 16px rgba(251, 191, 36, 0.5),
+    inset 0 0 10px rgba(255, 215, 0, 0.35);
+  transition: filter 0.12s, box-shadow 0.15s;
+}
+.topnav.topnav--classic .topnav-signin:hover {
+  filter: brightness(1.12);
+  box-shadow:
+    0 0 0 #FFD700,
+    0 0 24px rgba(251, 191, 36, 0.75),
+    inset 0 0 14px rgba(255, 215, 0, 0.55);
+}
+
+/* Avatar pill picks up the same violet-glass treatment */
+.topnav.topnav--classic .topnav-avatar {
+  background: linear-gradient(180deg, rgba(167, 139, 250, 0.10), rgba(46, 16, 101, 0.4));
+  border: 1.5px solid #c77dff;
+  color: #f9a8d4;
+}
+.topnav.topnav--classic .topnav-avatar:hover {
+  background: linear-gradient(180deg, rgba(251, 191, 36, 0.18), rgba(46, 16, 101, 0.6));
+  border-color: #FFD700;
+  color: #FFD700;
+}
+
+/* The dark "tab tray" background pill that wraps the arcade tabs would
+   compete with the new starfield — drop its tint so the tabs sit cleanly
+   on the magical bg. */
+.topnav.topnav--classic .topnav-tabs {
+  background: transparent;
+  padding: 0;
+}
+
+/* ── Magical arcade tabs (unified) ──────────────────────────────────
+   Both labelled tabs (HOME / ASSIGNMENTS / MY LISTS / EXPLORE) and the
+   icon-only tabs (Favourites, Recently viewed) share the same default
+   glassy-violet look and the same gold-pink magical active state. */
+.topnav-tab--arcade,
+.topnav-tab--icon {
+  background: linear-gradient(180deg, rgba(167, 139, 250, 0.12), rgba(46, 16, 101, 0.45));
+  color: #f9a8d4;
+  border: 1.5px solid #c77dff;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-shadow: 0 0 4px rgba(236, 72, 153, 0.4);
+  box-shadow:
+    inset 0 0 8px rgba(199, 125, 255, 0.3),
+    0 0 0 rgba(251, 191, 36, 0);
+  transition:
+    transform 0.12s ease,
+    filter 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
+  min-height: 36px;
+}
+
+.topnav-tab--arcade {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  padding: 8px 18px;
+  white-space: nowrap;
+}
+.topnav-tab--icon {
+  padding: 8px;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+.topnav-tab__icon {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+/* Hover — soft gold halo. */
+.topnav-tab--arcade:hover:not(.topnav-tab--arcade-active),
+.topnav-tab--icon:hover:not(.topnav-tab--icon-active) {
+  filter: brightness(1.12);
+  color: #FFD700;
+  border-color: #FFD700;
+  box-shadow:
+    inset 0 0 10px rgba(251, 191, 36, 0.25),
+    0 0 14px rgba(251, 191, 36, 0.45);
+  transform: translateY(-1px);
+}
+
+/* Active — pink→purple gradient, gold border, white text, gold/pink halo. */
+.topnav-tab--arcade-active,
+.topnav-tab--icon-active {
+  background: linear-gradient(180deg, #ec4899 0%, #c77dff 100%);
+  color: #fff;
+  border-color: #FFD700;
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.45);
+  box-shadow:
+    inset 0 0 10px rgba(255, 215, 0, 0.3),
+    0 0 18px rgba(251, 191, 36, 0.55),
+    0 0 28px rgba(236, 72, 153, 0.35);
+}
+

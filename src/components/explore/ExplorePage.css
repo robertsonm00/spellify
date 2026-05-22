@@ -1,17 +1,27 @@
 /* ── ExplorePage — hub split layout ─────────────────────────────────────── */
 
-/* Left column is fixed while the page scrolls; only the right column
-   (assignments + curriculum lists) moves with the scroll. */
+/* Hide the left sidebar (PLAYER card, GUEST MODE, ADD A LIST) and let the
+   right column take the full width. Overrides .hub--split's two-column grid
+   defined in WordListHub.css for this Explore-scoped instance only. */
 .hub--split-explore .hub-split-left {
+  display: none;
   position: sticky;
   top: calc(56px + 1.5rem);
   align-self: start;
-  max-height: calc(100vh - 56px - 3rem);
+  max-height: calc(100vh - 56px - 68px - 3rem);
   overflow-y: auto;
   /* room for the retro 4px box-shadow on inner panels */
   padding-right: 6px;
   scrollbar-width: thin;
   scrollbar-color: #c8a3e5 transparent;
+}
+
+.hub--split-explore {
+  grid-template-columns: 1fr;
+}
+.hub--split-explore .hub-split-right {
+  width: 100%;
+  flex: 1;
 }
 
 @media (max-width: 720px) {

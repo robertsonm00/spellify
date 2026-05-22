@@ -66,6 +66,9 @@ export default function WordSearch({ words, year = null, savedProgress = null, o
   const [foundCells,      setFoundCells]      = useState(savedProgress?.foundCells ?? []);
   const [toast,           setToast]           = useState(null);
   const [listSide,        setListSide]        = useState('left');
+  // Magical celebration overlay — appears for ~1.2s after a word is correctly
+  // found. Carries the matched word so we can show it inside the burst.
+  const [celebration,     setCelebration]     = useState(null);
 
   // Drag state in refs to avoid stale closures inside event handlers
   const isDraggingRef = useRef(false);
@@ -119,6 +122,9 @@ export default function WordSearch({ words, year = null, savedProgress = null, o
       showToast(`✓ ${matched.word.toLowerCase()}`);
       playWordChime();
       fireWordConfetti();
+      // Magical pop-up — sits over the grid for a beat to celebrate the find.
+      setCelebration({ word: matched.word, id: Date.now() });
+      setTimeout(() => setCelebration(null), 1400);
       // Speak the word after the celebration so they don't overlap. Lowercase
       // first — many TTS engines spell out all-caps as letters (C·A·T).
       setTimeout(() => speakWord(matched.word.toLowerCase()), 1000);
@@ -212,6 +218,17 @@ export default function WordSearch({ words, year = null, savedProgress = null, o
     ? Math.round((foundWords.length / placedWords.length) * 100)
     : 0;
 
+  // Is the currently-traced selection a valid (unfound) word? Used to flip
+  // the selection highlight to green the moment the player crosses the
+  // last correct letter.
+  const selectionIsMatch = (() => {
+    if (selectionCells.length < 2) return false;
+    const s = selectionCells[0];
+    const e = selectionCells[selectionCells.length - 1];
+    const matched = checkWord(gameState.grid, s.row, s.col, e.row, e.col, placedWords);
+    return !!matched && !foundWords.includes(matched.word);
+  })();
+
   // Completion screen
   if (foundWords.length > 0 && foundWords.length === placedWords.length) {
     return (
@@ -259,6 +276,24 @@ export default function WordSearch({ words, year = null, savedProgress = null, o
         {/* Grid area */}
         <div className="ws-grid-wrap">
           {toast && <div className="ws-toast">{toast}</div>}
+          {celebration && (
+            <div
+              key={celebration.id}
+              className="ws-celebration"
+              role="status"
+              aria-live="polite"
+            >
+              <span className="ws-celebration-sparkles" aria-hidden="true">
+                <span className="ws-celebration-star ws-celebration-star--1">✦</span>
+                <span className="ws-celebration-star ws-celebration-star--2">✦</span>
+                <span className="ws-celebration-star ws-celebration-star--3">✦</span>
+                <span className="ws-celebration-star ws-celebration-star--4">✦</span>
+                <span className="ws-celebration-star ws-celebration-star--5">✦</span>
+              </span>
+              <span className="ws-celebration-word">{celebration.word.toLowerCase()}</span>
+              <span className="ws-celebration-found">found!</span>
+            </div>
+          )}
           <div
             className="ws-grid"
             style={{ '--gs': gridSize }}
@@ -268,10 +303,13 @@ export default function WordSearch({ words, year = null, savedProgress = null, o
                 {row.map((letter, ci) => {
                   const sel   = selectionCells.some(c => c.row === ri && c.col === ci);
                   const found = foundCells.some(c => c.row === ri && c.col === ci);
+                  const cellSelClass = sel
+                    ? (selectionIsMatch ? ' ws-cell--sel ws-cell--sel-correct' : ' ws-cell--sel')
+                    : '';
                   return (
                     <div
                       key={`${ri}-${ci}`}
-                      className={`ws-cell${found ? ' ws-cell--found' : sel ? ' ws-cell--sel' : ''}`}
+                      className={`ws-cell${found ? ' ws-cell--found' : cellSelClass}`}
                       onMouseDown={e  => handleMouseDown(ri, ci, e)}
                       onMouseEnter={() => handleMouseEnter(ri, ci)}
                       onMouseUp={()   => handleMouseUp(ri, ci)}

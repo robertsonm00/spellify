@@ -2,7 +2,7 @@
 
 .ed-shell {
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 1fr;
   min-height: 100vh;
   background-color: #fdf6e8;
   background-image:
@@ -12,10 +12,11 @@
 }
 
 .ed-sidebar {
+  display: none;
   position: fixed;
   top: 56px;
   left: 0;
-  bottom: 0;
+  bottom: 68px; /* clear ArcadeFooter */
   width: 280px;
   border-right: 2px solid #2a2a2a;
   box-shadow: 4px 0 0 #2a2a2a;
@@ -36,7 +37,13 @@
 }
 
 .ed-main {
-  grid-column: 2;
+  /* Sidebar is hidden — main now spans the single grid column.
+     Constrain the content area with auto margins so the page sits
+     inside large left/right "borders" instead of going full-bleed. */
+  grid-column: 1;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
   padding: 1.5rem 1.5rem 2rem;
   display: flex;
   flex-direction: column;
@@ -574,24 +581,29 @@
 .ed-shell:has(.ed-main--favourites),
 .ed-shell:has(.ed-main--recent),
 .ed-shell:has(.ed-main--assignments) {
-  height: calc(100vh - 56px);
+  height: calc(100vh - 56px - 68px);
   min-height: 0;
   overflow: hidden;
 }
 
-/* ── My Lists / Explore / Favourites / Recent / Assignments tab pages ─── */
-/* Fill the available viewport height, single flex column. Cards stay at   */
-/* natural height inside the grid; grid scrolls internally when it         */
-/* overflows.                                                               */
+/* ── Home / My Lists / Explore / Favourites / Recent / Assignments tab pages
+   Every top-level dashboard page uses the IDENTICAL layout, header markup,
+   and scroll behaviour so switching tabs causes no positional shift. */
+.ed-main--home,
 .ed-main--mylists,
 .ed-main--explore,
 .ed-main--favourites,
 .ed-main--recent,
 .ed-main--assignments {
-  height: calc(100vh - 56px);
+  height: calc(100vh - 56px - 68px);
   overflow: hidden;
+  /* Let the word-list area extend flush to the arcade footer below.
+     The shared `.ed-main` rule sets padding-bottom: 2rem; we zero it
+     out for dashboard pages so the cards/empty-state reach the bottom. */
+  padding-bottom: 0;
 }
 
+.ed-main--home .hub-phase,
 .ed-main--mylists .hub-phase,
 .ed-main--explore .hub-phase,
 .ed-main--favourites .hub-phase,
@@ -602,12 +614,15 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
-/* ── Page header (shared across My Lists / Explore / Favourites / Recent /
-   Assignments) ──────────────────────────────────────────────────────────
+/* ── Page header (shared across every dashboard page) ──────────────────
    Title sits left, subtitle hangs to its right with 24px padding, and any
    right-slot (filter dropdown etc.) pins to the far edge. */
+.ed-main--home .hub-phase-header,
 .ed-main--mylists .hub-phase-header,
 .ed-main--explore .hub-phase-header,
 .ed-main--favourites .hub-phase-header,
@@ -620,8 +635,10 @@
      also drives the grid's horizontal padding (see below). */
   padding: 0.5rem 0.75rem 0.35rem;
   margin-bottom: 0.25rem;
+  background: transparent;     /* override any per-phase tint */
 }
 
+.ed-main--home .hub-phase-text,
 .ed-main--mylists .hub-phase-text,
 .ed-main--explore .hub-phase-text,
 .ed-main--favourites .hub-phase-text,
@@ -635,6 +652,7 @@
   min-width: 0;
 }
 
+.ed-main--home .hub-phase-label,
 .ed-main--mylists .hub-phase-label,
 .ed-main--explore .hub-phase-label,
 .ed-main--favourites .hub-phase-label,
@@ -648,6 +666,7 @@
   white-space: nowrap;
 }
 
+.ed-main--home .hub-phase-hint,
 .ed-main--mylists .hub-phase-hint,
 .ed-main--explore .hub-phase-hint,
 .ed-main--favourites .hub-phase-hint,
@@ -777,6 +796,7 @@
   color: #6b7280;
 }
 
+.ed-main--home .hub-grid,
 .ed-main--mylists .hub-grid,
 .ed-main--explore .hub-grid,
 .ed-main--favourites .hub-grid,
@@ -790,115 +810,55 @@
   scrollbar-color: #c8a3e5 transparent;
 }
 
-.ed-main--home {
-  display: grid;
-  grid-template-columns: 7fr 3fr;
-  gap: 1rem;
-  align-items: stretch;
-  height: calc(100vh - 56px);
+/* ── Retro arcade frame ────────────────────────────────────────────────
+   The frame wraps the page body (filters + grid OR filters + empty state)
+   so the title/hint sit naked on the cream background and the filters sit
+   INSIDE the frame above the cards. */
+.ed-list-frame {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
-  padding: 1rem 1.25rem 1rem 1rem;
+  background: #fff;
+  border: 2px solid #1a1a2e;
+  border-radius: 8px;
+  box-shadow: 5px 5px 0 #1a1a2e;
+  margin: 0 6px 6px 0;
+  padding: 12px 14px;
 }
 
-.ed-home-left {
-  display: grid;
-  grid-template-rows: auto 1fr;
-  gap: 1rem;
-  min-height: 0;
-}
-
-.ed-home-right {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-.ed-main--home .hub-phase {
-  background: transparent;
-  border: 2px solid #2a2a2a;
-  border-radius: 6px;
-  box-shadow: 4px 4px 0 #2a2a2a;
-  margin-right: 4px;
-  margin-bottom: 4px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-.ed-main--home .hub-phase::after { display: none; }
-
-.ed-main--home .hub-phase-header {
-  flex: 0 0 auto;
-  padding: 0.65rem 0.85rem;
-  border-bottom: 2px solid #2a2a2a;
-  min-height: 40px;
-  display: flex;
-  align-items: center;
-}
-
-.ed-main--home .ep-assignments-phase .hub-phase-header { background: #ffd97c; }
-.ed-main--home .ep-curriculum-phase .hub-phase-header { background: #87d1c1; }
-.ed-main--home .ep-your-lists-phase .hub-phase-header { background: #c8a3e5; }
-
-.ed-main--home .hub-phase-text {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-}
-
-.ed-main--home .hub-phase-label {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 0.7rem;
-  letter-spacing: 0.04em;
-  color: #2a2a2a;
-}
-
-.ed-main--home .hub-phase-hint {
-  font-family: 'Nunito', sans-serif;
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: #4d3a25;
-}
-
-/* Assignments — sliver row in the left column. Sized to content; the
-   empty state is short so it stays compact. */
-.ed-main--home .ep-assignments-phase {
-  /* sliver — caps at ~20% of viewport so it never dominates the left col */
-  max-height: 22vh;
-}
-
-/* Curriculum + My Lists: the PANEL itself is the scroll container so cards
-   stay at their natural height. The hub-grid is not height-constrained. */
-.ed-main--home .ep-curriculum-phase,
-.ed-main--home .ep-your-lists-phase {
+/* Grid inside the frame fills the remaining height + scrolls internally. */
+.ed-list-frame .hub-grid {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  overflow-x: hidden;
   scrollbar-width: thin;
   scrollbar-color: #c8a3e5 transparent;
 }
 
-/* Sticky coloured header stays pinned as the panel scrolls */
-.ed-main--home .ep-curriculum-phase > .hub-phase-header,
-.ed-main--home .ep-your-lists-phase > .hub-phase-header {
-  position: sticky;
-  top: 0;
-  z-index: 2;
+/* Empty state fills the frame and centres its message both axes. */
+.ed-list-frame .ep-phase-empty {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
-/* Grid sizes to content — must not shrink so the panel (not the grid)
-   overflows and the scrollbar appears. flex-shrink:0 prevents the flex
-   algorithm from compressing the grid to fit the panel's fixed height. */
-.ed-main--home .ep-curriculum-phase .hub-grid,
-.ed-main--home .ep-your-lists-phase .hub-grid {
-  overflow: visible;
-  flex-shrink: 0;
+/* The home placeholder lives inside the same shared PaneSection scrollable
+   area used by every other tab page — let it fill the available height so
+   the dashed card sits in the same spot the cards/grids do elsewhere. */
+.ed-main--home .ep-home-phase {
+  flex: 1;
+  min-height: 0;
 }
 
-/* Cards inside each scrolling card column stay single-column full-width
-   (we already enforce this on .ed-main .hub-grid above). */
+/* (Legacy .ed-main--home combined-panel layout removed — home is now a
+   single placeholder that shares the same .ed-main + .hub-phase rules as
+   every other dashboard tab. The shared rules above own all sizing,
+   header, and scroll behaviour.) */
 
 /* ── Activity page (ListHub embedded in dashboard) ────────────────────── */
 
@@ -906,11 +866,67 @@
    scrolls at the page level — each column manages its own internal
    overflow. */
 .ed-main--list {
-  height: calc(100vh - 56px);
+  /* TopNav is back — leave room for both it (56px) and the footer (68px). */
+  height: calc(100vh - 56px - 68px);
   overflow: hidden;
   padding: 0;
   display: flex;
   flex-direction: column;
+}
+
+/* Slim in-content back row — TopNav handles the top of the page; this is
+   just a small "← Back" affordance + list title above the split. */
+.ed-list-backbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 12px 1.25rem 8px;
+  position: relative;
+  z-index: 5;
+}
+.ed-list-back-btn {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  letter-spacing: 0.06em;
+  padding: 8px 12px;
+  background: linear-gradient(180deg, rgba(167, 139, 250, 0.12), rgba(46, 16, 101, 0.45));
+  border: 1.5px solid #c77dff;
+  border-radius: 8px;
+  color: #f9a8d4;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-shadow: 0 0 4px rgba(236, 72, 153, 0.4);
+  box-shadow: inset 0 0 6px rgba(199, 125, 255, 0.3);
+  transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.ed-list-back-btn:hover {
+  background: linear-gradient(180deg, rgba(251, 191, 36, 0.18), rgba(46, 16, 101, 0.6));
+  color: #FFD700;
+  border-color: #FFD700;
+  box-shadow: 0 0 12px rgba(251, 191, 36, 0.45);
+}
+.ed-list-back-arrow {
+  font-size: 12px;
+  line-height: 1;
+}
+.ed-list-back-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  background: linear-gradient(
+    90deg,
+    #ec4899 0%, #fbbf24 25%, #4ade80 50%, #60a5fa 75%, #c77dff 100%
+  );
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(2px 2px 0 #2e1065)
+          drop-shadow(0 0 10px rgba(236, 72, 153, 0.45));
+  animation: ed-explore-title-shimmer 6s linear infinite;
 }
 
 /* ── List name panel: sits inside the WORD LIST card, under the header ─ */
@@ -1117,7 +1133,7 @@
    The dashboard sidebar stays in place; the word list sits beside it and
    the games stretch to fill the rest of the viewport. */
 .ed-shell:has(.ed-main--list) {
-  height: calc(100vh - 56px);
+  height: calc(100vh - 56px - 68px);
   min-height: 0;
   overflow: hidden;
 }
@@ -1138,7 +1154,8 @@
   max-width: none;
   width: 100%;
   padding: 1rem;
-  grid-template-columns: 280px 1fr;
+  /* 1/4 word list | 3/4 master bar + games + extras */
+  grid-template-columns: 1fr 3fr;
   gap: 1rem;
   align-items: stretch;
 }
@@ -1695,3 +1712,738 @@
     grid-column: 1;
   }
 }
+
+/* ── Restyled list cards (matches Explore redesign prototype) ─────────── */
+
+.ed-listcard {
+  background: #fff;
+  border: 2px solid #d1fae5;
+  border-radius: 10px;
+  padding: 28px 16px;            /* 12 + 16 extra top/bottom for breathing room */
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.1s ease;
+  /* Reset the retro outer-shadow from the old .hub-card */
+  box-shadow: none;
+}
+.ed-listcard:hover {
+  border-color: #16a34a;
+  transform: translateX(2px);
+}
+.ed-listcard:focus-visible {
+  outline: 2px solid #16a34a;
+  outline-offset: 2px;
+}
+
+/* Left icon block — alternating background tints */
+.ed-listcard__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.ed-listcard--green  .ed-listcard__icon { background: #dcfce7; }
+.ed-listcard--blue   .ed-listcard__icon { background: #dbeafe; }
+.ed-listcard--purple .ed-listcard__icon { background: #ede9fe; }
+.ed-listcard--amber  .ed-listcard__icon { background: #fef3c7; }
+.ed-listcard--gray   .ed-listcard__icon { background: #e5e7eb; }
+
+/* Body */
+.ed-listcard__body {
+  flex: 1;
+  min-width: 0;
+}
+.ed-listcard__title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  color: #1a1a2e;
+  line-height: 1.5;
+  margin: 0 0 4px;
+}
+.ed-listcard__preview {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ed-listcard__inline-badges {
+  margin: 4px 0 6px;
+}
+
+/* Right meta — flex row with the difficulty badge on the left and a
+   full-card-height favourite heart on the right. Negative margins on
+   the heart break out of the card's 12px/16px padding so the heart's
+   clickable area spans the full edge-to-edge card height. */
+.ed-listcard__meta {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  align-self: stretch;
+  margin: -28px -16px -28px 0;   /* break out of card padding (top/right/bottom) */
+}
+
+/* Difficulty badge — sits to the left of the heart, vertical centre. */
+.ed-listcard__diff {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  padding: 3px 7px;
+  border-radius: 4px;
+  border: 1px solid;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  align-self: center;
+  margin: 0 0 0 0;
+}
+.ed-listcard__diff--easy   { background: #dcfce7; color: #166534; border-color: #4ade80; }
+.ed-listcard__diff--medium { background: #fef9c3; color: #713f12; border-color: #fbbf24; }
+.ed-listcard__diff--hard   { background: #fee2e2; color: #7f1d1d; border-color: #f87171; }
+
+/* Heart favourite — full card height, edge-to-edge on the right. */
+.ed-listcard__fav {
+  position: relative;
+  align-self: stretch;
+  width: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-left: 1px solid #f3f4f6;
+  border-radius: 0 8px 8px 0;
+  padding: 0;
+  color: #e5b6c1;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.ed-listcard__fav-icon {
+  width: 22px;
+  height: 22px;
+  display: block;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+.ed-listcard__fav:hover {
+  background: #fdf2f8;
+  color: #ec4899;
+}
+.ed-listcard__fav:hover .ed-listcard__fav-icon {
+  transform: scale(1.12);
+  filter: drop-shadow(0 0 6px rgba(236, 72, 153, 0.55));
+}
+.ed-listcard__fav--on {
+  background: #ec4899;
+  color: #fff;
+}
+.ed-listcard__fav--on .ed-listcard__fav-icon {
+  filter: none;          /* clean look — no inner glow when selected */
+  transform: none;
+}
+.ed-listcard__fav:focus-visible {
+  outline: 2px solid #ec4899;
+  outline-offset: -2px;
+}
+
+/* Hover tooltip — "Add to favourite list" / "Remove from favourites".
+   Sits below the heart and fades in after a 0.5s hover delay. */
+.ed-listcard__fav[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background: #1a1a2e;
+  color: #fff;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  padding: 0.35rem 0.6rem;
+  border-radius: 4px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-2px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition-delay: 0s;
+  z-index: 5;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+}
+.ed-listcard__fav[data-tooltip]:hover::after,
+.ed-listcard__fav[data-tooltip]:focus-visible::after {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.5s;
+}
+
+/* (Home placeholder uses the shared .ep-phase-empty style — no extra
+   container needed; the arcade frame on .hub-phase is the only visual
+   container.) */
+
+/* ── EXPLORE — magical pixel-arcade theme ─────────────────────────────────
+   Scoped to .ed-main--explore only. Deep purple star-field background,
+   rainbow-neon title, crystal-orb filter chips, gem-cornered frame,
+   glowing white cards with round orb icons. */
+
+/* Page background — deep purple gradient with twinkling star dots that
+   slowly drift, giving every dashboard hub a soft "magical sky" motion. */
+.ed-shell:has(.ed-main--home),
+.ed-shell:has(.ed-main--mylists),
+.ed-shell:has(.ed-main--explore),
+.ed-shell:has(.ed-main--assignments),
+.ed-shell:has(.ed-main--favourites),
+.ed-shell:has(.ed-main--recent),
+.ed-shell:has(.ed-main--list) {
+  background-color: #1a0a2e;
+  background-image:
+    radial-gradient(circle at 12% 18%, rgba(251, 191, 36, 0.7) 1px, transparent 2px),
+    radial-gradient(circle at 88% 25%, rgba(236, 72, 153, 0.6) 1px, transparent 2px),
+    radial-gradient(circle at 32% 78%, rgba(167, 139, 250, 0.6) 1px, transparent 2px),
+    radial-gradient(circle at 65% 60%, rgba(96, 165, 250, 0.5) 1px, transparent 2px),
+    radial-gradient(circle at 50% 35%, rgba(255, 255, 255, 0.7) 1px, transparent 1.5px),
+    radial-gradient(circle at 22% 50%, rgba(255, 255, 255, 0.4) 1px, transparent 1.5px),
+    linear-gradient(135deg, #1a0a2e 0%, #2e1065 50%, #4a1d96 100%);
+  background-size: 80px 80px, 90px 90px, 70px 70px, 110px 110px, 60px 60px, 130px 130px, 100% 100%;
+  background-attachment: fixed;
+  animation: ed-explore-stars-drift 60s linear infinite;
+}
+
+/* Shorthand selector used by the rest of the magical theme. */
+:where(.ed-main--home, .ed-main--mylists, .ed-main--explore, .ed-main--assignments) {
+  /* placeholder — keeps the file searchable for the magical-theme scope */
+}
+
+@keyframes ed-explore-stars-drift {
+  0%   { background-position: 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0; }
+  100% { background-position: 80px 80px, -90px 90px, 70px -70px, -110px 110px, 60px -60px, -130px 130px, 0 0; }
+}
+
+/* Title — rainbow neon gradient that slowly shimmers across the letters. */
+:is(.ed-main--home, .ed-main--mylists, .ed-main--explore, .ed-main--assignments, .ed-main--favourites, .ed-main--recent) .hub-phase-label {
+  background: linear-gradient(
+    90deg,
+    #ec4899 0%,
+    #fbbf24 20%,
+    #4ade80 40%,
+    #60a5fa 60%,
+    #c77dff 80%,
+    #ec4899 100%
+  );
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(2px 2px 0 #2e1065)
+          drop-shadow(0 0 12px rgba(236, 72, 153, 0.45));
+  letter-spacing: 0.05em;
+  animation: ed-explore-title-shimmer 6s linear infinite;
+}
+
+@keyframes ed-explore-title-shimmer {
+  0%   { background-position:   0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+:is(.ed-main--home, .ed-main--mylists, .ed-main--explore, .ed-main--assignments, .ed-main--favourites, .ed-main--recent) .hub-phase-hint {
+  color: #f9a8d4;
+  text-shadow: 0 0 8px rgba(236, 72, 153, 0.5);
+}
+
+/* Arcade frame — REMOVED. Filters + word-list cards sit directly on the
+   magical star-field background across all dashboard hubs. */
+:is(.ed-main--home, .ed-main--mylists, .ed-main--explore, .ed-main--assignments, .ed-main--favourites, .ed-main--recent) .ed-list-frame {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  margin: 0;
+  padding: 0;
+}
+
+:is(.ed-main--home, .ed-main--mylists, .ed-main--explore, .ed-main--assignments, .ed-main--favourites, .ed-main--recent) .ed-list-frame::before,
+:is(.ed-main--home, .ed-main--mylists, .ed-main--explore, .ed-main--assignments, .ed-main--favourites, .ed-main--recent) .ed-list-frame::after {
+  content: none;
+}
+
+/* Match the page header's 0.75rem left padding so the heading, the filter
+   row, and the word-list cards all line up flush on the left edge. */
+:is(.ed-main--home, .ed-main--mylists, .ed-main--explore, .ed-main--assignments, .ed-main--favourites, .ed-main--recent) .ed-filters,
+:is(.ed-main--home, .ed-main--mylists, .ed-main--explore, .ed-main--assignments, .ed-main--favourites, .ed-main--recent) .hub-grid {
+  padding: 0 0.75rem;
+}
+
+/* Push the divider + difficulty pills (Easy / Medium / Hard) to the far
+   right of the filter row using flex auto-margin. */
+:is(.ed-main--home, .ed-main--mylists, .ed-main--explore, .ed-main--assignments, .ed-main--favourites, .ed-main--recent) .ed-filters-vdivider {
+  margin-left: auto;
+  margin-right: 0.5rem;
+  background: linear-gradient(180deg, transparent, #c77dff 30%, #ec4899 70%, transparent);
+  box-shadow: 0 0 8px rgba(199, 125, 255, 0.9);
+}
+/* Soft variant — used between the difficulty group and the "Hide completed"
+   toggle. Lower intensity so the toggle reads as adjacent, not a new group. */
+:is(.ed-main--home, .ed-main--mylists, .ed-main--explore, .ed-main--assignments, .ed-main--favourites, .ed-main--recent) .ed-filters-vdivider--soft {
+  margin-left: 0.5rem;
+  background: linear-gradient(180deg, transparent, rgba(199, 125, 255, 0.6) 50%, transparent);
+  box-shadow: none;
+}
+
+/* Filter chips — crystal orb pills */
+:is(.ed-main--home, .ed-main--mylists, .ed-main--explore, .ed-main--assignments, .ed-main--favourites, .ed-main--recent) .ed-arcade-pill {
+  background: linear-gradient(180deg, #3b1180 0%, #1f0d3d 100%);
+  color: #fde68a;
+  border-color: #c77dff;
+  box-shadow:
+    3px 3px 0 #c77dff,
+    inset 0 0 8px rgba(199, 125, 255, 0.5);
+  text-shadow: 0 0 4px rgba(255, 255, 255, 0.4);
+  transition: transform 0.06s, box-shadow 0.12s, filter 0.1s;
+}
+:is(.ed-main--home, .ed-main--mylists, .ed-main--explore, .ed-main--assignments, .ed-main--favourites, .ed-main--recent) .ed-arcade-pill:hover {
+  filter: brightness(1.2);
+  box-shadow:
+    3px 3px 0 #ec4899,
+    inset 0 0 12px rgba(251, 191, 36, 0.5),
+    0 0 18px rgba(236, 72, 153, 0.6);
+}
+:is(.ed-main--home, .ed-main--mylists, .ed-main--explore, .ed-main--assignments, .ed-main--favourites, .ed-main--recent) .ed-arcade-pill:active,
+:is(.ed-main--home, .ed-main--mylists, .ed-main--explore, .ed-main--assignments, .ed-main--favourites, .ed-main--recent) .ed-arcade-pill--pressed,
+:is(.ed-main--home, .ed-main--mylists, .ed-main--explore, .ed-main--assignments, .ed-main--favourites, .ed-main--recent) .ed-arcade-pill--on {
+  /* Single unified ACTIVE state for every filter chip + toggle — gold/pink
+     magic glow regardless of which one is selected. */
+  background: linear-gradient(180deg, #ec4899 0%, #c77dff 100%);
+  color: #fff;
+  border-color: #fbbf24;
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.45);
+  box-shadow:
+    0 0 0 #fbbf24,
+    inset 0 0 14px rgba(251, 191, 36, 0.55),
+    0 0 26px rgba(251, 191, 36, 0.55),
+    0 0 18px rgba(236, 72, 153, 0.55);
+  transform: translate(3px, 3px);
+}
+
+/* ── "Hide completed" toggle — minimal: no pill bg, no border, no shadow.
+   Just a clickable row of [track+thumb] + [label]. The whole row toggles.
+   Magical glow on the track itself when hovered or on. */
+.ed-toggle {
+  background: transparent;
+  border: none;
+  padding: 8px 4px;
+  margin-left: auto;          /* sits at the far right of the filter row */
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 11px;            /* doubled from the cramped 8px */
+  letter-spacing: 0.5px;
+  color: #fde68a;
+  text-shadow: 0 0 4px rgba(255, 215, 0, 0.4);
+  transition: filter 0.15s ease, color 0.15s ease;
+}
+.ed-toggle:hover {
+  filter: brightness(1.15);
+  color: #fff;
+}
+.ed-toggle:focus-visible {
+  outline: 2px solid #FFD700;
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+.ed-toggle-track {
+  position: relative;
+  width: 56px;             /* 2× */
+  height: 28px;            /* 2× */
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 2px solid #c77dff;
+  flex-shrink: 0;
+  transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.ed-toggle:hover .ed-toggle-track {
+  border-color: #ec4899;
+  box-shadow: 0 0 12px rgba(236, 72, 153, 0.5);
+}
+.ed-toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;             /* 2× from 8px (a touch bigger so it reads in the larger track) */
+  height: 20px;
+  border-radius: 50%;
+  background: #fde68a;
+  box-shadow: 0 0 6px rgba(253, 230, 138, 0.8);
+  transition: left 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.15s, box-shadow 0.15s;
+}
+.ed-toggle--on .ed-toggle-track {
+  background: linear-gradient(180deg, #ec4899 0%, #c77dff 100%);
+  border-color: #FFD700;
+  box-shadow: 0 0 14px rgba(251, 191, 36, 0.6);
+}
+.ed-toggle--on .ed-toggle-thumb {
+  left: 30px;              /* 56 - 20 - 2(border)*2 - 2(offset) ≈ 30 */
+  background: #fff;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.95);
+}
+.ed-toggle-label {
+  line-height: 1;
+}
+
+:is(.ed-main--home, .ed-main--mylists, .ed-main--explore, .ed-main--assignments, .ed-main--favourites, .ed-main--recent) .ed-filters-count {
+  color: #c4b5fd;
+  text-shadow: 0 0 4px rgba(167, 139, 250, 0.4);
+}
+
+/* Empty-state — soft pink magical glow */
+:is(.ed-main--home, .ed-main--mylists, .ed-main--explore, .ed-main--assignments, .ed-main--favourites, .ed-main--recent) .ed-list-frame .ep-phase-empty {
+  color: #f9a8d4;
+  text-shadow: 0 0 8px rgba(236, 72, 153, 0.5);
+}
+
+/* Word-list cards — glowing white tiles against the purple background */
+:is(.ed-main--home, .ed-main--mylists, .ed-main--explore, .ed-main--assignments, .ed-main--favourites, .ed-main--recent) .ed-listcard {
+  background: linear-gradient(180deg, #ffffff 0%, #fdf4ff 100%);
+  border-color: #c77dff;
+  box-shadow:
+    0 0 0 1px rgba(199, 125, 255, 0.25),
+    0 4px 12px rgba(0, 0, 0, 0.35),
+    0 0 18px rgba(167, 139, 250, 0.15);
+}
+:is(.ed-main--home, .ed-main--mylists, .ed-main--explore, .ed-main--assignments, .ed-main--favourites, .ed-main--recent) .ed-listcard:hover {
+  border-color: #ec4899;
+  box-shadow:
+    0 0 0 1px rgba(236, 72, 153, 0.4),
+    0 6px 22px rgba(236, 72, 153, 0.45),
+    0 0 34px rgba(251, 191, 36, 0.25);
+  transform: translateX(2px) translateY(-1px);
+}
+
+/* Card icons — round magical orbs with inner highlight + tinted aura. */
+:is(.ed-main--home, .ed-main--mylists, .ed-main--explore, .ed-main--assignments, .ed-main--favourites, .ed-main--recent) .ed-listcard__icon {
+  border-radius: 50%;
+  box-shadow:
+    inset 0 -3px 6px rgba(0, 0, 0, 0.18),
+    inset 0 3px 6px rgba(255, 255, 255, 0.9),
+    0 0 16px rgba(199, 125, 255, 0.5);
+  position: relative;
+}
+:is(.ed-main--home, .ed-main--mylists, .ed-main--explore, .ed-main--assignments, .ed-main--favourites, .ed-main--recent) .ed-listcard--green  .ed-listcard__icon {
+  box-shadow:
+    inset 0 -3px 6px rgba(0, 0, 0, 0.18),
+    inset 0 3px 6px rgba(255, 255, 255, 0.9),
+    0 0 20px rgba(74, 222, 128, 0.75);
+}
+:is(.ed-main--home, .ed-main--mylists, .ed-main--explore, .ed-main--assignments, .ed-main--favourites, .ed-main--recent) .ed-listcard--blue   .ed-listcard__icon {
+  box-shadow:
+    inset 0 -3px 6px rgba(0, 0, 0, 0.18),
+    inset 0 3px 6px rgba(255, 255, 255, 0.9),
+    0 0 20px rgba(96, 165, 250, 0.75);
+}
+:is(.ed-main--home, .ed-main--mylists, .ed-main--explore, .ed-main--assignments, .ed-main--favourites, .ed-main--recent) .ed-listcard--purple .ed-listcard__icon {
+  box-shadow:
+    inset 0 -3px 6px rgba(0, 0, 0, 0.18),
+    inset 0 3px 6px rgba(255, 255, 255, 0.9),
+    0 0 22px rgba(199, 125, 255, 0.85);
+}
+:is(.ed-main--home, .ed-main--mylists, .ed-main--explore, .ed-main--assignments, .ed-main--favourites, .ed-main--recent) .ed-listcard--amber  .ed-listcard__icon {
+  box-shadow:
+    inset 0 -3px 6px rgba(0, 0, 0, 0.18),
+    inset 0 3px 6px rgba(255, 255, 255, 0.9),
+    0 0 20px rgba(251, 191, 36, 0.85);
+}
+:is(.ed-main--home, .ed-main--mylists, .ed-main--explore, .ed-main--assignments, .ed-main--favourites, .ed-main--recent) .ed-listcard--gray   .ed-listcard__icon {
+  box-shadow:
+    inset 0 -3px 6px rgba(0, 0, 0, 0.18),
+    inset 0 3px 6px rgba(255, 255, 255, 0.9),
+    0 0 20px rgba(209, 213, 219, 0.85);
+}
+
+/* Difficulty badges — saturated neon labels */
+:is(.ed-main--home, .ed-main--mylists, .ed-main--explore, .ed-main--assignments, .ed-main--favourites, .ed-main--recent) .ed-listcard__diff {
+  filter: saturate(1.25) drop-shadow(0 0 4px rgba(255, 255, 255, 0.6));
+}
+
+/* Create-your-first-list / Add another list card — recolour so it reads
+   on the dark magical background instead of looking like a missing tile. */
+:is(.ed-main--home, .ed-main--mylists, .ed-main--explore, .ed-main--assignments, .ed-main--favourites, .ed-main--recent) .ed-create-card {
+  background: rgba(167, 139, 250, 0.08);
+  border: 2px dashed #c77dff;
+  color: #fde68a;
+  box-shadow: 0 0 18px rgba(167, 139, 250, 0.2);
+}
+:is(.ed-main--home, .ed-main--mylists, .ed-main--explore, .ed-main--assignments, .ed-main--favourites, .ed-main--recent) .ed-create-card:hover {
+  background: rgba(236, 72, 153, 0.12);
+  border-color: #ec4899;
+  box-shadow: 0 0 28px rgba(236, 72, 153, 0.35);
+}
+:is(.ed-main--home, .ed-main--mylists, .ed-main--explore, .ed-main--assignments, .ed-main--favourites, .ed-main--recent) .ed-create-card-plus,
+:is(.ed-main--home, .ed-main--mylists, .ed-main--explore, .ed-main--assignments, .ed-main--favourites, .ed-main--recent) .ed-create-card-text {
+  color: #fde68a;
+  text-shadow: 0 0 6px rgba(251, 191, 36, 0.5);
+}
+
+/* ── List-detail page — magical theme on every inner panel ──────────────
+   Brings the WORD LIST, master bar, GAMES container, and Test All button
+   into the same purple/pink/gold visual language as Explore. */
+
+/* WORD LIST panel — white glow tile, violet border, gold/pink hover. */
+.ed-main--list .hub-words {
+  background: linear-gradient(180deg, #ffffff 0%, #fdf4ff 100%);
+  border: 2px solid #c77dff;
+  border-radius: 10px;
+  box-shadow:
+    0 0 0 1px rgba(199, 125, 255, 0.25),
+    0 4px 14px rgba(0, 0, 0, 0.35),
+    0 0 22px rgba(167, 139, 250, 0.2);
+}
+.ed-main--list .hub-words .hub-section-header {
+  background: linear-gradient(180deg, #2e1065 0%, #1a0a2e 100%);
+  border-bottom: 2px solid #c77dff;
+}
+.ed-main--list .hub-section-label {
+  color: #FFD700;
+  text-shadow: 0 0 6px rgba(255, 215, 0, 0.5);
+}
+.ed-main--list .hub-words .hub-section-count {
+  background: #ec4899;
+  color: #fff;
+  border: 1px solid #FFD700;
+  box-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+}
+
+/* Word chips — keep their original tints; add a soft purple shadow so they
+   sit nicely inside the white panel. */
+.ed-main--list .hub-chip {
+  box-shadow: 0 2px 6px rgba(199, 125, 255, 0.25);
+}
+.ed-main--list .hub-chip:hover {
+  box-shadow: 0 4px 14px rgba(236, 72, 153, 0.35),
+              0 0 18px rgba(251, 191, 36, 0.2);
+}
+
+/* Master bar — magical translucent panel with a glowing fill. */
+.ed-main--list .hub-mastery-pipeline {
+  background: linear-gradient(180deg, rgba(31, 13, 61, 0.85), rgba(26, 10, 46, 0.85));
+  border: 2px solid #c77dff;
+  border-radius: 10px;
+  box-shadow:
+    0 0 0 1px rgba(199, 125, 255, 0.25),
+    0 4px 14px rgba(0, 0, 0, 0.35),
+    inset 0 0 18px rgba(167, 139, 250, 0.15);
+  padding: 14px 18px;
+}
+.ed-main--list .hub-mastery-text {
+  color: #f9a8d4;
+}
+.ed-main--list .hub-mastery-text strong {
+  color: #FFD700;
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+}
+.ed-main--list .hub-mastery-dim {
+  color: #c4b5fd;
+}
+.ed-main--list .hub-mastery-pct {
+  color: #FFD700;
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
+  font-family: 'Press Start 2P', monospace;
+}
+.ed-main--list .hub-mastery-bar {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid #c77dff;
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.4);
+}
+.ed-main--list .hub-mastery-bar-fill {
+  background: linear-gradient(90deg, #c77dff 0%, #ec4899 50%, #FFD700 100%);
+  box-shadow: 0 0 12px rgba(251, 191, 36, 0.55);
+}
+.ed-main--list .hub-mastery-complete-msg {
+  color: #FFD700;
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.55);
+}
+
+/* GAMES container — translucent panel with the same magical border. */
+.ed-main--list .hub-activities {
+  background: linear-gradient(180deg, rgba(31, 13, 61, 0.85), rgba(26, 10, 46, 0.85));
+  border: 2px solid #c77dff;
+  border-radius: 10px;
+  box-shadow:
+    0 0 0 1px rgba(199, 125, 255, 0.25),
+    0 4px 14px rgba(0, 0, 0, 0.35),
+    inset 0 0 18px rgba(167, 139, 250, 0.15);
+  padding: 14px 18px;
+}
+.ed-main--list .hub-activities > .hub-section-label {
+  color: #FFD700;
+  text-shadow: 0 0 6px rgba(255, 215, 0, 0.5);
+}
+
+/* Phase headers (1 Warm-Up / 2 Explore / 3 Consolidate). */
+.ed-main--list .hub-phase {
+  border-radius: 8px;
+}
+.ed-main--list .hub-phase-header {
+  background: transparent;
+}
+.ed-main--list .hub-phase-num {
+  background: linear-gradient(135deg, #FFD700, #ec4899);
+  color: #2e1065;
+  box-shadow: 0 0 10px rgba(251, 191, 36, 0.55);
+}
+.ed-main--list .hub-phase-label {
+  color: #FFD700;
+  text-shadow: 0 0 6px rgba(255, 215, 0, 0.5);
+}
+.ed-main--list .hub-phase-hint {
+  color: #f9a8d4;
+}
+
+/* Individual activity cards — keep their per-activity colour identity
+   (which lives in inline styles) but add a magical halo on hover. */
+.ed-main--list .hub-card {
+  transition: transform 0.12s ease, box-shadow 0.15s ease;
+}
+.ed-main--list .hub-card:hover:not(.hub-card--locked) {
+  transform: translateY(-2px);
+  box-shadow: 6px 6px 0 var(--card-color, #c77dff),
+              0 0 24px rgba(251, 191, 36, 0.45);
+}
+
+/* Test All — gold-pink magical button. */
+.ed-main--list .hub-testall {
+  margin-top: 1rem;
+}
+.ed-main--list .hub-testall-btn {
+  background: linear-gradient(180deg, #ec4899 0%, #c77dff 100%);
+  border: 2px solid #FFD700;
+  color: #fff;
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.45);
+  box-shadow:
+    0 0 16px rgba(251, 191, 36, 0.55),
+    inset 0 0 12px rgba(255, 215, 0, 0.35);
+  transition: filter 0.12s, box-shadow 0.15s;
+}
+.ed-main--list .hub-testall-btn:hover {
+  filter: brightness(1.1);
+  box-shadow:
+    0 0 26px rgba(251, 191, 36, 0.85),
+    inset 0 0 16px rgba(255, 215, 0, 0.5);
+}
+.ed-main--list .hub-testall-icon {
+  color: #FFD700;
+  filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.8));
+}
+
+/* List name row inside the WORD LIST panel — flat white, no rounded
+   edges, top/bottom padding matching the chip area so the title reads
+   as a header for the words below. */
+.ed-main--list .ed-listname-panel {
+  background: #fff;
+  border: none;
+  border-radius: 0;
+  border-bottom: 1px solid #f3f4f6;
+  box-shadow: none;
+  padding: 12px 16px;
+  margin: 0;
+}
+.ed-main--list .ed-listname-static,
+.ed-main--list .ed-listname-input {
+  color: #1a1a2e;
+  text-shadow: none;
+  background: transparent;
+  font-weight: 800;
+}
+
+/* GAMES section — clean: drop the coral header strip + star sticker.
+   The GAMES label becomes simple white text aligned to the panel edge,
+   sitting flush against the cards (no top/bottom padding strip). */
+.ed-main--list .hub-activities::before {
+  content: 'GAMES';
+  background: transparent;
+  border-bottom: none;
+  border-radius: 0;
+  margin: 0;
+  padding: 0;
+  min-height: 0;
+  color: #fff;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.25);
+  letter-spacing: 0.1em;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.75rem;
+  align-self: start;
+  margin-bottom: 0.5rem;
+}
+.ed-main--list .hub-activities::after {
+  content: none;     /* drop the "PICK A GAME!" pep sticker */
+}
+.ed-main--list .hub-activities {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* ── Test All — floating round button, bottom-right of the viewport. ── */
+.ed-main--list .hub-testall {
+  position: fixed;
+  bottom: 108px;            /* 40px gap above the 68px ArcadeFooter */
+  right: 40px;
+  margin: 0;
+  z-index: 60;
+  pointer-events: auto;
+}
+.ed-main--list .hub-testall-btn {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  padding: 18px 26px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ec4899 0%, #c77dff 100%);
+  border: 2px solid #FFD700;
+  color: #fff;
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+  box-shadow:
+    0 0 0 4px rgba(46, 16, 101, 0.6),
+    0 0 24px rgba(251, 191, 36, 0.55),
+    inset 0 0 14px rgba(255, 215, 0, 0.35);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+  transition: filter 0.12s, box-shadow 0.18s, transform 0.12s;
+}
+.ed-main--list .hub-testall-btn:hover {
+  filter: brightness(1.12);
+  transform: translateY(-2px);
+  box-shadow:
+    0 0 0 4px rgba(46, 16, 101, 0.7),
+    0 0 32px rgba(251, 191, 36, 0.8),
+    inset 0 0 18px rgba(255, 215, 0, 0.5);
+}
+.ed-main--list .hub-testall-icon {
+  color: #FFD700;
+  filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.85));
+  font-size: 11px;
+}
+.ed-main--list .hub-testall-meta {
+  font-size: 7px;
+  opacity: 0.85;
+  letter-spacing: 0.06em;
+}
+
+/* Word list panel — ensure pure white (not the white-gradient that the
+   earlier magical block applied). */
+.ed-main--list .hub-words {
+  background: #fff;
+}
+
+
+

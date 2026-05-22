@@ -14,7 +14,7 @@
  * across sessions even for guests.
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { YEAR_GROUPS, getListsForYear, curriculumLists, getEnrichedLesson } from '../../data/curriculumLists';
 import { useCustomLists } from '../../hooks/useCustomLists';
 import { useProgress }    from '../../hooks/useProgress';
@@ -200,7 +200,34 @@ function TestDateLine({ testDate, onChange }) {
   );
 }
 
-function ListCard({ list, listType = 'curriculum', onClick, progress, isFavourite, onToggleFavourite }) {
+// One icon + tint per category/strand so cards only differ by the word
+// type they belong to. Falls back to a generic book + blue tint for any
+// list whose strand/category isn't recognised (e.g. custom lists).
+const CATEGORY_ICON = {
+  phonics:     '🔤',
+  patterns:    '🧩',
+  morphology:  '🌱',
+  etymology:   '📜',
+  statutory:   '📚',
+  vowels:      '🎵',
+  'sight words': '👁',
+  custom:      '⭐',
+};
+const CATEGORY_TINT = {
+  phonics:     'purple',
+  patterns:    'green',
+  morphology:  'blue',
+  etymology:   'amber',
+  statutory:   'gray',
+  vowels:      'amber',
+  'sight words': 'green',
+  custom:      'blue',
+};
+function categoryKey(list) {
+  return (list.strand || list.category || '').toString().toLowerCase();
+}
+
+function ListCard({ list, listType = 'curriculum', index = 0, onClick, progress, isFavourite, onToggleFavourite }) {
   const colour     = CATEGORY_COLOURS[list.category] || '#6b7280';
   const darkColour = CATEGORY_DARK[list.category]    || '#374151';
   const words      = list.words || [];
@@ -228,33 +255,28 @@ function ListCard({ list, listType = 'curriculum', onClick, progress, isFavourit
   const done   = masteryRatio >= 1 && completedActs === ACTIVITIES.length;
   const status = done ? 'completed' : (masteredCount > 0 || completedActs > 0) ? 'in-progress' : 'not-started';
 
+  const rawDifficulty   = (list.difficulty || 'medium').toString().toLowerCase();
+  const difficultyKey   = ['easy', 'medium', 'hard'].includes(rawDifficulty) ? rawDifficulty : 'medium';
+  const difficultyLabel = difficultyKey.charAt(0).toUpperCase() + difficultyKey.slice(1);
+  const catKey   = categoryKey(list);
+  const cardIcon = CATEGORY_ICON[catKey] || '📖';
+  const cardTint = CATEGORY_TINT[catKey] || 'blue';
+
   return (
     <div
-      className={`hub-card hub-card--${status} ep-list-card`}
-      style={{
-        borderColor:    darkColour,
-        boxShadow:      done ? `3px 3px 0 ${colour}` : `5px 5px 0 ${colour}`,
-        '--card-color': colour,
-        cursor: 'pointer',
-      }}
+      className={`ed-listcard ed-listcard--${cardTint} hub-card--${status}`}
+      style={{ '--card-color': colour, '--card-dark': darkColour }}
       onClick={onClick}
       role="button"
       tabIndex={0}
       onKeyDown={e => e.key === 'Enter' && onClick()}
     >
-      <button
-        className={`ed-fav-btn${isFavourite ? ' ed-fav-btn--on' : ''}`}
-        onClick={(e) => { e.stopPropagation(); onToggleFavourite(list.id); }}
-        aria-label={isFavourite ? 'Remove from favourites' : 'Add to favourites'}
-        aria-pressed={isFavourite}
-        data-tooltip={isFavourite ? 'Remove from favourites' : 'Add to favourite list'}
-      >
-        ♥
-      </button>
-      <div className="hub-card-body">
-        <div className="ep-card-title-row">
-          <h3 className="hub-card-name">{list.name}</h3>
-          <div className="ep-card-badges">
+      <div className="ed-listcard__icon" aria-hidden="true">{cardIcon}</div>
+
+      <div className="ed-listcard__body">
+        <h3 className="ed-listcard__title">{list.name}</h3>
+        {(masteredCount > 0 || completedActs > 0 || listType === 'custom') && (
+          <div className="ep-card-badges ed-listcard__inline-badges">
             {masteredCount > 0 && (
               <span className={`hub-badge hub-badge--tl-${masteryLight}`}>
                 {masteredCount} of {totalWords} words mastered
@@ -274,8 +296,30 @@ function ListCard({ list, listType = 'curriculum', onClick, progress, isFavourit
               );
             })()}
           </div>
-        </div>
-        <p className="ep-card-preview">{preview}{more > 0 ? ` +${more} more` : ''}</p>
+        )}
+        <p className="ed-listcard__preview">{preview}{more > 0 ? ` +${more} more` : ''}</p>
+      </div>
+
+      <div className="ed-listcard__meta">
+        <span className={`ed-listcard__diff ed-listcard__diff--${difficultyKey}`}>
+          {difficultyLabel}
+        </span>
+        <button
+          className={`ed-listcard__fav${isFavourite ? ' ed-listcard__fav--on' : ''}`}
+          onClick={(e) => { e.stopPropagation(); onToggleFavourite(list.id); }}
+          aria-label={isFavourite ? 'Remove from favourites' : 'Add to favourites'}
+          aria-pressed={isFavourite}
+          data-tooltip={isFavourite ? 'Remove from favourites' : 'Add to favourite list'}
+        >
+          <svg
+            className="ed-listcard__fav-icon"
+            viewBox="0 0 32 32"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <path d="M16 28.2c-1.6-1.1-13-7.9-13-16.3 0-3.7 2.7-6.8 6.3-6.8 2.6 0 4.7 1.3 6.7 3.5 2-2.2 4.1-3.5 6.7-3.5 3.6 0 6.3 3.1 6.3 6.8 0 8.4-11.4 15.2-13 16.3z" />
+          </svg>
+        </button>
       </div>
     </div>
   );
@@ -330,14 +374,15 @@ function NavLink({ icon, label, count, active, onClick }) {
 
 // ── Explore filter bar (strand / difficulty pills) ──────────────────────────
 
-// Pixel-arcade strand pill — black outline + black drop shadow. White fill
-// when off, strand colour fill when on. Tap-again deselects.
+// Pixel-arcade filter pill — every chip (strand AND difficulty) shares
+// identical default, hover, and active styling so the UI doesn't lean on
+// per-category colour to communicate filter state. Colour-coding lives
+// only on the cards' icon orbs.
 function StrandPill({ pill, on, onToggle }) {
   return (
     <button
       type="button"
       className={`ed-arcade-pill${on ? ' ed-arcade-pill--on' : ''}`}
-      style={on ? { background: pill.color, color: '#1a1a2e' } : null}
       onClick={() => onToggle(on ? 'all' : pill.value)}
       aria-pressed={on}
     >
@@ -346,18 +391,53 @@ function StrandPill({ pill, on, onToggle }) {
   );
 }
 
-// Pixel-arcade difficulty pill — always solid traffic-light colour with
-// white text. Active state is rendered as "pressed" (no drop shadow).
 function DifficultyPill({ pill, on, onToggle }) {
   return (
     <button
       type="button"
-      className={`ed-arcade-pill ed-arcade-pill--solid${on ? ' ed-arcade-pill--pressed' : ''}`}
-      style={{ background: pill.color, color: '#ffffff' }}
+      className={`ed-arcade-pill${on ? ' ed-arcade-pill--on' : ''}`}
       onClick={() => onToggle(on ? 'all' : pill.value)}
       aria-pressed={on}
     >
       {pill.label}
+    </button>
+  );
+}
+
+// Lean filter row shared across My Lists / Assignments / Favourites / Recent.
+// Mirrors the structure of ExploreFilters (just the toggle + the count) so
+// every dashboard page lines up.
+function FilterRow({ hideCompleted, onHideCompletedChange, resultCount, noun = 'list' }) {
+  return (
+    <div className="ed-filters">
+      <div className="ed-filters-row" role="group" aria-label="Filter lists">
+        <HideCompletedToggle on={hideCompleted} onChange={onHideCompletedChange} />
+      </div>
+      {resultCount !== undefined && (
+        <p className="ed-filters-count" aria-live="polite">
+          {resultCount} {resultCount === 1 ? noun : `${noun}s`}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// Shared "Hide completed" toggle — no pill background, no selected fill;
+// just a label + a small track/thumb switch. The whole row is one button
+// so clicking the words OR the switch toggles state.
+function HideCompletedToggle({ on, onChange }) {
+  return (
+    <button
+      type="button"
+      className={`ed-toggle${on ? ' ed-toggle--on' : ''}`}
+      onClick={() => onChange(!on)}
+      aria-pressed={on}
+      role="switch"
+    >
+      <span className="ed-toggle-track" aria-hidden="true">
+        <span className="ed-toggle-thumb" />
+      </span>
+      <span className="ed-toggle-label">Hide completed</span>
     </button>
   );
 }
@@ -367,12 +447,27 @@ function ExploreFilters({
   onStrandChange,
   difficulty,
   onDifficultyChange,
+  hideCompleted,
+  onHideCompletedChange,
   resultCount,
+  availableStrands,
+  availableDifficulties,
 }) {
+  // Only render filter chips for strands/difficulties that have at least one
+  // matching list in the current curriculum. Falls back to showing every chip
+  // when the caller hasn't provided sets (defensive).
+  const visibleStrands = availableStrands
+    ? STRAND_PILLS.filter(p => availableStrands.has(p.value))
+    : STRAND_PILLS;
+  const visibleDifficulties = availableDifficulties
+    ? DIFFICULTY_PILLS.filter(p => availableDifficulties.has(p.value))
+    : DIFFICULTY_PILLS;
+  const showFilterDivider = visibleStrands.length > 0 && visibleDifficulties.length > 0;
+
   return (
     <div className="ed-filters">
       <div className="ed-filters-row" role="group" aria-label="Filter lessons">
-        {STRAND_PILLS.map(p => (
+        {visibleStrands.map(p => (
           <StrandPill
             key={p.value}
             pill={p}
@@ -380,8 +475,8 @@ function ExploreFilters({
             onToggle={onStrandChange}
           />
         ))}
-        <span className="ed-filters-vdivider" aria-hidden="true" />
-        {DIFFICULTY_PILLS.map(p => (
+        {showFilterDivider && <span className="ed-filters-vdivider" aria-hidden="true" />}
+        {visibleDifficulties.map(p => (
           <DifficultyPill
             key={p.value}
             pill={p}
@@ -389,6 +484,12 @@ function ExploreFilters({
             onToggle={onDifficultyChange}
           />
         ))}
+        {onHideCompletedChange && (
+          <HideCompletedToggle
+            on={hideCompleted}
+            onChange={onHideCompletedChange}
+          />
+        )}
       </div>
       <p className="ed-filters-count" aria-live="polite">
         {resultCount} {resultCount === 1 ? 'lesson' : 'lessons'}
@@ -414,9 +515,30 @@ function PaneSection({ headerClass, label, hint, rightSlot, children }) {
   );
 }
 
+// Returns true when a list is fully mastered AND every activity has been
+// completed at least once. Mirrors the `done` calculation inside ListCard
+// so the page-level "hide completed" filter agrees with the card itself.
+function isListCompleted(list, progress) {
+  const words = list.words || [];
+  const wordStrings = words.map(w => (typeof w === 'string' ? w : w.word));
+  const totalWords = wordStrings.length;
+  if (totalWords === 0) return false;
+  const mastery = getMasteryState(list.id);
+  const masteredCount = wordStrings.reduce(
+    (n, w) => n + (mastery?.words?.[String(w).toLowerCase()]?.mastered ? 1 : 0),
+    0,
+  );
+  if (masteredCount < totalWords) return false;
+  const completedActs = Object.values(progress || {})
+    .filter(p => p?.status === 'completed').length;
+  return completedActs === ACTIVITIES.length;
+}
+
 // ── Main ─────────────────────────────────────────────────────────────────────
 
 export default function ExploreDashboard({
+  page: pageProp = null,
+  navTick = 0,
   session = null,
   user,
   profile,
@@ -425,8 +547,24 @@ export default function ExploreDashboard({
   signInWithGoogle,
   onOpenSettings,
 }) {
-  const [page,          setPage]          = useState('home');   // 'home'|'assignments'|'mylists'|'explore'|'favourites'|'recent'
+  const [page,          setPage]          = useState(pageProp || 'home');   // 'home'|'assignments'|'mylists'|'explore'|'favourites'|'recent'
+
+  // Sync the page state when the parent flips `pageProp` (top-nav tab click).
+  // Internal setPage still works for transient navigation (e.g. opening a list).
+  useEffect(() => {
+    if (pageProp && pageProp !== page) setPage(pageProp);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageProp]);
   const [selectedList,  setSelectedList]  = useState(null);     // when set, ListHub takes the right pane
+
+  // Any top-nav tab click (even the same tab again) bumps navTick. When that
+  // happens, drop out of the list-detail view and land on the requested page.
+  const firstNavTick = useRef(true);
+  useEffect(() => {
+    if (firstNavTick.current) { firstNavTick.current = false; return; }
+    setSelectedList(null);
+  }, [navTick]);
+
   const [creator,       setCreator]       = useState(null);     // null | 'random' | 'manual' | 'edit'
   const [showChooser,   setShowChooser]   = useState(false);
   const [showSignIn,    setShowSignIn]    = useState(false);
@@ -438,6 +576,7 @@ export default function ExploreDashboard({
   // 'all' means no filter on that axis.
   const [exploreStrand,     setExploreStrand]     = useState('all');
   const [exploreDifficulty, setExploreDifficulty] = useState('all');
+  const [hideCompleted,     setHideCompleted]     = useState(false);
 
   useEffect(() => { localStorage.setItem(FAV_KEY, JSON.stringify(favourites)); }, [favourites]);
   useEffect(() => { localStorage.setItem(RECENT_KEY, JSON.stringify(recent));     }, [recent]);
@@ -592,11 +731,12 @@ export default function ExploreDashboard({
     if (!entries.length) return <p className="ep-phase-empty">{emptyMsg}</p>;
     return (
       <div className="hub-grid">
-        {entries.map(({ list, listType }) => (
+        {entries.map(({ list, listType }, i) => (
           <ListCard
             key={list.id}
             list={list}
             listType={listType}
+            index={i}
             progress={progressCache[list.id] || {}}
             isFavourite={favourites.includes(list.id)}
             onToggleFavourite={toggleFavourite}
@@ -617,6 +757,21 @@ export default function ExploreDashboard({
         : (selectedList.list.category || '');
       return (
         <main className="ed-main ed-main--list">
+          {/* Page-level back button — replaces the TopNav while a list is
+              open. Returns to whichever dashboard page the user came from
+              because setSelectedList(null) leaves `page` state untouched. */}
+          <div className="ed-list-backbar">
+            <button
+              type="button"
+              className="ed-list-back-btn"
+              onClick={backHome}
+              aria-label="Back"
+            >
+              <span className="ed-list-back-arrow" aria-hidden="true">←</span>
+              Back
+            </button>
+            <span className="ed-list-back-title">{selectedList.list.name}</span>
+          </div>
           <ListHub
             list={selectedList.list}
             listType={selectedList.listType}
@@ -682,66 +837,76 @@ export default function ExploreDashboard({
     if (page === 'home') {
       return (
         <main className="ed-main ed-main--home">
-          <div className="ed-home-left">
-            <PaneSection headerClass="ep-assignments-phase" label="Assignments" hint="Word lists from your teacher">
-              <p className="ep-phase-empty">No word lists assigned</p>
-            </PaneSection>
-            <PaneSection headerClass="ep-curriculum-phase" label="Curriculum Lists" hint={`${yearLabel} spelling lists`}>
-              {renderGrid(
-                curriculumForYear.map(l => ({ list: l, listType: 'curriculum' })),
-                'No curriculum lists for this year.',
-              )}
-            </PaneSection>
-          </div>
-          <div className="ed-home-right">
-            <PaneSection headerClass="ep-your-lists-phase" label="My Lists" hint="Your custom word lists">
-              {renderGrid(
-                normalisedCustom.map(l => ({ list: l, listType: 'custom' })),
-                'No lists yet — go to My Lists to create one.',
-              )}
-            </PaneSection>
-          </div>
+          <PaneSection headerClass="ep-home-phase" label="Home" hint="Coming soon">
+            <div className="ed-list-frame">
+              <p className="ep-phase-empty">
+                Placeholder — the new Home view will live here.
+              </p>
+            </div>
+          </PaneSection>
         </main>
       );
     }
 
     if (page === 'assignments') {
+      // (No assignments backend yet — the array is empty for now. Hide-completed
+      //  toggle still renders so the filter row is consistent across pages.)
+      const assignmentEntries = [];
       return (
         <main className="ed-main ed-main--assignments">
           <PaneSection headerClass="ep-assignments-phase" label="Assignments" hint="Word lists from your teacher">
-            <p className="ep-phase-empty">No word lists assigned</p>
+            <div className="ed-list-frame">
+              <FilterRow
+                hideCompleted={hideCompleted}
+                onHideCompletedChange={setHideCompleted}
+                resultCount={assignmentEntries.length}
+                noun="assignment"
+              />
+              <p className="ep-phase-empty">No word lists assigned</p>
+            </div>
           </PaneSection>
         </main>
       );
     }
 
     if (page === 'mylists') {
-      const hasLists = normalisedCustom.length > 0;
+      const filteredCustom = normalisedCustom
+        .filter(l => !hideCompleted || !isListCompleted(l, progressCache[l.id]));
+      const hasLists = filteredCustom.length > 0;
       return (
         <main className="ed-main ed-main--mylists">
           <PaneSection headerClass="ep-your-lists-phase" label="My Lists" hint="Your custom word lists">
-            <div className="hub-grid">
-              {hasLists && normalisedCustom.map(list => (
-                <ListCard
-                  key={list.id}
-                  list={list}
-                  listType="custom"
-                  progress={progressCache[list.id] || {}}
-                  isFavourite={favourites.includes(list.id)}
-                  onToggleFavourite={toggleFavourite}
-                  onClick={() => openList(list, 'custom')}
-                />
-              ))}
-              <button
-                className={`ed-create-card${hasLists ? '' : ' ed-create-card--solo'}`}
-                onClick={startAddList}
-                type="button"
-              >
-                <span className="ed-create-card-plus" aria-hidden="true">＋</span>
-                <span className="ed-create-card-text">
-                  {hasLists ? 'Add another list' : 'Create your first list'}
-                </span>
-              </button>
+            <div className="ed-list-frame">
+              <FilterRow
+                hideCompleted={hideCompleted}
+                onHideCompletedChange={setHideCompleted}
+                resultCount={filteredCustom.length}
+                noun="list"
+              />
+              <div className="hub-grid">
+                {hasLists && filteredCustom.map((list, i) => (
+                  <ListCard
+                    key={list.id}
+                    list={list}
+                    listType="custom"
+                    index={i}
+                    progress={progressCache[list.id] || {}}
+                    isFavourite={favourites.includes(list.id)}
+                    onToggleFavourite={toggleFavourite}
+                    onClick={() => openList(list, 'custom')}
+                  />
+                ))}
+                <button
+                  className={`ed-create-card${hasLists ? '' : ' ed-create-card--solo'}`}
+                  onClick={startAddList}
+                  type="button"
+                >
+                  <span className="ed-create-card-plus" aria-hidden="true">＋</span>
+                  <span className="ed-create-card-text">
+                    {hasLists ? 'Add another list' : 'Create your first list'}
+                  </span>
+                </button>
+              </div>
             </div>
           </PaneSection>
         </main>
@@ -751,7 +916,17 @@ export default function ExploreDashboard({
     if (page === 'explore') {
       const exploreResults = curriculumForYear
         .filter(l => exploreStrand     === 'all' || l.strand     === exploreStrand)
-        .filter(l => exploreDifficulty === 'all' || l.difficulty === exploreDifficulty);
+        .filter(l => exploreDifficulty === 'all' || l.difficulty === exploreDifficulty)
+        .filter(l => !hideCompleted || !isListCompleted(l, progressCache[l.id]));
+
+      // Sets of strand/difficulty values that actually appear in this year's
+      // curriculum — used to hide filter chips that have no associated lists.
+      const availableStrands = new Set(
+        curriculumForYear.map(l => (l.strand || '').toString().toLowerCase()).filter(Boolean)
+      );
+      const availableDifficulties = new Set(
+        curriculumForYear.map(l => (l.difficulty || '').toString().toLowerCase()).filter(Boolean)
+      );
 
       return (
         <main className="ed-main ed-main--explore">
@@ -760,43 +935,69 @@ export default function ExploreDashboard({
             label="Explore"
             hint={`${yearLabel} curriculum`}
           >
-            <ExploreFilters
-              strand={exploreStrand}
-              onStrandChange={setExploreStrand}
-              difficulty={exploreDifficulty}
-              onDifficultyChange={setExploreDifficulty}
-              resultCount={exploreResults.length}
-            />
-            {exploreResults.length === 0 ? (
-              <p className="ep-phase-empty">
-                No lessons match — try a different filter.
-              </p>
-            ) : (
-              renderGrid(
-                exploreResults.map(l => ({ list: l, listType: 'curriculum' })),
-                'No lessons match — try a different filter.',
-              )
-            )}
+            <div className="ed-list-frame">
+              <ExploreFilters
+                strand={exploreStrand}
+                onStrandChange={setExploreStrand}
+                difficulty={exploreDifficulty}
+                onDifficultyChange={setExploreDifficulty}
+                hideCompleted={hideCompleted}
+                onHideCompletedChange={setHideCompleted}
+                resultCount={exploreResults.length}
+                availableStrands={availableStrands}
+                availableDifficulties={availableDifficulties}
+              />
+              {exploreResults.length === 0 ? (
+                <p className="ep-phase-empty">
+                  No lessons match — try a different filter.
+                </p>
+              ) : (
+                renderGrid(
+                  exploreResults.map(l => ({ list: l, listType: 'curriculum' })),
+                  'No lessons match — try a different filter.',
+                )
+              )}
+            </div>
           </PaneSection>
         </main>
       );
     }
 
     if (page === 'favourites') {
+      const filteredFavs = favouriteEntries
+        .filter(({ list }) => !hideCompleted || !isListCompleted(list, progressCache[list.id]));
       return (
         <main className="ed-main ed-main--favourites">
-          <PaneSection headerClass="ep-curriculum-phase" label="Favourites" hint="Heart lists to see them here">
-            {renderGrid(favouriteEntries, 'No favourites yet — tap the heart on a list to add it here.')}
+          <PaneSection headerClass="ep-curriculum-phase" label="Favourites" hint="Lists you've hearted">
+            <div className="ed-list-frame">
+              <FilterRow
+                hideCompleted={hideCompleted}
+                onHideCompletedChange={setHideCompleted}
+                resultCount={filteredFavs.length}
+                noun="list"
+              />
+              {renderGrid(filteredFavs, 'No favourites yet — tap the heart on a list to add it here.')}
+            </div>
           </PaneSection>
         </main>
       );
     }
 
     if (page === 'recent') {
+      const filteredRecent = recentEntries
+        .filter(({ list }) => !hideCompleted || !isListCompleted(list, progressCache[list.id]));
       return (
         <main className="ed-main ed-main--recent">
           <PaneSection headerClass="ep-assignments-phase" label="Recently viewed" hint="Lists you've opened lately">
-            {renderGrid(recentEntries, 'Nothing here yet — open a list to start your history.')}
+            <div className="ed-list-frame">
+              <FilterRow
+                hideCompleted={hideCompleted}
+                onHideCompletedChange={setHideCompleted}
+                resultCount={filteredRecent.length}
+                noun="list"
+              />
+              {renderGrid(filteredRecent, 'Nothing here yet — open a list to start your history.')}
+            </div>
           </PaneSection>
         </main>
       );

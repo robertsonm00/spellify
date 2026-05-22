@@ -256,7 +256,9 @@ export default function ListHub({
         />
 
         <div className="hub-sticky-block">
-          {/* Word list */}
+          {/* Word list — the only thing in the left column on the list page;
+              Test All and the back CTA have moved to the right column under
+              the games (see below). */}
           <section className="hub-words">
             <div className="hub-section-header">
               <div className="hub-section-title-block">
@@ -292,33 +294,6 @@ export default function ListHub({
               })}
             </div>
             {listFooter}
-          </section>
-
-          {/* ── Test All — sits directly under the word list. Hidden once every
-                word is mastered; the mastery bar already shows 100% complete. */}
-          {unmasteredWords.length > 0 && (
-            <section className="hub-testall">
-              <button
-                type="button"
-                className="hub-testall-btn"
-                onClick={() => setTestAllStage('choose')}
-              >
-                <span className="hub-testall-icon" aria-hidden="true">▶</span>
-                <span className="hub-testall-label">Test All</span>
-                <span className="hub-testall-meta">
-                  {unmasteredWords.length}{' '}
-                  {unmasteredWords.length === 1 ? 'word' : 'words'} to go
-                </span>
-              </button>
-            </section>
-          )}
-
-          {/* Back to lists CTA — mirrors the Browse section in the master hub */}
-          <section className="hub-word-lists">
-            <div className="hub-word-lists-header">EXPLORE</div>
-            <button className="hub-word-lists-btn" onClick={onBack}>
-              ← All Word Lists
-            </button>
           </section>
         </div>
       </div>
@@ -444,6 +419,25 @@ export default function ListHub({
             );
           })}
         </section>
+
+        {/* Test All Words — floating round button fixed at the bottom-right
+            of the viewport. Hidden once every word is mastered. */}
+        {unmasteredWords.length > 0 && (
+          <section className="hub-testall">
+            <button
+              type="button"
+              className="hub-testall-btn"
+              onClick={() => setTestAllStage('choose')}
+            >
+              <span className="hub-testall-icon" aria-hidden="true">▶</span>
+              <span className="hub-testall-label">Test All Words</span>
+              <span className="hub-testall-meta">
+                {unmasteredWords.length}{' '}
+                {unmasteredWords.length === 1 ? 'word' : 'words'} to go
+              </span>
+            </button>
+          </section>
+        )}
 
         {/* Word detail modal */}
         {activeWord && (

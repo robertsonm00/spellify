@@ -394,3 +394,299 @@
 }
 .ws-done-btn--secondary:hover  { transform: translate(2px,2px); box-shadow: 1px 1px 0 #ccc; }
 .ws-done-btn--secondary:active { transform: translate(3px,3px); box-shadow: none; }
+
+
+/* ════════════════════════════════════════════════════════════════════════
+   WORD SEARCH — V2 MAGICAL THEME
+   Overrides the legacy cream styling with the same magical purple/pink/gold
+   palette used by the Explore dashboard. Functionality is untouched; only
+   colours, borders, glows, and the new selection / celebration overlays
+   come from here. */
+
+/* Page background — same star-field as the Explore dashboard. */
+.ws-wrap {
+  background-color: #1a0a2e;
+  background-image:
+    radial-gradient(circle at 12% 18%, rgba(251, 191, 36, 0.7) 1px, transparent 2px),
+    radial-gradient(circle at 88% 25%, rgba(236, 72, 153, 0.6) 1px, transparent 2px),
+    radial-gradient(circle at 32% 78%, rgba(167, 139, 250, 0.6) 1px, transparent 2px),
+    radial-gradient(circle at 65% 60%, rgba(96, 165, 250, 0.5) 1px, transparent 2px),
+    radial-gradient(circle at 50% 35%, rgba(255, 255, 255, 0.7) 1px, transparent 1.5px),
+    linear-gradient(135deg, #1a0a2e 0%, #2e1065 50%, #4a1d96 100%);
+  background-size: 80px 80px, 90px 90px, 70px 70px, 110px 110px, 60px 60px, 100% 100%;
+  background-attachment: fixed;
+  color: #fff;
+}
+
+/* Game header — purple star-field, rainbow shimmer underneath. */
+.ws-wrap .game-header {
+  background:
+    radial-gradient(circle at 14% 50%, rgba(251, 191, 36, 0.30) 1px, transparent 2px),
+    radial-gradient(circle at 58% 70%, rgba(199, 125, 255, 0.30) 1px, transparent 2px),
+    linear-gradient(180deg, #1a0a2e 0%, #2e1065 50%, #1a0a2e 100%);
+  background-size: 60px 60px, 80px 80px, 100% 100%;
+  border-bottom: none;
+  position: relative;
+}
+.ws-wrap .game-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    #ec4899 0%, #fbbf24 20%, #4ade80 40%, #60a5fa 60%, #c77dff 80%, #ec4899 100%
+  );
+  background-size: 200% 100%;
+  animation: ws-rainbow 6s linear infinite;
+  pointer-events: none;
+}
+@keyframes ws-rainbow {
+  0%   { background-position:   0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+.ws-wrap .game-header-exit,
+.ws-wrap .game-header-restart-btn {
+  background: linear-gradient(180deg, rgba(167, 139, 250, 0.12), rgba(46, 16, 101, 0.45));
+  border: 1.5px solid #c77dff;
+  color: #f9a8d4;
+  text-shadow: 0 0 4px rgba(236, 72, 153, 0.4);
+  box-shadow: inset 0 0 6px rgba(199, 125, 255, 0.3);
+}
+.ws-wrap .game-header-exit:hover,
+.ws-wrap .game-header-restart-btn:hover {
+  background: linear-gradient(180deg, rgba(251, 191, 36, 0.18), rgba(46, 16, 101, 0.6));
+  color: #FFD700;
+  border-color: #FFD700;
+  box-shadow: 0 0 12px rgba(251, 191, 36, 0.45);
+}
+.ws-wrap .game-header-title {
+  background: linear-gradient(
+    90deg,
+    #ec4899 0%, #fbbf24 25%, #4ade80 50%, #60a5fa 75%, #c77dff 100%
+  );
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(1px 1px 0 #2e1065) drop-shadow(0 0 10px rgba(236, 72, 153, 0.45));
+  animation: ws-rainbow 6s linear infinite;
+}
+
+/* Progress strip — purple track, pink→gold fill. */
+.ws-wrap .ws-progress-strip {
+  background: rgba(0, 0, 0, 0.4);
+  border-bottom: 1.5px solid #c77dff;
+}
+.ws-wrap .ws-bar-fill {
+  background: linear-gradient(90deg, #c77dff 0%, #ec4899 50%, #FFD700 100%);
+  box-shadow: 0 0 12px rgba(251, 191, 36, 0.55);
+}
+.ws-wrap .ws-count {
+  color: #FFD700;
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
+}
+
+/* Grid — dark frame with violet border + pink/gold shadow. */
+.ws-wrap .ws-grid {
+  border: 2px solid #c77dff;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #1f0d3d 0%, #2e1065 100%);
+  box-shadow:
+    5px 5px 0 #c77dff,
+    0 0 30px rgba(236, 72, 153, 0.35),
+    inset 0 0 18px rgba(167, 139, 250, 0.2);
+}
+
+/* Cells — default: deep violet with soft purple letter; hover: subtle glow. */
+.ws-wrap .ws-cell {
+  background: rgba(167, 139, 250, 0.08);
+  color: #fde68a;
+  border: 1px solid rgba(199, 125, 255, 0.2);
+  text-shadow: 0 0 6px rgba(255, 215, 0, 0.35);
+  transition: background 0.12s, color 0.12s, box-shadow 0.15s;
+}
+.ws-wrap .ws-cell:hover {
+  background: rgba(236, 72, 153, 0.18);
+  color: #fff;
+  box-shadow: inset 0 0 10px rgba(251, 191, 36, 0.35);
+}
+
+/* Selected (drag in progress) — purple/pink glow halo */
+.ws-wrap .ws-cell--sel,
+.ws-wrap .ws-cell--sel:hover {
+  background: linear-gradient(180deg, #c77dff 0%, #ec4899 100%);
+  color: #fff;
+  border-color: #FFD700;
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+  box-shadow:
+    inset 0 0 10px rgba(255, 215, 0, 0.3),
+    0 0 12px rgba(236, 72, 153, 0.55);
+}
+
+/* Selected AND matches a real word — green halo says "release to lock it in". */
+.ws-wrap .ws-cell--sel-correct,
+.ws-wrap .ws-cell--sel-correct:hover {
+  background: linear-gradient(180deg, #4ade80 0%, #16a34a 100%);
+  color: #fff;
+  border-color: #fbbf24;
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+  box-shadow:
+    inset 0 0 12px rgba(255, 255, 255, 0.4),
+    0 0 16px rgba(74, 222, 128, 0.85);
+  animation: ws-cell-correct-pulse 0.8s ease-in-out infinite;
+}
+@keyframes ws-cell-correct-pulse {
+  0%, 100% { filter: brightness(1); }
+  50%      { filter: brightness(1.18); }
+}
+
+/* Found (locked) — golden tile with a soft pink halo. */
+.ws-wrap .ws-cell--found,
+.ws-wrap .ws-cell--found:hover,
+.ws-wrap .ws-cell--found.ws-cell--sel,
+.ws-wrap .ws-cell--found.ws-cell--sel:hover {
+  background: linear-gradient(180deg, #FFD700 0%, #fbbf24 100%);
+  color: #2e1065;
+  border-color: #FFD700;
+  text-shadow: 0 0 4px rgba(255, 255, 255, 0.6);
+  box-shadow:
+    inset 0 0 8px rgba(255, 255, 255, 0.5),
+    0 0 12px rgba(251, 191, 36, 0.7);
+}
+
+/* Word list panel — violet glassy. */
+.ws-wrap .ws-wordlist-panel {
+  background: linear-gradient(180deg, rgba(31, 13, 61, 0.85), rgba(26, 10, 46, 0.85));
+  border: 2px solid #c77dff;
+  border-radius: 10px;
+  color: #f9a8d4;
+  box-shadow:
+    0 0 0 1px rgba(199, 125, 255, 0.25),
+    0 4px 14px rgba(0, 0, 0, 0.35),
+    inset 0 0 18px rgba(167, 139, 250, 0.15);
+}
+.ws-wrap .ws-side-btn {
+  background: linear-gradient(180deg, rgba(167, 139, 250, 0.12), rgba(46, 16, 101, 0.45));
+  border: 1.5px solid #c77dff;
+  color: #f9a8d4;
+}
+.ws-wrap .ws-side-btn:hover {
+  border-color: #FFD700;
+  color: #FFD700;
+  box-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+}
+.ws-wrap .ws-word-list .game-word {
+  color: #f9a8d4;
+  text-shadow: 0 0 4px rgba(236, 72, 153, 0.3);
+}
+.ws-wrap .ws-word-list .game-word--done {
+  color: #FFD700;
+  text-shadow: 0 0 6px rgba(255, 215, 0, 0.5);
+  text-decoration: line-through;
+}
+.ws-wrap .ws-word-list .game-word-check {
+  color: #4ade80;
+  filter: drop-shadow(0 0 4px rgba(74, 222, 128, 0.7));
+}
+
+/* Toast — magical pink pill above the grid. */
+.ws-wrap .ws-toast {
+  background: linear-gradient(180deg, #ec4899 0%, #c77dff 100%);
+  border: 1.5px solid #FFD700;
+  color: #fff;
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 0 16px rgba(251, 191, 36, 0.55);
+}
+
+/* ── Magical celebration overlay ─────────────────────────────────────
+   Lights up when a word is correctly found. Floats above the grid for
+   ~1.2s with a rainbow word + sparkle stars + a soft gold halo. */
+.ws-celebration {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 50;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 22px 36px;
+  background: radial-gradient(ellipse at center, rgba(236, 72, 153, 0.35) 0%, rgba(46, 16, 101, 0) 70%);
+  animation: ws-celebration-pop 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+@keyframes ws-celebration-pop {
+  0%   { transform: translate(-50%, -50%) scale(0.4); opacity: 0; }
+  20%  { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
+  60%  { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+}
+.ws-celebration-word {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 22px;
+  letter-spacing: 0.06em;
+  background: linear-gradient(
+    90deg,
+    #ec4899 0%, #fbbf24 25%, #4ade80 50%, #60a5fa 75%, #c77dff 100%
+  );
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(2px 2px 0 #2e1065)
+          drop-shadow(0 0 14px rgba(251, 191, 36, 0.6));
+  animation: ws-rainbow 1.2s linear;
+  text-transform: lowercase;
+}
+.ws-celebration-found {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  color: #FFD700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.7);
+}
+
+/* Sparkle stars — 5 fly outward from the centre */
+.ws-celebration-sparkles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.ws-celebration-star {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  font-size: 18px;
+  color: #FFD700;
+  filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.9));
+  animation: ws-star-fly 1.2s ease-out forwards;
+}
+.ws-celebration-star--1 { animation-delay: 0.00s; --dx:  90px; --dy: -60px; color: #FFD700; }
+.ws-celebration-star--2 { animation-delay: 0.05s; --dx: -90px; --dy: -50px; color: #ec4899; }
+.ws-celebration-star--3 { animation-delay: 0.10s; --dx:  70px; --dy:  70px; color: #c77dff; }
+.ws-celebration-star--4 { animation-delay: 0.07s; --dx: -70px; --dy:  60px; color: #4ade80; }
+.ws-celebration-star--5 { animation-delay: 0.02s; --dx:   0px; --dy: -90px; color: #fff; }
+@keyframes ws-star-fly {
+  0%   { transform: translate(-50%, -50%) scale(0.4); opacity: 0; }
+  25%  { transform: translate(-50%, -50%) scale(1.3); opacity: 1; }
+  100% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.5); opacity: 0; }
+}
+
+/* Completion card — also wear the magical look. */
+.ws-wrap--complete .ws-complete-card {
+  background: linear-gradient(180deg, rgba(31, 13, 61, 0.92), rgba(26, 10, 46, 0.92));
+  border: 2px solid #c77dff;
+  box-shadow:
+    5px 5px 0 #c77dff,
+    0 0 40px rgba(251, 191, 36, 0.4);
+  color: #f9a8d4;
+}
+.ws-wrap--complete .ws-complete-title {
+  color: #FFD700;
+  text-shadow: 0 0 12px rgba(255, 215, 0, 0.5);
+}

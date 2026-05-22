@@ -105,7 +105,7 @@ body {
 .app-shell {
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 56px);
+  min-height: calc(100vh - 56px - 68px);
   background: #f7f8fc;
 }
 
@@ -139,7 +139,7 @@ body {
 .app-game-main {
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 56px);
+  min-height: calc(100vh - 56px - 68px);
 }
 
 /* ── Exit confirmation modal ── */

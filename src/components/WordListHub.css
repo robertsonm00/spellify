@@ -1,7 +1,7 @@
 .hub-shell {
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 56px); /* account for TopNav */
+  min-height: calc(100vh - 56px - 68px); /* account for TopNav + ArcadeFooter */
 }
 
 .hub {
