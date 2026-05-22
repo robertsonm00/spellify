@@ -38,6 +38,64 @@ function fireWordConfetti() {
   });
 }
 
+function fireVictoryFanfare() {
+  // Wave 1 — big central burst
+  confetti({
+    particleCount: 120,
+    spread: 80,
+    origin: { x: 0.5, y: 0.4 },
+    colors: ['#FFD700', '#ec4899', '#c77dff', '#6bcb77', '#60a5fa'],
+  });
+  // Wave 2 — left cannon
+  setTimeout(() => confetti({
+    particleCount: 70,
+    angle: 60,
+    spread: 55,
+    origin: { x: 0, y: 0.6 },
+    colors: ['#fbbf24', '#f9a8d4', '#a78bfa'],
+  }), 200);
+  // Wave 3 — right cannon
+  setTimeout(() => confetti({
+    particleCount: 70,
+    angle: 120,
+    spread: 55,
+    origin: { x: 1, y: 0.6 },
+    colors: ['#fbbf24', '#f9a8d4', '#a78bfa'],
+  }), 400);
+}
+
+function playVictorySound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    // Rising arpeggio + sustained chord
+    const notes = [
+      { f: 523.25, t: 0.00, d: 0.3, v: 0.18 },
+      { f: 659.25, t: 0.12, d: 0.3, v: 0.18 },
+      { f: 783.99, t: 0.24, d: 0.3, v: 0.18 },
+      { f: 1046.5, t: 0.38, d: 0.7, v: 0.22 },
+      { f: 1318.5, t: 0.45, d: 0.6, v: 0.14 },
+      // Sparkle tail
+      { f: 1568.0, t: 0.55, d: 0.25, v: 0.09 },
+      { f: 2093.0, t: 0.65, d: 0.25, v: 0.09 },
+      { f: 2637.0, t: 0.75, d: 0.30, v: 0.07 },
+    ];
+    notes.forEach(({ f, t, d, v }) => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'triangle';
+      osc.frequency.value = f;
+      const at = ctx.currentTime + t;
+      gain.gain.setValueAtTime(0, at);
+      gain.gain.linearRampToValueAtTime(v, at + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.001, at + d);
+      osc.start(at);
+      osc.stop(at + d + 0.05);
+    });
+  } catch { /* AudioContext unavailable */ }
+}
+
 // Fixed 10×10 max
 // Year 5+ get a roomier 16x16 grid; younger ages stay on the cosier 10x10.
 const gridSizeForYear = (year) => (year != null && year >= 5 ? 16 : 10);
@@ -73,6 +131,20 @@ export default function WordSearch({ words, year = null, savedProgress = null, o
   // Drag state in refs to avoid stale closures inside event handlers
   const isDraggingRef = useRef(false);
   const dragStartRef  = useRef(null);
+
+  // ── Victory fanfare — fires once when all words are found ───────────────────
+  const fanfareFiredRef = useRef(false);
+  useEffect(() => {
+    // Reset the fanfare guard when a new game starts (foundWords back to 0).
+    if (foundWords.length === 0) { fanfareFiredRef.current = false; return; }
+    // Need the placed-word count; read from gameState.
+    const total = gameState?.placedWords?.length ?? 0;
+    if (total > 0 && foundWords.length === total && !fanfareFiredRef.current) {
+      fanfareFiredRef.current = true;
+      fireVictoryFanfare();
+      playVictorySound();
+    }
+  }, [foundWords, gameState]);
 
   // ── Game actions ────────────────────────────────────────────────────────────
 
@@ -229,30 +301,8 @@ export default function WordSearch({ words, year = null, savedProgress = null, o
     return !!matched && !foundWords.includes(matched.word);
   })();
 
-  // Completion screen
-  if (foundWords.length > 0 && foundWords.length === placedWords.length) {
-    return (
-      <div className="ws-wrap ws-wrap--complete">
-        <div className="ws-complete-card">
-          <div className="ws-complete-emoji">🎉</div>
-          <h2 className="ws-complete-title">All words found!</h2>
-          <div className="ws-complete-actions">
-            <button className="ws-done-btn ws-done-btn--primary"   onClick={startGame}>Play Again</button>
-            <button className="ws-done-btn ws-done-btn--secondary" onClick={() => {
-              // Per-word accuracy for the mastery engine: a word counts as
-              // "correct" only if it was found this session. Unplaced /
-              // unfound words flow through as correct: false so they don't
-              // accrue mastery credit they didn't earn.
-              onSaveProgress?.(null);
-              onComplete(words.map(w => ({ word: w, correct: foundWords.includes(w) })));
-            }}>Back to Hub</button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const gridSize = gameState.grid.length;
+  const isComplete = foundWords.length > 0 && foundWords.length === placedWords.length;
+  const gridSize   = gameState.grid.length;
 
   return (
     <div className="ws-wrap" onContextMenu={cancelSelection}>
@@ -347,6 +397,30 @@ export default function WordSearch({ words, year = null, savedProgress = null, o
         </aside>
 
       </div>
+
+      {/* ── Completion overlay — sits on top of the game, not a separate screen ── */}
+      {isComplete && (
+        <div className="ws-complete-overlay" role="dialog" aria-modal="true" aria-label="Word search complete">
+          <div className="ws-complete-card">
+            <div className="ws-complete-emoji">🎉</div>
+            <h2 className="ws-complete-title">All words found!</h2>
+            <p className="ws-complete-sub">Congratulations — brilliant work!</p>
+            <div className="ws-complete-actions">
+              <button className="ws-done-btn ws-done-btn--primary" onClick={startGame}>
+                Play Again
+              </button>
+              <button className="ws-done-btn ws-done-btn--secondary" onClick={() => {
+                // Per-word accuracy for the mastery engine: a word counts as
+                // "correct" only if it was found this session.
+                onSaveProgress?.(null);
+                onComplete(words.map(w => ({ word: w, correct: foundWords.includes(w) })));
+              }}>
+                Back to Hub
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

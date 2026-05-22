@@ -7,7 +7,7 @@ import SpellingQuiz   from './components/SpellingQuiz';
 import { loadSession, saveSession, createSession, INITIAL_STATUSES, updateMastery, rebuildReviewQueue, getActivityProgress, setActivityProgress } from './data/spelling/sessionSchema';
 import { getActivity, getActivityTitle } from './data/activities';
 import { isActivityAvailable } from './utils/activityAvailability';
-import { recordGameCompleted } from './utils/gamificationEngine';
+import { recordGameCompleted, getPlayerStats } from './utils/gamificationEngine';
 import TopNav         from './components/TopNav';
 import { fireBuddyCheer } from './components/BuddyAvatar';
 import ExplorePage    from './components/explore/ExplorePage';
@@ -38,6 +38,17 @@ function App() {
   const [settingsOpen,     setSettingsOpen]     = useState(false);
   const [changeWordsOpen,  setChangeWordsOpen]  = useState(false);
   const { user, profile, signIn, signUp, signInWithGoogle, signOut } = useUser();
+
+  // Live points — read from the gamification engine; re-reads on any game
+  // completion (both My Words and Explore flows dispatch 'spellify-points-update').
+  const [pointsTick, setPointsTick] = useState(0);
+  useEffect(() => {
+    const onUpdate = () => setPointsTick(t => t + 1);
+    window.addEventListener('spellify-points-update', onUpdate);
+    return () => window.removeEventListener('spellify-points-update', onUpdate);
+  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const livePoints = React.useMemo(() => getPlayerStats().totalPoints, [pointsTick]);
 
   const [session,        setSession]        = useState(() => loadSession());
   const [screen,         setScreen]         = useState(() => {
@@ -159,6 +170,8 @@ function App() {
     // small delay gives React a frame to mount the hub + BuddyAvatar so the
     // event listener is attached when we dispatch.
     setTimeout(fireBuddyCheer, 150);
+    // Notify the footer to re-read live points from the engine.
+    window.dispatchEvent(new CustomEvent('spellify-points-update'));
   };
 
   const handleExit = () => setActiveActivity(null);
@@ -343,7 +356,7 @@ function App() {
             playerName="ERNEST-WREN"
             year={5}
             isGuest={true}
-            points={4210}
+            points={livePoints}
             level={10}
             levelTitle="Grand Wordmancer"
             xpCurrent={650}
@@ -494,7 +507,7 @@ function App() {
         playerName="ERNEST-WREN"
         year={5}
         isGuest={true}
-        points={4210}
+        points={livePoints}
         level={10}
         levelTitle="Grand Wordmancer"
         xpCurrent={650}

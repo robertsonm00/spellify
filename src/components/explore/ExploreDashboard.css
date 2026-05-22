@@ -1807,6 +1807,9 @@
   white-space: nowrap;
   text-overflow: ellipsis;
 }
+.ed-listcard__preview::first-letter {
+  text-transform: uppercase;
+}
 .ed-listcard__inline-badges {
   margin: 4px 0 6px;
 }

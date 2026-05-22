@@ -11,6 +11,8 @@ import {
   getUnmasteredWords,
 } from '../../utils/masteryEngine';
 import { recordGameCompleted } from '../../utils/gamificationEngine';
+import { fireBuddyCheer } from '../BuddyAvatar';
+import confetti from 'canvas-confetti';
 import ActivityIcon from '../ActivityIcon';
 import CompletionTicks from '../CompletionTicks';
 import { HubPlayerCard, WordDetailModal, preSeedWordInfoCache } from '../WordListHub';
@@ -180,6 +182,21 @@ export default function ListHub({
     setTestAllStage('idle');
     setStartedActivities(prev => { const n = new Set(prev); n.delete(activityId); return n; });
     setLockedWords(prev => { const n = { ...prev }; delete n[activityId]; return n; });
+
+    // ── Celebration on return from game ──────────────────────────────────
+    // Buddy cheer + confetti burst so the player sees immediate positive
+    // feedback when they land back on the hub.
+    setTimeout(fireBuddyCheer, 150);
+    setTimeout(() => {
+      confetti({
+        particleCount: 90,
+        spread: 70,
+        origin: { y: 0.5 },
+        colors: ['#FFD700', '#ec4899', '#c77dff', '#6bcb77', '#60a5fa'],
+      });
+    }, 200);
+    // Notify App.jsx to re-read the live points from the engine.
+    window.dispatchEvent(new CustomEvent('spellify-points-update'));
 
     // ── Existing progress tracking (per-list activity status) ─────────
     if (markComplete) {
