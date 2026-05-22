@@ -405,15 +405,9 @@
 
 /* Page background — same star-field as the Explore dashboard. */
 .ws-wrap {
-  background-color: #1a0a2e;
-  background-image:
-    radial-gradient(circle at 12% 18%, rgba(251, 191, 36, 0.7) 1px, transparent 2px),
-    radial-gradient(circle at 88% 25%, rgba(236, 72, 153, 0.6) 1px, transparent 2px),
-    radial-gradient(circle at 32% 78%, rgba(167, 139, 250, 0.6) 1px, transparent 2px),
-    radial-gradient(circle at 65% 60%, rgba(96, 165, 250, 0.5) 1px, transparent 2px),
-    radial-gradient(circle at 50% 35%, rgba(255, 255, 255, 0.7) 1px, transparent 1.5px),
-    linear-gradient(135deg, #1a0a2e 0%, #2e1065 50%, #4a1d96 100%);
-  background-size: 80px 80px, 90px 90px, 70px 70px, 110px 110px, 60px 60px, 100% 100%;
+  background-color: var(--app-bg-base-color);
+  background-image: var(--app-bg-stars), var(--app-bg-gradient);
+  background-size: var(--app-bg-stars-size);
   background-attachment: fixed;
   color: #fff;
 }

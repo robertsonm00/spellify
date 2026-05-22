@@ -232,8 +232,8 @@ function ListCard({ list, listType = 'curriculum', index = 0, onClick, progress,
   const darkColour = CATEGORY_DARK[list.category]    || '#374151';
   const words      = list.words || [];
   const wordStrings = words.map(w => (typeof w === 'string' ? w : w.word));
-  const preview    = wordStrings.slice(0, 3).join(', ');
-  const more       = Math.max(0, words.length - 3);
+  const preview    = wordStrings.slice(0, 5).join(', ');
+  const more       = Math.max(0, words.length - 5);
 
   // Word mastery — read straight from the engine for this list id.
   const mastery       = getMasteryState(list.id);
@@ -275,32 +275,25 @@ function ListCard({ list, listType = 'curriculum', index = 0, onClick, progress,
 
       <div className="ed-listcard__body">
         <h3 className="ed-listcard__title">{list.name}</h3>
-        {(masteredCount > 0 || completedActs > 0 || listType === 'custom') && (
-          <div className="ep-card-badges ed-listcard__inline-badges">
-            {masteredCount > 0 && (
-              <span className={`hub-badge hub-badge--tl-${masteryLight}`}>
-                {masteredCount} of {totalWords} words mastered
-              </span>
-            )}
-            {completedActs > 0 && (
-              <span className={`hub-badge hub-badge--tl-${gamesLight}`}>
-                {completedActs} {completedActs === 1 ? 'game' : 'games'} completed
-              </span>
-            )}
-            {listType === 'custom' && (() => {
-              const { label, tone } = testDatePill(list.testDate);
-              return (
-                <span className={`hub-badge hub-badge--td-${tone}`}>
-                  {label}
-                </span>
-              );
-            })()}
-          </div>
-        )}
         <p className="ed-listcard__preview">{preview}{more > 0 ? ` +${more} more` : ''}</p>
       </div>
 
       <div className="ed-listcard__meta">
+        {/* Custom-list status badges (mastery + test-date) sit inline with
+            the difficulty + heart so the card stays single-line tall. */}
+        {masteredCount > 0 && (
+          <span className={`hub-badge hub-badge--tl-${masteryLight} ed-listcard__meta-badge`}>
+            {masteredCount}/{totalWords} mastered
+          </span>
+        )}
+        {listType === 'custom' && (() => {
+          const { label, tone } = testDatePill(list.testDate);
+          return (
+            <span className={`hub-badge hub-badge--td-${tone} ed-listcard__meta-badge`}>
+              {label}
+            </span>
+          );
+        })()}
         <span className={`ed-listcard__diff ed-listcard__diff--${difficultyKey}`}>
           {difficultyLabel}
         </span>
@@ -407,11 +400,31 @@ function DifficultyPill({ pill, on, onToggle }) {
 // Lean filter row shared across My Lists / Assignments / Favourites / Recent.
 // Mirrors the structure of ExploreFilters (just the toggle + the count) so
 // every dashboard page lines up.
-function FilterRow({ hideCompleted, onHideCompletedChange, resultCount, noun = 'list' }) {
+function FilterRow({
+  hideCompleted,
+  onHideCompletedChange,
+  resultCount,
+  noun = 'list',
+  sortOrder,
+  onSortOrderChange,
+}) {
   return (
     <div className="ed-filters">
       <div className="ed-filters-row" role="group" aria-label="Filter lists">
         <HideCompletedToggle on={hideCompleted} onChange={onHideCompletedChange} />
+        {onSortOrderChange && (
+          <label className="ed-sort">
+            <span className="ed-sort-label">Sort by</span>
+            <select
+              className="ed-sort-select"
+              value={sortOrder}
+              onChange={(e) => onSortOrderChange(e.target.value)}
+            >
+              <option value="newest">Newest to oldest</option>
+              <option value="oldest">Oldest to newest</option>
+            </select>
+          </label>
+        )}
       </div>
       {resultCount !== undefined && (
         <p className="ed-filters-count" aria-live="polite">
@@ -459,10 +472,9 @@ function ExploreFilters({
   const visibleStrands = availableStrands
     ? STRAND_PILLS.filter(p => availableStrands.has(p.value))
     : STRAND_PILLS;
-  const visibleDifficulties = availableDifficulties
-    ? DIFFICULTY_PILLS.filter(p => availableDifficulties.has(p.value))
-    : DIFFICULTY_PILLS;
-  const showFilterDivider = visibleStrands.length > 0 && visibleDifficulties.length > 0;
+  // Difficulty filter chips were removed — per-card Easy/Medium/Hard badges
+  // still show, but the filter UI is gone. We keep the related props on the
+  // function signature so callers don't break; they're simply not rendered.
 
   return (
     <div className="ed-filters">
@@ -473,15 +485,6 @@ function ExploreFilters({
             pill={p}
             on={strand === p.value}
             onToggle={onStrandChange}
-          />
-        ))}
-        {showFilterDivider && <span className="ed-filters-vdivider" aria-hidden="true" />}
-        {visibleDifficulties.map(p => (
-          <DifficultyPill
-            key={p.value}
-            pill={p}
-            on={difficulty === p.value}
-            onToggle={onDifficultyChange}
           />
         ))}
         {onHideCompletedChange && (
@@ -577,6 +580,9 @@ export default function ExploreDashboard({
   const [exploreStrand,     setExploreStrand]     = useState('all');
   const [exploreDifficulty, setExploreDifficulty] = useState('all');
   const [hideCompleted,     setHideCompleted]     = useState(false);
+  // Sort order used by My Lists (and any other list-shaped page that opts in).
+  // 'newest' = most recently created first.
+  const [sortOrder,         setSortOrder]         = useState('newest');
 
   useEffect(() => { localStorage.setItem(FAV_KEY, JSON.stringify(favourites)); }, [favourites]);
   useEffect(() => { localStorage.setItem(RECENT_KEY, JSON.stringify(recent));     }, [recent]);
@@ -870,8 +876,17 @@ export default function ExploreDashboard({
     }
 
     if (page === 'mylists') {
+      const sortFn = (a, b) => {
+        // Lists may carry created_at (ISO string) or fall back to insertion
+        // order. Higher index = newer in the source array.
+        const ta = new Date(a.created_at || 0).getTime() || 0;
+        const tb = new Date(b.created_at || 0).getTime() || 0;
+        return sortOrder === 'oldest' ? (ta - tb) : (tb - ta);
+      };
       const filteredCustom = normalisedCustom
-        .filter(l => !hideCompleted || !isListCompleted(l, progressCache[l.id]));
+        .filter(l => !hideCompleted || !isListCompleted(l, progressCache[l.id]))
+        .slice()
+        .sort(sortFn);
       const hasLists = filteredCustom.length > 0;
       return (
         <main className="ed-main ed-main--mylists">
@@ -882,6 +897,8 @@ export default function ExploreDashboard({
                 onHideCompletedChange={setHideCompleted}
                 resultCount={filteredCustom.length}
                 noun="list"
+                sortOrder={sortOrder}
+                onSortOrderChange={setSortOrder}
               />
               <div className="hub-grid">
                 {hasLists && filteredCustom.map((list, i) => (
@@ -1008,6 +1025,13 @@ export default function ExploreDashboard({
 
   return (
     <div className="ed-shell">
+      {/* Decorative shooting stars — three independent paths with staggered
+          timing so they fire roughly every 4-6 seconds, never together. */}
+      <div className="ed-shooting-stars" aria-hidden="true">
+        <span className="ed-shooting-star ed-shooting-star--1" />
+        <span className="ed-shooting-star ed-shooting-star--2" />
+        <span className="ed-shooting-star ed-shooting-star--3" />
+      </div>
       <aside className="ed-sidebar">
         <div className="ed-sidebar-inner">
           <div className="ed-playercard">

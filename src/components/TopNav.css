@@ -458,13 +458,9 @@
    one continuous arcade panel from top to bottom. */
 
 .topnav.topnav--classic {
-  background:
-    radial-gradient(circle at 14% 50%, rgba(251, 191, 36, 0.35) 1px, transparent 2px),
-    radial-gradient(circle at 34% 30%, rgba(236, 72, 153, 0.30) 1px, transparent 2px),
-    radial-gradient(circle at 58% 70%, rgba(199, 125, 255, 0.30) 1px, transparent 2px),
-    radial-gradient(circle at 78% 40%, rgba(255, 255, 255, 0.30) 1px, transparent 1.5px),
-    linear-gradient(180deg, #1a0a2e 0%, #2e1065 50%, #1a0a2e 100%);
-  background-size: 60px 60px, 80px 80px, 70px 70px, 90px 90px, 100% 100%;
+  background-color: var(--app-bg-base-color);
+  background-image: var(--app-bg-stars), var(--app-bg-gradient);
+  background-size: var(--app-bg-stars-size);
   border-bottom: none;        /* gold strip removed; rainbow shimmer below carries the magical edge */
   box-shadow:
     0 3px 22px rgba(255, 215, 0, 0.18),

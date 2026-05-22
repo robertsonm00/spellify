@@ -20,18 +20,11 @@
   right: 0;
   bottom: 0;
   height: 68px;
-  background:
-    radial-gradient(circle at 18% 50%, rgba(251, 191, 36, 0.35) 1px, transparent 2px),
-    radial-gradient(circle at 36% 30%, rgba(236, 72, 153, 0.30) 1px, transparent 2px),
-    radial-gradient(circle at 62% 70%, rgba(199, 125, 255, 0.30) 1px, transparent 2px),
-    radial-gradient(circle at 82% 40%, rgba(255, 255, 255, 0.30) 1px, transparent 1.5px),
-    linear-gradient(180deg, #1a0a2e 0%, #2e1065 50%, #1a0a2e 100%);
-  background-size: 60px 60px, 80px 80px, 70px 70px, 90px 90px, 100% 100%;
+  /* Solid dark purple — a darker variant of the page palette so the footer
+     reads as a distinct bezel without competing with the page's star-field. */
+  background: #14082a;
   border-top: 3px solid var(--gold);
-  box-shadow:
-    0 -2px 0 var(--purple) inset,
-    0 -3px 22px rgba(255, 215, 0, 0.25),
-    0 -6px 28px rgba(236, 72, 153, 0.18);
+  box-shadow: none;
   display: flex;
   align-items: center;
   padding: 0 20px 0 0;
@@ -41,26 +34,8 @@
   color: #fff;
 }
 
-/* Animated rainbow shimmer running along the top border */
-.arcade-footer::before {
-  content: '';
-  position: absolute;
-  top: -3px;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(
-    90deg,
-    #ec4899 0%, #fbbf24 20%, #4ade80 40%, #60a5fa 60%, #c77dff 80%, #ec4899 100%
-  );
-  background-size: 200% 100%;
-  animation: arcade-footer-rainbow 6s linear infinite;
-  pointer-events: none;
-}
-@keyframes arcade-footer-rainbow {
-  0%   { background-position:   0% 50%; }
-  100% { background-position: 200% 50%; }
-}
+/* (Rainbow shimmer + top border removed — footer is now a solid dark
+   purple slab, distinct from the starry page background.) */
 
 /* Gem corner accent on the top-left so the footer feels framed */
 .arcade-footer::after {

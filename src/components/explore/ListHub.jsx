@@ -421,20 +421,19 @@ export default function ListHub({
         </section>
 
         {/* Test All Words — floating round button fixed at the bottom-right
-            of the viewport. Hidden once every word is mastered. */}
+            of the viewport. Three stacked words, no icon, no count.
+            Hidden once every word is mastered. */}
         {unmasteredWords.length > 0 && (
           <section className="hub-testall">
             <button
               type="button"
               className="hub-testall-btn"
               onClick={() => setTestAllStage('choose')}
+              aria-label="Test all words"
             >
-              <span className="hub-testall-icon" aria-hidden="true">▶</span>
-              <span className="hub-testall-label">Test All Words</span>
-              <span className="hub-testall-meta">
-                {unmasteredWords.length}{' '}
-                {unmasteredWords.length === 1 ? 'word' : 'words'} to go
-              </span>
+              <span>Test</span>
+              <span>All</span>
+              <span>Words</span>
             </button>
           </section>
         )}

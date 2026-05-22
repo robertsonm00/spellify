@@ -597,9 +597,30 @@
 .ed-main--assignments {
   height: calc(100vh - 56px - 68px);
   overflow: hidden;
-  /* Let the word-list area extend flush to the arcade footer below.
-     The shared `.ed-main` rule sets padding-bottom: 2rem; we zero it
-     out for dashboard pages so the cards/empty-state reach the bottom. */
+  /* Flush against the arcade footer below — zero bottom padding/margin
+     so the cards/empty-state area extends all the way to the footer. */
+  padding-bottom: 0;
+  margin-bottom: 0;
+  gap: 0.75rem;
+}
+
+/* Make every nested wrapper down to the scroll area flush at the bottom. */
+:is(.ed-main--home, .ed-main--mylists, .ed-main--explore,
+    .ed-main--favourites, .ed-main--recent, .ed-main--assignments)
+  .hub-phase {
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+:is(.ed-main--home, .ed-main--mylists, .ed-main--explore,
+    .ed-main--favourites, .ed-main--recent, .ed-main--assignments)
+  .ed-list-frame {
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+:is(.ed-main--home, .ed-main--mylists, .ed-main--explore,
+    .ed-main--favourites, .ed-main--recent, .ed-main--assignments)
+  .hub-grid {
+  margin-bottom: 0;
   padding-bottom: 0;
 }
 
@@ -1762,16 +1783,28 @@
 }
 .ed-listcard__title {
   font-family: 'Press Start 2P', monospace;
-  font-size: 9px;
+  font-size: 0.72rem;
   color: #1a1a2e;
   line-height: 1.5;
   margin: 0 0 4px;
+  padding-bottom: 4px;
+  /* Clamp to 2 lines so long names don't balloon the card height. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+/* Force-capitalise the very first character regardless of the saved
+   list name (lowercase custom-list names like "spellings" → "Spellings"). */
+.ed-listcard__title::first-letter {
+  text-transform: uppercase;
 }
 .ed-listcard__preview {
-  font-size: 12px;
+  font-size: 0.8rem;
   color: #6b7280;
   margin: 0;
   overflow: hidden;
+  white-space: nowrap;
   text-overflow: ellipsis;
 }
 .ed-listcard__inline-badges {
@@ -1831,15 +1864,19 @@
   display: block;
   transition: transform 0.15s ease, filter 0.15s ease;
 }
-.ed-listcard__fav:hover {
+/* Light-pink hover only applies when the heart is NOT already selected.
+   `:not(--on)` keeps the active solid-pink panel in place when the user
+   hovers a favourited card. */
+.ed-listcard__fav:hover:not(.ed-listcard__fav--on) {
   background: #fdf2f8;
   color: #ec4899;
 }
-.ed-listcard__fav:hover .ed-listcard__fav-icon {
+.ed-listcard__fav:hover:not(.ed-listcard__fav--on) .ed-listcard__fav-icon {
   transform: scale(1.12);
   filter: drop-shadow(0 0 6px rgba(236, 72, 153, 0.55));
 }
-.ed-listcard__fav--on {
+.ed-listcard__fav--on,
+.ed-listcard__fav--on:hover {
   background: #ec4899;
   color: #fff;
 }
@@ -1901,18 +1938,175 @@
 .ed-shell:has(.ed-main--favourites),
 .ed-shell:has(.ed-main--recent),
 .ed-shell:has(.ed-main--list) {
-  background-color: #1a0a2e;
-  background-image:
-    radial-gradient(circle at 12% 18%, rgba(251, 191, 36, 0.7) 1px, transparent 2px),
-    radial-gradient(circle at 88% 25%, rgba(236, 72, 153, 0.6) 1px, transparent 2px),
-    radial-gradient(circle at 32% 78%, rgba(167, 139, 250, 0.6) 1px, transparent 2px),
-    radial-gradient(circle at 65% 60%, rgba(96, 165, 250, 0.5) 1px, transparent 2px),
-    radial-gradient(circle at 50% 35%, rgba(255, 255, 255, 0.7) 1px, transparent 1.5px),
-    radial-gradient(circle at 22% 50%, rgba(255, 255, 255, 0.4) 1px, transparent 1.5px),
-    linear-gradient(135deg, #1a0a2e 0%, #2e1065 50%, #4a1d96 100%);
-  background-size: 80px 80px, 90px 90px, 70px 70px, 110px 110px, 60px 60px, 130px 130px, 100% 100%;
+  background-color: var(--app-bg-base-color);
+  background-image: var(--app-bg-stars), var(--app-bg-gradient);
+  background-size: var(--app-bg-stars-size);
   background-attachment: fixed;
   animation: ed-explore-stars-drift 60s linear infinite;
+  position: relative;
+}
+
+/* ── Twinkling stars overlay ─────────────────────────────────────────
+   A second fixed-position layer that pulses on top of the speckle grid.
+   We use two pseudo-elements with the `box-shadow` multi-copy trick so
+   each shadow renders a tiny dot at the listed coordinates; we then
+   animate the wrapper's opacity to make them blink. Two pseudo-elements
+   with different keyframe delays = two staggered twinkle groups, which
+   reads as organic rather than synchronised. */
+.ed-shell:has(.ed-main--home)::before,
+.ed-shell:has(.ed-main--mylists)::before,
+.ed-shell:has(.ed-main--explore)::before,
+.ed-shell:has(.ed-main--assignments)::before,
+.ed-shell:has(.ed-main--favourites)::before,
+.ed-shell:has(.ed-main--recent)::before,
+.ed-shell:has(.ed-main--list)::before,
+.ed-shell:has(.ed-main--home)::after,
+.ed-shell:has(.ed-main--mylists)::after,
+.ed-shell:has(.ed-main--explore)::after,
+.ed-shell:has(.ed-main--assignments)::after,
+.ed-shell:has(.ed-main--favourites)::after,
+.ed-shell:has(.ed-main--recent)::after,
+.ed-shell:has(.ed-main--list)::after {
+  content: '';
+  position: fixed;
+  top: 0; left: 0;
+  width: 2px; height: 2px;
+  border-radius: 50%;
+  background: transparent;
+  pointer-events: none;
+  z-index: 0;
+}
+/* Group A — 9 white twinkles, scattered. Pulses on a 4s loop. */
+.ed-shell:has(.ed-main--home)::before,
+.ed-shell:has(.ed-main--mylists)::before,
+.ed-shell:has(.ed-main--explore)::before,
+.ed-shell:has(.ed-main--assignments)::before,
+.ed-shell:has(.ed-main--favourites)::before,
+.ed-shell:has(.ed-main--recent)::before,
+.ed-shell:has(.ed-main--list)::before {
+  box-shadow:
+    9vw  17vh 0 0.5px rgba(255, 255, 255, 0.95),
+    23vw 62vh 0 0.5px rgba(255, 255, 255, 0.9),
+    42vw 12vh 0 0.5px rgba(255, 215, 0,   0.95),
+    58vw 49vh 0 0.5px rgba(255, 255, 255, 0.95),
+    71vw 28vh 0 0.5px rgba(167, 139, 250, 0.95),
+    83vw 73vh 0 0.5px rgba(255, 255, 255, 0.9),
+    16vw 88vh 0 0.5px rgba(251, 191, 36,  0.95),
+    47vw 81vh 0 0.5px rgba(255, 255, 255, 0.9),
+    93vw 35vh 0 0.5px rgba(255, 255, 255, 0.95);
+  animation: ed-twinkle-pulse 4s ease-in-out infinite;
+}
+/* Group B — 8 coloured twinkles, offset timing for variety. */
+.ed-shell:has(.ed-main--home)::after,
+.ed-shell:has(.ed-main--mylists)::after,
+.ed-shell:has(.ed-main--explore)::after,
+.ed-shell:has(.ed-main--assignments)::after,
+.ed-shell:has(.ed-main--favourites)::after,
+.ed-shell:has(.ed-main--recent)::after,
+.ed-shell:has(.ed-main--list)::after {
+  box-shadow:
+    5vw  43vh 0 0.5px rgba(236, 72, 153, 0.9),
+    19vw 8vh  0 0.5px rgba(96, 165, 250, 0.85),
+    35vw 67vh 0 0.5px rgba(255, 255, 255, 0.95),
+    52vw 21vh 0 0.5px rgba(251, 191, 36,  0.95),
+    63vw 78vh 0 0.5px rgba(199, 125, 255, 0.95),
+    78vw 11vh 0 0.5px rgba(255, 255, 255, 0.95),
+    89vw 56vh 0 0.5px rgba(74, 222, 128,  0.9),
+    31vw 36vh 0 0.5px rgba(255, 255, 255, 0.9);
+  animation: ed-twinkle-pulse 5.6s ease-in-out infinite;
+  animation-delay: 1.4s;
+}
+@keyframes ed-twinkle-pulse {
+  0%, 100% { opacity: 0.25; filter: blur(0.3px); }
+  50%      { opacity: 1;    filter: blur(0); }
+}
+
+/* ── Shooting stars ───────────────────────────────────────────────────
+   Three independent streaks, each on its own long cycle with a brief
+   "active" window. Stagger via animation-delay so they never fire in
+   sync; one shoots roughly every 4-6 seconds on average. */
+.ed-shooting-stars {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  /* Sit behind every dashboard card/control — just above the bg star-field
+     and below all the dashboard content (which renders at z-index auto). */
+  z-index: -1;
+}
+.ed-shooting-star {
+  position: absolute;
+  width: 140px;
+  height: 2px;
+  border-radius: 999px;
+  opacity: 0;
+  /* The trail uses currentColor so each variant just sets its own colour. */
+  background: linear-gradient(90deg, transparent 0%, currentColor 70%, currentColor 100%);
+  filter: drop-shadow(0 0 6px currentColor);
+}
+
+/* All three paths share the same 45s cycle. Active window is 0% → 5.5%
+   (~2.5s on screen), and the delays (0s / 15s / 30s) rotate them so a
+   star fires every 15s and two are never visible at the same time. */
+
+/* Path 1 — pink, top-right → bottom-left. */
+.ed-shooting-star--1 {
+  color: #ec4899;
+  top: 12%;
+  right: 0;
+  animation: ed-shooting-star-1 45s linear infinite;
+}
+@keyframes ed-shooting-star-1 {
+  0%      { transform: translate(140px, 0) rotate(155deg); opacity: 0; }
+  1%      { opacity: 1; }
+  5%      { opacity: 1; }
+  5.5%    { transform: translate(-110vw, 55vh) rotate(155deg); opacity: 0; }
+  100%    { transform: translate(-110vw, 55vh) rotate(155deg); opacity: 0; }
+}
+
+/* Path 2 — gold, top-left → bottom-right. Fires 15s after Path 1. */
+.ed-shooting-star--2 {
+  color: #FFD700;
+  top: 6%;
+  left: 0;
+  animation: ed-shooting-star-2 45s linear infinite;
+  animation-delay: 15s;
+}
+@keyframes ed-shooting-star-2 {
+  0%      { transform: translate(-140px, 0) rotate(25deg); opacity: 0; }
+  1%      { opacity: 1; }
+  5%      { opacity: 1; }
+  5.5%    { transform: translate(115vw, 70vh) rotate(25deg); opacity: 0; }
+  100%    { transform: translate(115vw, 70vh) rotate(25deg); opacity: 0; }
+}
+
+/* Path 3 — white, top-centre → bottom-right. Fires 30s after Path 1. */
+.ed-shooting-star--3 {
+  color: #fff;
+  top: 0;
+  left: 38%;
+  animation: ed-shooting-star-3 45s linear infinite;
+  animation-delay: 30s;
+}
+@keyframes ed-shooting-star-3 {
+  0%      { transform: translate(0, -140px) rotate(45deg); opacity: 0; }
+  1%      { opacity: 1; }
+  5%      { opacity: 1; }
+  5.5%    { transform: translate(55vw, 100vh) rotate(45deg); opacity: 0; }
+  100%    { transform: translate(55vw, 100vh) rotate(45deg); opacity: 0; }
+}
+
+/* Respect reduced motion — disable the shooting stars (and the twinkle
+   pulses) for users who've opted out of motion. */
+@media (prefers-reduced-motion: reduce) {
+  .ed-shooting-star {
+    animation: none !important;
+    opacity: 0;
+  }
+  .ed-shell::before,
+  .ed-shell::after {
+    animation: none !important;
+  }
 }
 
 /* Shorthand selector used by the rest of the magical theme. */
@@ -2340,57 +2534,133 @@
   filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.8));
 }
 
-/* List name row inside the WORD LIST panel — flat white, no rounded
-   edges, top/bottom padding matching the chip area so the title reads
-   as a header for the words below. */
+/* List-name row reads as part of the dark WORD LIST header above it —
+   same purple gradient, white name, no rounded edges. The chips area
+   below stays white. WORD LIST label (in the row above) is yellow. */
 .ed-main--list .ed-listname-panel {
-  background: #fff;
+  background: linear-gradient(180deg, #2e1065 0%, #1a0a2e 100%);
   border: none;
   border-radius: 0;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 2px solid #c77dff;
   box-shadow: none;
   padding: 12px 16px;
   margin: 0;
 }
 .ed-main--list .ed-listname-static,
 .ed-main--list .ed-listname-input {
-  color: #1a1a2e;
-  text-shadow: none;
+  color: #fff;
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.25);
   background: transparent;
   font-weight: 800;
 }
+/* WORD LIST label — white on the dark header strip. Selector must out-
+   specify .hub--split .hub-words .hub-section-label in WordListHub.css
+   which paints it #2a2a2a (invisible on our dark header). */
+.ed-main--list .hub-words .hub-section-label {
+  color: #fff;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+}
 
-/* GAMES section — clean: drop the coral header strip + star sticker.
-   The GAMES label becomes simple white text aligned to the panel edge,
-   sitting flush against the cards (no top/bottom padding strip). */
+/* The right column (master bar + games) is the unified container — one
+   violet border, no background fill — so master bar and games read as
+   one panel split by a thin divider. */
+.ed-main--list .hub-split-right {
+  background: transparent;
+  border: 2px solid #c77dff;
+  border-radius: 10px;
+  box-shadow:
+    0 0 0 1px rgba(199, 125, 255, 0.25),
+    0 4px 14px rgba(0, 0, 0, 0.3),
+    inset 0 0 24px rgba(167, 139, 250, 0.1);
+  padding: 14px 18px;
+  gap: 14px;
+  overflow: hidden;
+}
+/* Master bar + games lose their individual chrome (now provided by the
+   parent container). A thin divider separates the two zones. */
+.ed-main--list .hub-mastery-pipeline,
+.ed-main--list .hub-activities {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+}
+.ed-main--list .hub-mastery-pipeline {
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(199, 125, 255, 0.3);
+}
+
+/* GAMES label — sticky at the top of the games area so it stays put as
+   the cards scroll behind it. Opaque background (matching the parent's
+   panel tint) so the scrolling cards are hidden behind both the title
+   text and the padding below it. */
 .ed-main--list .hub-activities::before {
   content: 'GAMES';
-  background: transparent;
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  display: block;
+  grid-column: 1 / -1;
+  background: #1a0a2e;           /* solid — masks scrolling cards behind it */
+  background-image:
+    radial-gradient(circle at 30% 50%, rgba(199, 125, 255, 0.18) 1px, transparent 2px),
+    radial-gradient(circle at 70% 50%, rgba(251, 191, 36, 0.18) 1px, transparent 2px);
+  background-size: 24px 24px, 30px 30px;
   border-bottom: none;
   border-radius: 0;
-  margin: 0;
-  padding: 0;
-  min-height: 0;
+  margin: 0 -18px;               /* break out of parent's 14px/18px padding */
+  padding: 12px 18px 14px;
   color: #fff;
-  text-shadow: 0 0 8px rgba(255, 255, 255, 0.25);
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
   letter-spacing: 0.1em;
   font-family: 'Press Start 2P', monospace;
   font-size: 0.75rem;
-  align-self: start;
-  margin-bottom: 0.5rem;
+  pointer-events: none;
 }
 .ed-main--list .hub-activities::after {
   content: none;     /* drop the "PICK A GAME!" pep sticker */
 }
+
+/* Retro-arcade scrollbar — visible (kids-friendly), magical violet track
+   + gold/pink thumb. Applied to the games panel which actually scrolls. */
 .ed-main--list .hub-activities {
-  background: transparent;
-  border: none;
-  box-shadow: none;
-  padding-top: 0;
-  padding-bottom: 0;
+  /* Firefox */
+  scrollbar-width: auto;
+  scrollbar-color: #FFD700 rgba(0, 0, 0, 0.5);
+  /* a touch of right-side breathing room for the scrollbar itself */
+  padding-right: 6px;
+}
+.ed-main--list .hub-activities::-webkit-scrollbar {
+  width: 14px;
+}
+.ed-main--list .hub-activities::-webkit-scrollbar-track {
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(199, 125, 255, 0.18) 0,
+      rgba(199, 125, 255, 0.18) 2px,
+      transparent 2px,
+      transparent 4px
+    ),
+    rgba(0, 0, 0, 0.5);
+  border: 2px solid #c77dff;
+  border-radius: 999px;
+  margin: 4px 0;
+}
+.ed-main--list .hub-activities::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #FFD700 0%, #ec4899 60%, #c77dff 100%);
+  border: 2px solid #2e1065;
+  border-radius: 999px;
+  box-shadow: inset 0 0 6px rgba(255, 215, 0, 0.5);
+}
+.ed-main--list .hub-activities::-webkit-scrollbar-thumb:hover {
+  filter: brightness(1.15);
+  box-shadow: inset 0 0 10px rgba(255, 215, 0, 0.8);
 }
 
-/* ── Test All — floating round button, bottom-right of the viewport. ── */
+/* ── Test All — floating circle button, bottom-right of the viewport.
+   Three stacked words, no icon, no count. */
 .ed-main--list .hub-testall {
   position: fixed;
   bottom: 108px;            /* 40px gap above the 68px ArcadeFooter */
@@ -2401,48 +2671,235 @@
 }
 .ed-main--list .hub-testall-btn {
   font-family: 'Press Start 2P', monospace;
-  font-size: 10px;
+  font-size: 7px;
   letter-spacing: 0.04em;
-  padding: 18px 26px;
-  border-radius: 999px;
+  padding: 0;
+  width: 78px;
+  height: 78px;
+  border-radius: 50%;
   background: linear-gradient(180deg, #ec4899 0%, #c77dff 100%);
   border: 2px solid #FFD700;
   color: #fff;
-  text-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 0 5px rgba(0, 0, 0, 0.45);
   box-shadow:
-    0 0 0 4px rgba(46, 16, 101, 0.6),
-    0 0 24px rgba(251, 191, 36, 0.55),
-    inset 0 0 14px rgba(255, 215, 0, 0.35);
+    0 0 0 2px rgba(46, 16, 101, 0.7),
+    0 0 18px rgba(251, 191, 36, 0.55),
+    inset 0 0 10px rgba(255, 215, 0, 0.3);
   cursor: pointer;
-  display: inline-flex;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  white-space: nowrap;
+  justify-content: center;
+  gap: 3px;
+  line-height: 1.1;
   transition: filter 0.12s, box-shadow 0.18s, transform 0.12s;
 }
 .ed-main--list .hub-testall-btn:hover {
   filter: brightness(1.12);
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   box-shadow:
-    0 0 0 4px rgba(46, 16, 101, 0.7),
-    0 0 32px rgba(251, 191, 36, 0.8),
-    inset 0 0 18px rgba(255, 215, 0, 0.5);
-}
-.ed-main--list .hub-testall-icon {
-  color: #FFD700;
-  filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.85));
-  font-size: 11px;
-}
-.ed-main--list .hub-testall-meta {
-  font-size: 7px;
-  opacity: 0.85;
-  letter-spacing: 0.06em;
+    0 0 0 2px rgba(46, 16, 101, 0.8),
+    0 0 24px rgba(251, 191, 36, 0.85),
+    inset 0 0 14px rgba(255, 215, 0, 0.5);
 }
 
 /* Word list panel — ensure pure white (not the white-gradient that the
    earlier magical block applied). */
 .ed-main--list .hub-words {
   background: #fff;
+}
+
+/* ── Sort by dropdown (My Lists et al.) ────────────────────────────── */
+.ed-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: 14px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  color: #fde68a;
+  text-shadow: 0 0 4px rgba(255, 215, 0, 0.4);
+  cursor: pointer;
+}
+.ed-sort-label {
+  line-height: 1;
+}
+.ed-sort-select {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  padding: 8px 28px 8px 12px;
+  background: linear-gradient(180deg, #3b1180 0%, #1f0d3d 100%);
+  color: #fff;
+  border: 1.5px solid #c77dff;
+  border-radius: 6px;
+  cursor: pointer;
+  box-shadow:
+    inset 0 0 8px rgba(199, 125, 255, 0.4),
+    3px 3px 0 #c77dff;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image:
+    linear-gradient(180deg, #3b1180 0%, #1f0d3d 100%),
+    linear-gradient(45deg, transparent 50%, #FFD700 50%),
+    linear-gradient(135deg, #FFD700 50%, transparent 50%);
+  background-origin: padding-box, border-box, border-box;
+  background-clip: padding-box, border-box, border-box;
+  background-repeat: no-repeat;
+  background-position:
+    0 0,
+    calc(100% - 13px) calc(50% + 1px),
+    calc(100% - 9px) calc(50% + 1px);
+  background-size: 100% 100%, 5px 5px, 5px 5px;
+}
+.ed-sort-select:hover {
+  filter: brightness(1.1);
+  border-color: #FFD700;
+}
+.ed-sort-select:focus-visible {
+  outline: 2px solid #FFD700;
+  outline-offset: 2px;
+}
+.ed-sort-select option {
+  background: #1a0a2e;
+  color: #fff;
+}
+
+/* ── ListCard meta-column extras (mastery + test-date badges) ─────── */
+.ed-listcard__meta-badge {
+  align-self: center;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  white-space: nowrap;
+}
+
+/* ── Magical refresh for the Test All Words / pick-a-game modal ──── */
+.hub-testall-overlay {
+  background: rgba(10, 4, 24, 0.78);
+  backdrop-filter: blur(2px);
+}
+.hub-testall-modal {
+  background: linear-gradient(180deg, #2e1065 0%, #1a0a2e 100%);
+  border: 2px solid #c77dff;
+  border-radius: 12px;
+  box-shadow:
+    0 0 0 4px rgba(46, 16, 101, 0.8),
+    0 0 40px rgba(251, 191, 36, 0.5),
+    inset 0 0 28px rgba(167, 139, 250, 0.18);
+  color: #fff;
+}
+.hub-testall-modal-close {
+  color: #f9a8d4;
+  background: transparent;
+  border: none;
+}
+.hub-testall-modal-close:hover { color: #FFD700; }
+.hub-testall-modal-title {
+  background: linear-gradient(
+    90deg,
+    #ec4899 0%, #fbbf24 25%, #4ade80 50%, #60a5fa 75%, #c77dff 100%
+  );
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(2px 2px 0 #2e1065) drop-shadow(0 0 12px rgba(236, 72, 153, 0.5));
+  animation: ed-explore-title-shimmer 6s linear infinite;
+}
+.hub-testall-modal-sub {
+  color: #f9a8d4;
+  text-shadow: 0 0 6px rgba(236, 72, 153, 0.4);
+}
+.hub-testall-modal .hub-testall-pick {
+  background: linear-gradient(180deg, rgba(167, 139, 250, 0.12), rgba(46, 16, 101, 0.45));
+  border: 2px solid #c77dff;
+  color: #fff;
+  text-shadow: 0 0 4px rgba(236, 72, 153, 0.4);
+  box-shadow: inset 0 0 8px rgba(199, 125, 255, 0.3);
+}
+.hub-testall-modal .hub-testall-pick:hover {
+  border-color: #FFD700;
+  background: linear-gradient(180deg, rgba(251, 191, 36, 0.18), rgba(46, 16, 101, 0.6));
+  box-shadow:
+    inset 0 0 10px rgba(251, 191, 36, 0.3),
+    0 0 16px rgba(251, 191, 36, 0.5);
+}
+.hub-testall-modal .hub-testall-pick--quiz,
+.hub-testall-modal .hub-testall-pick--memory {
+  /* override the pastel pink/green chip backgrounds with the magical glass */
+  background: linear-gradient(180deg, rgba(167, 139, 250, 0.12), rgba(46, 16, 101, 0.45));
+}
+
+/* ── Magical refresh for the Word Detail overlay (word definitions) ── */
+.hub-word-overlay {
+  background: rgba(10, 4, 24, 0.78);
+  backdrop-filter: blur(2px);
+}
+.hub-word-modal {
+  background: linear-gradient(180deg, #2e1065 0%, #1a0a2e 100%);
+  border: 2px solid #c77dff;
+  border-radius: 12px;
+  box-shadow:
+    0 0 0 4px rgba(46, 16, 101, 0.8),
+    0 0 40px rgba(251, 191, 36, 0.45),
+    inset 0 0 28px rgba(167, 139, 250, 0.18);
+  color: #fff;
+  overflow: hidden;
+}
+.hub-word-modal-header {
+  background: linear-gradient(180deg, #c77dff 0%, #7c3aed 100%) !important;
+  border-bottom: 2px solid #FFD700;
+}
+.hub-word-modal-name {
+  color: #fff;
+  text-shadow:
+    2px 2px 0 #2e1065,
+    0 0 10px rgba(255, 215, 0, 0.5);
+}
+.hub-word-modal-icon {
+  filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.6));
+}
+.hub-word-modal-close {
+  color: #fff;
+}
+.hub-word-modal-close:hover { color: #FFD700; }
+.hub-word-modal-meta {
+  color: #f9a8d4;
+}
+.hub-word-modal-phonetic,
+.hub-word-modal-pos {
+  color: #fde68a;
+  text-shadow: 0 0 4px rgba(255, 215, 0, 0.4);
+}
+.hub-word-modal-actions .hub-word-modal-speak,
+.hub-word-modal-actions .hub-word-modal-teacher {
+  background: linear-gradient(180deg, rgba(167, 139, 250, 0.12), rgba(46, 16, 101, 0.45));
+  border: 1.5px solid #c77dff;
+  color: #fff;
+  text-shadow: 0 0 4px rgba(236, 72, 153, 0.4);
+  box-shadow: inset 0 0 6px rgba(199, 125, 255, 0.3);
+}
+.hub-word-modal-actions .hub-word-modal-speak:hover {
+  border-color: #FFD700;
+  color: #FFD700;
+  box-shadow:
+    inset 0 0 10px rgba(251, 191, 36, 0.3),
+    0 0 12px rgba(251, 191, 36, 0.45);
+}
+.hub-word-modal-body,
+.hub-word-modal-def,
+.hub-word-modal-example,
+.hub-word-modal-example-label,
+.hub-word-modal-nodef {
+  color: #fff;
+}
+.hub-word-modal-example,
+.hub-word-modal-example-label {
+  color: #f9a8d4;     /* soft pink for the "e.g. …" example line */
+}
+.hub-word-modal-loading,
+.hub-word-modal-nodef {
+  color: #f9a8d4;
 }
 
 
