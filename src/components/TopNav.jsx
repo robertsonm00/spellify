@@ -122,6 +122,14 @@ export default function TopNav({
           >
             Explore
           </button>
+          <button
+            className={`topnav-tab${section === 'exploreDashboard2' ? ' topnav-tab--active' : ''}`}
+            onClick={() => onSectionChange('exploreDashboard2')}
+            role="tab"
+            aria-selected={section === 'exploreDashboard2'}
+          >
+            Explore 2
+          </button>
         </div>
       )}
 

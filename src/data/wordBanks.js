@@ -16,7 +16,8 @@
  * All words in these banks must exist in the word database.
  * Run checkCoverage.mjs after any changes to verify.
  *
- * Last updated: 2026-05-20 — v1.0 initial authoring
+ * Last updated: 2026-05-21 — Fix 1: replace HF_KS1 with canonical DfE/Letters and Sounds 100 HFW list
+ *                           Fix 2: add 23 displaced words to HF_Y34
  */
 
 // ── Bank 1: KS1 High-Frequency Words (Y1/Y2) ────────────────────────────────
@@ -32,16 +33,16 @@ export const HF_KS1 = {
   yearsVisible: [1, 2],
   category: 'Word Bank',
   words: [
-    'the', 'a', 'and', 'in', 'is', 'it', 'of', 'to', 'was', 'he',
-    'she', 'for', 'on', 'are', 'with', 'his', 'they', 'at', 'be', 'this',
-    'from', 'or', 'had', 'by', 'but', 'not', 'what', 'all', 'were', 'when',
-    'we', 'there', 'can', 'an', 'your', 'which', 'their', 'said', 'if', 'do',
-    'will', 'each', 'about', 'how', 'up', 'out', 'them', 'then', 'many', 'some',
-    'so', 'these', 'would', 'other', 'into', 'has', 'more', 'her', 'two', 'like',
-    'him', 'see', 'time', 'no', 'could', 'go', 'come', 'did', 'my', 'its',
-    'get', 'now', 'down', 'way', 'may', 'also', 'back', 'after', 'use', 'day',
-    'over', 'than', 'our', 'one', 'love', 'here', 'where', 'have', 'good', 'look',
-    'put', 'you', 'me', 'old', 'too', 'been', 'off', 'any', 'just', 'know',
+    'the', 'and', 'a', 'to', 'said', 'in', 'he', 'I', 'of', 'it',
+    'was', 'you', 'they', 'on', 'she', 'is', 'for', 'at', 'his', 'but',
+    'that', 'with', 'all', 'we', 'can', 'are', 'up', 'had', 'my', 'her',
+    'what', 'there', 'out', 'this', 'have', 'went', 'be', 'like', 'some', 'so',
+    'not', 'then', 'were', 'go', 'little', 'as', 'no', 'mum', 'one', 'them',
+    'do', 'me', 'down', 'dad', 'big', 'when', "it's", 'see', 'looked', 'very',
+    'look', "don't", 'come', 'will', 'into', 'back', 'from', 'children', 'him', 'Mr',
+    'get', 'just', 'now', 'came', 'oh', 'about', 'got', 'their', 'people', 'your',
+    'put', 'could', 'house', 'old', 'too', 'by', 'day', 'made', 'time', "I'm",
+    'if', 'help', 'Mrs', 'called', 'here', 'off', 'asked', 'saw', 'make', 'an',
   ],
 };
 
@@ -66,6 +67,9 @@ export const HF_Y34 = {
     'same', 'say', 'show', 'small', 'still', 'such', 'take', 'tell', 'through',
     'try', 'turn', 'under', 'until', 'very', 'water', 'well', 'went', 'while',
     'work', 'world', 'write', 'year', 'also', 'back', 'away', 'each', 'every',
+    'after', 'any', 'been', 'did', 'good', 'has', 'how', 'its',
+    'many', 'may', 'more', 'or', 'other', 'our', 'over', 'than',
+    'these', 'two', 'use', 'way', 'where', 'which', 'would',
   ],
 };
 

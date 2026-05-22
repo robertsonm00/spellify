@@ -12,6 +12,7 @@ import TopNav         from './components/TopNav';
 import { fireBuddyCheer } from './components/BuddyAvatar';
 import ExplorePage    from './components/explore/ExplorePage';
 import ExploreDashboard from './components/explore/ExploreDashboard';
+import ExploreDashboard2 from './components/explore/ExploreDashboard2';
 import SignInModal    from './components/explore/SignInModal';
 import Settings       from './components/Settings';
 import { GeneratedWords } from './components/OnboardingFlow';
@@ -286,7 +287,7 @@ function App() {
 
   if (!session || !session.words || session.words.length === 0) {
     // Show Explore even without a session — welcome screen not needed if they go via Explore
-    if (section === 'explore' || section === 'exploreDashboard') {
+    if (section === 'explore' || section === 'exploreDashboard' || section === 'exploreDashboard2') {
       return (
         <>
           <TopNav
@@ -308,8 +309,18 @@ function App() {
               signUp={signUp}
               signInWithGoogle={signInWithGoogle}
             />
-          ) : (
+          ) : section === 'exploreDashboard' ? (
             <ExploreDashboard
+              session={session}
+              user={user}
+              profile={profile}
+              signIn={signIn}
+              signUp={signUp}
+              signInWithGoogle={signInWithGoogle}
+              onOpenSettings={() => setSettingsOpen(true)}
+            />
+          ) : (
+            <ExploreDashboard2
               session={session}
               user={user}
               profile={profile}
@@ -395,6 +406,19 @@ function App() {
       {/* ── Explore Dashboard (experimental) ── */}
       {section === 'exploreDashboard' && (
         <ExploreDashboard
+          session={session}
+          user={user}
+          profile={profile}
+          signIn={signIn}
+          signUp={signUp}
+          signInWithGoogle={signInWithGoogle}
+          onOpenSettings={() => setSettingsOpen(true)}
+        />
+      )}
+
+      {/* ── Explore Dashboard 2 (experimental copy for UI iteration) ── */}
+      {section === 'exploreDashboard2' && (
+        <ExploreDashboard2
           session={session}
           user={user}
           profile={profile}
