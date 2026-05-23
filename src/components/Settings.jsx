@@ -3,9 +3,16 @@ import './Settings.css';
 import { YEAR_LABELS, ageToYear } from '../data/ukCurriculum';
 import { YEAR_GROUPS } from '../utils/wordSelectionEngine';
 import { CHARACTERS } from './OnboardingFlow';
+import { confidenceToDefaults } from '../data/spelling/sessionSchema';
 import BuddyAvatar, { DEFAULT_BUDDY, hasBuddyAvatar } from './BuddyAvatar';
 
-function Settings({ userAge, dyslexiaMode = false, childName, childCharacter, year: yearProp, onUpdate, onChangeWords, onClearProgress, onClose }) {
+const CONFIDENCE_LABELS = {
+  'easy':         { emoji: '😊', label: 'Pretty easy' },
+  'tricky':       { emoji: '🤔', label: 'Sometimes tricky' },
+  'often-tricky': { emoji: '😰', label: 'Often tricky' },
+};
+
+function Settings({ userAge, dyslexiaMode = false, childName, childCharacter, year: yearProp, spellingConfidence = 'tricky', onUpdate, onChangeWords, onClearProgress, onClose }) {
   const currentYear = yearProp ?? ageToYear(userAge);
 
   const [editName,       setEditName]       = useState(childName || '');
@@ -33,6 +40,20 @@ function Settings({ userAge, dyslexiaMode = false, childName, childCharacter, ye
     const group = YEAR_GROUPS.find((g) => g.yearGroup === yr);
     const age = group?.ageRange[0] ?? userAge;
     save({ year: yr, age });
+  };
+
+  // Changing the confidence answer re-applies the dyslexiaMode/difficulty
+  // defaults from confidenceToDefaults. Matches the onboarding mapping.
+  // If the parent has manually toggled Support Mode independently (or
+  // SEN profile contains 'dyslexia') the Support Mode toggle keeps its
+  // own state — both fields are saved together so they're consistent.
+  const handleConfidenceChange = (next) => {
+    const { dyslexiaMode: dm, difficulty } = confidenceToDefaults(next);
+    save({
+      spellingConfidence: next,
+      dyslexiaMode:       dm,
+      difficulty,
+    });
   };
 
   const handleSaveProfile = () => {
@@ -118,6 +139,30 @@ function Settings({ userAge, dyslexiaMode = false, childName, childCharacter, ye
         </div>
 
         <div className="settings-divider" />
+
+        {/* ── Spelling confidence ── */}
+        <div className="settings-confidence">
+          <span className="settings-label settings-confidence-label">
+            How does <span style={{ whiteSpace: 'nowrap' }}>{childName || 'they'}</span> find spelling?
+          </span>
+          <div className="settings-confidence-options">
+            {(['easy', 'tricky', 'often-tricky']).map((id) => {
+              const meta = CONFIDENCE_LABELS[id];
+              const active = spellingConfidence === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  className={`settings-confidence-opt${active ? ' settings-confidence-opt--active' : ''}`}
+                  onClick={() => handleConfidenceChange(id)}
+                >
+                  <span className="settings-confidence-emoji" aria-hidden="true">{meta.emoji}</span>
+                  <span className="settings-confidence-text">{meta.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
         {/* ── Extra Support Mode ── */}
         <label className="settings-support-toggle">

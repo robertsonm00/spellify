@@ -18,8 +18,11 @@ import { isActivityAvailable } from '../../utils/activityAvailability';
  * Build a pseudo-session from an Explore list. Used by buildProps()
  * functions on registry entries (e.g. Crossword reads .age).
  */
-function buildPseudoSession({ list, words }) {
+function buildPseudoSession({ list, words, parentSession }) {
   const age = list?.ageRange?.[0] ?? 8;
+  // Honour the real session's Support Mode / difficulty when present so
+  // Explore-list games behave identically to My Words games for kids who
+  // have Support Mode on. Falls back to defaults for guest sessions.
   return {
     year: list?.year ?? null,
     age,
@@ -28,15 +31,17 @@ function buildPseudoSession({ list, words }) {
       const word = typeof w === 'string' ? w : w.word;
       return { word, year: list?.year ?? 3, difficulty: 'medium' };
     }),
-    sourceMode: 'curriculum',
-    dyslexiaMode: false,
-    difficulty: 'medium',
-    childName: '',
-    activityStatuses: {},     // Explore tracks progress per-list, not per-session
-    mastery: {},
-    reviewQueue: [],
-    ruleKey: null,
-    ruleLabel: null,
+    sourceMode:        'curriculum',
+    dyslexiaMode:      !!parentSession?.dyslexiaMode,
+    difficulty:        parentSession?.difficulty || 'medium',
+    childName:         '',
+    spellingConfidence: parentSession?.spellingConfidence || 'tricky',
+    senProfile:        Array.isArray(parentSession?.senProfile) ? parentSession.senProfile : [],
+    activityStatuses:  {},   // Explore tracks progress per-list, not per-session
+    mastery:           {},
+    reviewQueue:       [],
+    ruleKey:           null,
+    ruleLabel:         null,
   };
 }
 
@@ -48,11 +53,11 @@ function buildPseudoSession({ list, words }) {
  * @param {{ list, words, user, onComplete, onExit }} ctx
  * @returns {React.ReactElement|null}
  */
-export function renderExploreActivity(activityId, { list, words, user, onComplete, onExit, savedProgress = null, onSaveProgress }) {
+export function renderExploreActivity(activityId, { list, words, user, session: parentSession, onComplete, onExit, savedProgress = null, onSaveProgress }) {
   const activity = getActivity(activityId);
   if (!activity) return null;
 
-  const session = buildPseudoSession({ list, words });
+  const session = buildPseudoSession({ list, words, parentSession });
   if (!isActivityAvailable(activity, { session, user })) return null;
 
   const Component  = activity.component;
@@ -61,7 +66,7 @@ export function renderExploreActivity(activityId, { list, words, user, onComplet
   return (
     <Component
       words={words}
-      dyslexiaMode={false}
+      dyslexiaMode={session.dyslexiaMode}
       savedProgress={savedProgress}
       onSaveProgress={onSaveProgress}
       onComplete={(results) => onComplete(activityId, results || [])}

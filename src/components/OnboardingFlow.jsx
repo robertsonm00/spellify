@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import confetti from 'canvas-confetti';
 import './OnboardingFlow.css';
 import { YEAR_GROUPS, selectWords, getRuleGroups } from '../utils/wordSelectionEngine';
+import { confidenceToDefaults } from '../data/spelling/sessionSchema';
 import AddWordsManual from './AddWordsManual';
 import BuddyAvatar, { hasBuddyAvatar } from './BuddyAvatar';
 
@@ -279,7 +280,155 @@ function YearPicker({ name, onSelect }) {
   );
 }
 
-// ── Step 4: Word source choice ─────────────────────────────────────────────
+// ── Step 4: Spelling confidence + optional SEN follow-up ───────────────────
+//
+// Asked of every child between the year picker and the word-source picker
+// so it's reached on BOTH the generated-words and manual-entry paths.
+// Drives `spellingConfidence`, a default `dyslexiaMode` (via
+// confidenceToDefaults), and an optional `senProfile` array.
+//
+// Important UX rules:
+//   • The SEN follow-up is collapsed by default and entirely optional —
+//     the child must be able to skip past it with no friction.
+//   • Picking a confidence card never auto-advances; the parent might
+//     want to also flip the Support Mode override or expand the SEN
+//     section before moving on. "Continue" advances.
+
+const CONFIDENCE_OPTIONS = [
+  { id: 'easy',         emoji: '😊', label: 'Pretty easy most of the time' },
+  { id: 'tricky',       emoji: '🤔', label: 'Sometimes tricky, sometimes okay' },
+  { id: 'often-tricky', emoji: '😰', label: 'Often finds it tricky' },
+];
+
+const SEN_OPTIONS = [
+  { id: 'dyslexia',            label: 'Dyslexia' },
+  { id: 'dyscalculia',         label: 'Dyscalculia' },
+  { id: 'adhd',                label: 'ADHD' },
+  { id: 'other',               label: 'Other' },
+  { id: 'prefer-not-to-say',   label: 'Prefer not to say' },
+];
+
+function ConfidencePicker({ name, initialConfidence, initialDyslexiaMode, initialSenProfile, onSubmit }) {
+  const [confidence,   setConfidence]   = useState(initialConfidence || 'tricky');
+  const [dyslexiaMode, setDyslexiaMode] = useState(initialDyslexiaMode || false);
+  const [senProfile,   setSenProfile]   = useState(initialSenProfile || []);
+  const [senOpen,      setSenOpen]      = useState(false);
+  // Track whether the parent has manually overridden the Support Mode
+  // toggle since the last confidence pick. If they haven't, switching
+  // confidence auto-updates the toggle from confidenceToDefaults; if
+  // they have, we leave their explicit choice alone.
+  const [supportManual, setSupportManual] = useState(false);
+
+  const pickConfidence = (id) => {
+    setConfidence(id);
+    if (!supportManual) {
+      const { dyslexiaMode: derived } = confidenceToDefaults(id);
+      setDyslexiaMode(derived || senProfile.includes('dyslexia'));
+    }
+  };
+
+  const toggleSupport = (val) => {
+    setDyslexiaMode(val);
+    setSupportManual(true);
+  };
+
+  const toggleSen = (id) => {
+    setSenProfile((prev) => {
+      const has = prev.includes(id);
+      let next  = has ? prev.filter(x => x !== id) : [...prev, id];
+      // "Prefer not to say" is mutually exclusive with anything else.
+      if (id === 'prefer-not-to-say' && !has) next = ['prefer-not-to-say'];
+      else if (id !== 'prefer-not-to-say' && next.includes('prefer-not-to-say')) {
+        next = next.filter(x => x !== 'prefer-not-to-say');
+      }
+      // If dyslexia is now on, force Support Mode on regardless of the
+      // confidence-derived default. (Spec: dyslexia → dyslexiaMode true.)
+      if (!has && id === 'dyslexia') setDyslexiaMode(true);
+      return next;
+    });
+  };
+
+  const handleContinue = () => {
+    onSubmit({ spellingConfidence: confidence, dyslexiaMode, senProfile });
+  };
+
+  return (
+    <div className="ob-step ob-confidence">
+      <div className="ob-step-header">
+        <h2 className="ob-step-title">
+          How does <span style={{ whiteSpace: 'nowrap' }}>{name}</span> find spelling?
+        </h2>
+      </div>
+
+      <div className="ob-confidence-grid">
+        {CONFIDENCE_OPTIONS.map(opt => (
+          <button
+            key={opt.id}
+            className={`ob-confidence-card${confidence === opt.id ? ' ob-confidence-card--picked' : ''}`}
+            onClick={() => pickConfidence(opt.id)}
+            type="button"
+          >
+            <span className="ob-confidence-emoji" aria-hidden="true">{opt.emoji}</span>
+            <span className="ob-confidence-label">{opt.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Extra Support Mode — auto-derived from confidence answer, but
+            parent can override before continuing. */}
+      <label className="ob-support-toggle ob-support-toggle--inline">
+        <div className="ob-support-switch">
+          <input
+            type="checkbox"
+            checked={dyslexiaMode}
+            onChange={(e) => toggleSupport(e.target.checked)}
+          />
+          <span className="ob-support-slider" />
+        </div>
+        <div className="ob-support-text">
+          <span className="ob-support-name">⭐ Extra Support Mode</span>
+          <span className="ob-support-hint">Bigger fonts, simpler words, gentler activities</span>
+        </div>
+      </label>
+
+      {/* Optional, collapsible SEN follow-up. Genuinely skippable. */}
+      <details
+        className="ob-sen-details"
+        open={senOpen}
+        onToggle={(e) => setSenOpen(e.currentTarget.open)}
+      >
+        <summary className="ob-sen-summary">
+          <span className="ob-sen-summary-plus">+</span>
+          <span>
+            Does <span style={{ whiteSpace: 'nowrap' }}>{name}</span> have any
+            additional learning needs?{' '}
+            <span className="ob-sen-summary-optional">(optional)</span>
+          </span>
+        </summary>
+        <div className="ob-sen-options">
+          {SEN_OPTIONS.map(opt => (
+            <label key={opt.id} className="ob-sen-option">
+              <input
+                type="checkbox"
+                checked={senProfile.includes(opt.id)}
+                onChange={() => toggleSen(opt.id)}
+              />
+              <span>{opt.label}</span>
+            </label>
+          ))}
+        </div>
+      </details>
+
+      <div className="ob-confidence-actions">
+        <button className="ob-play-btn" onClick={handleContinue} type="button">
+          Continue →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Step 5: Word source choice ─────────────────────────────────────────────
 
 function WordSourcePicker({ onGenerate, onManual }) {
   return (
@@ -467,27 +616,61 @@ export function GeneratedWords({
 // ── Main orchestrator ──────────────────────────────────────────────────────
 
 function OnboardingFlow({ onComplete, initialName = '', initialCharacter = null, initialYear = null, startStep = 'name' }) {
-  const [step, setStep] = useState(startStep);   // name | character | year | source | generate | manual
-  const [name, setName] = useState(initialName);
+  // step flow: name → character → year → confidence → source → generate | manual
+  const [step, setStep]         = useState(startStep);
+  const [name, setName]         = useState(initialName);
   const [character, setCharacter] = useState(initialCharacter);
-  const [year, setYear] = useState(initialYear);
+  const [year, setYear]         = useState(initialYear);
+  // Confidence step state — drives default dyslexiaMode + difficulty.
+  // Stored at the OnboardingFlow level so both the generate and manual
+  // branches can consume them on submit (fixes the previous
+  // manual-path bug that hardcoded dyslexiaMode: false).
+  const [spellingConfidence, setSpellingConfidence] = useState('tricky');
+  const [dyslexiaMode,       setDyslexiaMode]       = useState(false);
+  const [senProfile,         setSenProfile]         = useState([]);
 
   const handleName = (n) => { setName(n); setStep('character'); };
   const handleCharacter = (c) => { setCharacter(c); setStep('year'); };
-  const handleYear = (y) => { setYear(y); setStep('source'); };
+  const handleYear = (y) => { setYear(y); setStep('confidence'); };
+  const handleConfidence = ({ spellingConfidence: sc, dyslexiaMode: dm, senProfile: sen }) => {
+    setSpellingConfidence(sc);
+    setDyslexiaMode(dm);
+    setSenProfile(sen);
+    setStep('source');
+  };
 
-  // Called by GeneratedWords with { words, wordObjects, dyslexiaMode, sourceMode, ruleKey?, ruleLabel? }
-  // and by AddWordsManual (wrapped below) with sourceMode: 'manual'
-  const handleConfirmWords = ({ words, wordObjects = [], dyslexiaMode = false, sourceMode = 'generated', ruleKey = null, ruleLabel = null }) => {
+  // Called by GeneratedWords with { words, wordObjects, dyslexiaMode (latest), sourceMode, ruleKey?, ruleLabel? }
+  // and by AddWordsManual (wrapped below) with sourceMode: 'manual'.
+  //
+  // dyslexiaMode flows in here from the most recent source:
+  //   - generate path: GeneratedWords' own toggle (initialised from this
+  //     component's state) — latest local override wins
+  //   - manual path: this component's state (set during the confidence step)
+  const handleConfirmWords = ({ words, wordObjects = [], dyslexiaMode: dmFromStep, sourceMode = 'generated', ruleKey = null, ruleLabel = null }) => {
     const group = YEAR_GROUPS.find((g) => g.yearGroup === year);
     const age   = group?.ageRange[0] ?? 8;
-    onComplete({ name, character, year, age, words, wordObjects, dyslexiaMode, sourceMode, ruleKey, ruleLabel, difficulty: 'medium' });
+    // Use step-supplied dyslexiaMode if provided (generate path); otherwise
+    // fall back to our state (manual path).
+    const finalDyslexia = typeof dmFromStep === 'boolean' ? dmFromStep : dyslexiaMode;
+    // If senProfile includes dyslexia, force Support Mode on regardless.
+    const dyslexiaModeOut = finalDyslexia || senProfile.includes('dyslexia');
+    const { difficulty } = confidenceToDefaults(spellingConfidence);
+    onComplete({
+      name, character, year, age,
+      words, wordObjects,
+      dyslexiaMode: dyslexiaModeOut,
+      sourceMode, ruleKey, ruleLabel,
+      difficulty,
+      spellingConfidence,
+      senProfile,
+    });
   };
 
   const back = () => {
     if (step === 'character')                      setStep('name');
     else if (step === 'year')                      setStep('character');
-    else if (step === 'source')                    setStep('year');
+    else if (step === 'confidence')                setStep('year');
+    else if (step === 'source')                    setStep('confidence');
     else if (step === 'generate' || step === 'manual') setStep('source');
   };
 
@@ -508,17 +691,30 @@ function OnboardingFlow({ onComplete, initialName = '', initialCharacter = null,
         ))}
       </div>
       <div className="ob-card">
-        {step === 'name'     && <NameInput onSubmit={handleName} />}
+        {step === 'name'      && <NameInput onSubmit={handleName} />}
         {step === 'character' && <CharacterPicker name={name} onSelect={handleCharacter} />}
-        {step === 'year'     && <YearPicker name={name} onSelect={handleYear} />}
-        {step === 'source'   && (
+        {step === 'year'      && <YearPicker name={name} onSelect={handleYear} />}
+        {step === 'confidence' && (
+          <ConfidencePicker
+            name={name}
+            initialConfidence={spellingConfidence}
+            initialDyslexiaMode={dyslexiaMode}
+            initialSenProfile={senProfile}
+            onSubmit={handleConfidence}
+          />
+        )}
+        {step === 'source'    && (
           <WordSourcePicker
             onGenerate={() => setStep('generate')}
             onManual={() => setStep('manual')}
           />
         )}
         {step === 'generate' && year !== null && (
-          <GeneratedWords yearGroup={year} onConfirm={handleConfirmWords} />
+          <GeneratedWords
+            yearGroup={year}
+            initialDyslexiaMode={dyslexiaMode}
+            onConfirm={handleConfirmWords}
+          />
         )}
         {step === 'manual' && (
           <div className="ob-step">
@@ -529,7 +725,11 @@ function OnboardingFlow({ onComplete, initialName = '', initialCharacter = null,
             </div>
             <AddWordsManual
               onWordsReady={(words) =>
-                handleConfirmWords({ words, wordObjects: [], dyslexiaMode: false, sourceMode: 'manual' })
+                // Pass dyslexiaMode through from the confidence step state
+                // (was previously hardcoded to false). handleConfirmWords
+                // also folds in senProfile.includes('dyslexia') as a
+                // belt-and-braces override.
+                handleConfirmWords({ words, wordObjects: [], sourceMode: 'manual' })
               }
             />
           </div>

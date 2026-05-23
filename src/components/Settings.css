@@ -375,3 +375,51 @@
 .settings-support-switch input:checked + .settings-support-slider::before {
   transform: translateX(20px);
 }
+
+/* ── Spelling confidence selector (Phase 1 Step 5) ───────────────────── */
+
+.settings-confidence {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin: 0.45rem 0 0.65rem;
+}
+.settings-confidence-label {
+  font-weight: 700;
+}
+.settings-confidence-options {
+  display: flex;
+  gap: 0.45rem;
+}
+.settings-confidence-opt {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.55rem 0.45rem;
+  border-radius: 10px;
+  border: 2px solid #e8e1d3;
+  background: #fffaf0;
+  cursor: pointer;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  font-size: 0.78rem;
+  color: #2a2a2a;
+  text-align: center;
+  transition: border-color 0.12s, background 0.12s, box-shadow 0.12s;
+}
+.settings-confidence-opt:hover {
+  border-color: #c77dff;
+}
+.settings-confidence-opt--active {
+  border-color: #c77dff;
+  background: #f5ecff;
+  box-shadow: 0 0 0 2px rgba(199, 125, 255, 0.25);
+}
+.settings-confidence-emoji {
+  font-size: 1.3rem;
+}
+.settings-confidence-text {
+  line-height: 1.2;
+}

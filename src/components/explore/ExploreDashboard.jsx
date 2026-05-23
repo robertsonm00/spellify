@@ -671,21 +671,10 @@ export default function ExploreDashboard({
     [curriculumYearRefs, practiceTick], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
-  // Mastered-word visibility gate. Computed per-scope so Home, My Lists,
-  // and Explore each only show their banner when their *own* scope has
-  // ≥1 mastered word.
-  const hasMasteredIn = (refs) => {
-    for (const ref of refs) {
-      const state = getMasteryState(ref.id);
-      for (const entry of Object.values(state.words || {})) {
-        if (entry?.mastered) return true;
-      }
-    }
-    return false;
-  };
-  const homeHasMastered    = useMemo(() => hasMasteredIn(allListRefs),       [allListRefs,       practiceTick]); // eslint-disable-line react-hooks/exhaustive-deps
-  const myListsHasMastered = useMemo(() => hasMasteredIn(customListRefs),    [customListRefs,    practiceTick]); // eslint-disable-line react-hooks/exhaustive-deps
-  const exploreHasMastered = useMemo(() => hasMasteredIn(curriculumYearRefs),[curriculumYearRefs,practiceTick]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Practice Quest banner shows whenever a scope has ≥1 struggling word.
+  // The 3-attempt minimum in masteryEngine (STRUGGLING_MIN_ATTEMPTS) is
+  // sufficient protection against day-one false positives — no extra
+  // mastered-word gate is needed.
 
   const launchPracticeQuestWith = (aggregate) => {
     const items = aggregate.slice(0, PRACTICE_QUEST_MAX).map(e => ({
@@ -828,9 +817,8 @@ export default function ExploreDashboard({
   // Render a Practice Quest banner for the given scope. Pure presentation;
   // pass one of homeAggregate / myListsAggregate / exploreAggregate plus
   // the matching has-mastered gate. Hidden when either condition fails.
-  const renderPracticeQuestBanner = ({ aggregate, hasMastered }) => {
+  const renderPracticeQuestBanner = ({ aggregate }) => {
     if (!aggregate || aggregate.length === 0) return null;
-    if (!hasMastered) return null;
     const distinctLists = new Set(aggregate.map(e => e.listId)).size;
     const preview = aggregate.length <= 3
       ? aggregate.map(e => e.word).join(', ')
@@ -977,7 +965,7 @@ export default function ExploreDashboard({
     if (page === 'home') {
       return (
         <main className="ed-main ed-main--home">
-          {renderPracticeQuestBanner({ aggregate: homeAggregate, hasMastered: homeHasMastered })}
+          {renderPracticeQuestBanner({ aggregate: homeAggregate })}
           <PaneSection headerClass="ep-home-phase" label="Home" hint="Coming soon">
             <div className="ed-list-frame">
               <p className="ep-phase-empty">
@@ -1025,7 +1013,7 @@ export default function ExploreDashboard({
       const hasLists = filteredCustom.length > 0;
       return (
         <main className="ed-main ed-main--mylists">
-          {renderPracticeQuestBanner({ aggregate: myListsAggregate, hasMastered: myListsHasMastered })}
+          {renderPracticeQuestBanner({ aggregate: myListsAggregate })}
           <PaneSection headerClass="ep-your-lists-phase" label="My Lists" hint="Your custom word lists">
             <div className="ed-list-frame">
               <FilterRow
@@ -1083,7 +1071,7 @@ export default function ExploreDashboard({
 
       return (
         <main className="ed-main ed-main--explore">
-          {renderPracticeQuestBanner({ aggregate: exploreAggregate, hasMastered: exploreHasMastered })}
+          {renderPracticeQuestBanner({ aggregate: exploreAggregate })}
           <PaneSection
             headerClass="ep-curriculum-phase"
             label="Explore"

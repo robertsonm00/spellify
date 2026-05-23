@@ -6,6 +6,7 @@ import {
   getActiveWindow,
   getListProgressState,
 } from '../../utils/wordSelectionEngine';
+import { effectiveSenProfile } from '../../data/spelling/sessionSchema';
 import {
   getMasteryState,
   getUnmasteredWords,
@@ -131,9 +132,17 @@ export default function ListHub({
     () => getMasteryState(list.id),
     [list.id, masteryTick],
   );
+  // Pass the effective SEN profile derived from session.spellingConfidence
+  // + session.senProfile so getActiveWindow applies the right schedule
+  // multiplier (consolidating window x2, retained frequency x2 when the
+  // child finds spelling often-tricky or self-reports dyslexia).
+  const senProfileForSelection = useMemo(
+    () => effectiveSenProfile(session),
+    [session],
+  );
   const activeWindow = useMemo(
-    () => getActiveWindow(list.id, fullWords, masteryState, masteryState.windowSize || 15),
-    [list.id, fullWords, masteryState],
+    () => getActiveWindow(list.id, fullWords, masteryState, masteryState.windowSize || 15, senProfileForSelection),
+    [list.id, fullWords, masteryState, senProfileForSelection],
   );
   const listProgress = useMemo(
     () => getListProgressState(fullWords, masteryState),

@@ -16,26 +16,77 @@ export const INITIAL_STATUSES = Object.fromEntries(
 
 /**
  * Build a fresh v2 session object.
- * @param {{ year, age, words, wordObjects, sourceMode, dyslexiaMode }} opts
+ *
+ * Note on the SEN/confidence model (added Phase 1 Step 5):
+ *   - `spellingConfidence`: 'easy' | 'tricky' | 'often-tricky' — answer to
+ *     the onboarding "How does your child find spelling?" question. Drives
+ *     a default `dyslexiaMode` and `difficulty` mapping, both of which
+ *     can be overridden later.
+ *   - `senProfile`: string[] — optional self-reported SEN tags (e.g.
+ *     'dyslexia', 'adhd'). When the array contains 'dyslexia' the
+ *     effective Support Mode is forced on regardless of confidence.
+ *
+ * @param {{ year, age, words, wordObjects, sourceMode, dyslexiaMode,
+ *           ruleKey, ruleLabel, spellingConfidence, senProfile }} opts
  * @returns {object}
  */
-export function createSession({ year, age, words = [], wordObjects = [], sourceMode = 'generated', dyslexiaMode = false, ruleKey = null, ruleLabel = null }) {
+export function createSession({
+  year, age, words = [], wordObjects = [],
+  sourceMode = 'generated', dyslexiaMode = false,
+  ruleKey = null, ruleLabel = null,
+  spellingConfidence = 'tricky',
+  senProfile = [],
+}) {
   return {
     _version: 2,
     year,
     age,
-    sourceMode,      // 'generated' | 'manual' | 'uploaded'
-    dyslexiaMode,    // boolean
-    words,           // string[]
-    wordObjects,     // { word, year, difficulty }[]
-    ruleKey,         // RULE_BUCKET_PICKER — null or e.g. 'splitDigraphs'
-    ruleLabel,       // RULE_BUCKET_PICKER — null or e.g. 'Split digraphs (a-e / i-e / o-e)'
+    sourceMode,            // 'generated' | 'manual' | 'uploaded'
+    dyslexiaMode,          // boolean — effective Support Mode
+    spellingConfidence,    // 'easy' | 'tricky' | 'often-tricky'
+    senProfile,            // string[] — e.g. ['dyslexia'], [] for none / prefer-not-to-say
+    words,                 // string[]
+    wordObjects,           // { word, year, difficulty }[]
+    ruleKey,               // RULE_BUCKET_PICKER — null or e.g. 'splitDigraphs'
+    ruleLabel,             // RULE_BUCKET_PICKER — null or e.g. 'Split digraphs (a-e / i-e / o-e)'
     activityStatuses: { ...INITIAL_STATUSES },
-    activityProgress: {},      // keyed by activity id — mid-session snapshots
-    activityCompletions: {},   // keyed by activity id — completion count (for the 3-tick card UI)
+    activityProgress: {},
+    activityCompletions: {},
     mastery:     {},
     reviewQueue: [],
   };
+}
+
+/**
+ * Maps a spellingConfidence answer to default `dyslexiaMode` and
+ * `difficulty` values. The Support Mode toggle on the same step (and in
+ * Settings) can override `dyslexiaMode` independently; this is just the
+ * default the answer suggests.
+ */
+export function confidenceToDefaults(confidence) {
+  switch (confidence) {
+    case 'easy':         return { dyslexiaMode: false, difficulty: 'hard'   };
+    case 'often-tricky': return { dyslexiaMode: true,  difficulty: 'easy'   };
+    case 'tricky':
+    default:             return { dyslexiaMode: false, difficulty: 'medium' };
+  }
+}
+
+/**
+ * Derive the SEN-profile string consumed by wordSelectionEngine
+ * (`getActiveWindow`) from the structured session fields. Returns one of
+ * the existing SEN_PROFILES strings or null.
+ *
+ * Trigger: spellingConfidence === 'often-tricky' OR senProfile contains
+ * 'dyslexia'. Either condition activates the SEN multiplier in the
+ * selection schedule (consolidating window x2, retained frequency x2).
+ */
+export function effectiveSenProfile(session) {
+  if (!session) return null;
+  const sen = Array.isArray(session.senProfile) ? session.senProfile : [];
+  if (sen.includes('dyslexia'))                    return 'dyslexia';
+  if (session.spellingConfidence === 'often-tricky') return 'often-tricky';
+  return null;
 }
 
 /**
@@ -60,9 +111,11 @@ export function loadSession() {
       // Ensure fields added after the first v2 release have safe defaults
       // so sessions created before them still work correctly.
       return {
-        childName:      '',
-        childCharacter: null,
-        difficulty:     'medium',
+        childName:          '',
+        childCharacter:     null,
+        difficulty:         'medium',
+        spellingConfidence: 'tricky',
+        senProfile:         [],
         ...s,
       };
     }
@@ -83,6 +136,8 @@ export function loadSession() {
         difficulty:   old.difficulty    ?? 'medium',
         sourceMode:   old.sourceMode    ?? 'generated',
         dyslexiaMode: old.dyslexiaMode  ?? false,
+        spellingConfidence: old.spellingConfidence ?? 'tricky',
+        senProfile:         Array.isArray(old.senProfile) ? old.senProfile : [],
         words:        old.words         ?? [],
         wordObjects:  old.wordObjects   ?? [],
         activityStatuses: old.activityStatuses ?? { ...INITIAL_STATUSES },

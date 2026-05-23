@@ -67,9 +67,13 @@ function App() {
 
   const handleWelcomeStart = () => setScreen('onboarding');
 
-  const handleOnboardingComplete = ({ name, character, year, age, words, wordObjects = [], dyslexiaMode = false, sourceMode = 'generated', ruleKey = null, ruleLabel = null, difficulty }) => {
+  const handleOnboardingComplete = ({ name, character, year, age, words, wordObjects = [], dyslexiaMode = false, sourceMode = 'generated', ruleKey = null, ruleLabel = null, difficulty, spellingConfidence = 'tricky', senProfile = [] }) => {
     setSession({
-      ...createSession({ year, age, words, wordObjects, sourceMode, dyslexiaMode, ruleKey, ruleLabel }),
+      ...createSession({
+        year, age, words, wordObjects, sourceMode, dyslexiaMode,
+        ruleKey, ruleLabel,
+        spellingConfidence, senProfile,
+      }),
       childName: name || '',
       childCharacter: character || null,
       difficulty: difficulty || 'medium',
@@ -385,6 +389,7 @@ function App() {
           userAge={session.age || 8}
           year={session.year ?? null}
           dyslexiaMode={session.dyslexiaMode || false}
+          spellingConfidence={session.spellingConfidence || 'tricky'}
           childName={session.childName || ''}
           childCharacter={session.childCharacter || null}
           onUpdate={handleSettingsUpdate}

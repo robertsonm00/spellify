@@ -614,3 +614,112 @@
   color: #fff;
 }
 /* ── END RULE_BUCKET_PICKER ───────────────────────────────────────────── */
+
+/* ── Confidence step ─────────────────────────────────────────────────── */
+
+.ob-confidence {
+  padding-bottom: 1rem;
+}
+
+.ob-confidence-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin: 1.25rem 0 1rem;
+}
+
+.ob-confidence-card {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.9rem 1rem;
+  border-radius: 14px;
+  border: 2px solid #e8e1d3;
+  background: #fffaf0;
+  font-family: 'Nunito', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #2a2a2a;
+  cursor: pointer;
+  transition: transform 0.08s, box-shadow 0.12s, border-color 0.12s, background 0.12s;
+  text-align: left;
+  width: 100%;
+}
+.ob-confidence-card:hover { transform: translateY(-1px); }
+.ob-confidence-card--picked {
+  border-color: #c77dff;
+  background: #f5ecff;
+  box-shadow: 0 0 0 3px rgba(199, 125, 255, 0.25);
+}
+.ob-confidence-emoji { font-size: 1.7rem; }
+.ob-confidence-label { flex: 1; }
+
+.ob-support-toggle--inline {
+  margin: 0.5rem 0 0.85rem;
+}
+
+/* ── Optional SEN follow-up ──────────────────────────────────────────── */
+
+.ob-sen-details {
+  border: 1.5px dashed #d4c8b0;
+  border-radius: 12px;
+  padding: 0.65rem 0.85rem;
+  background: #fffdf6;
+  margin-bottom: 1rem;
+}
+.ob-sen-summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  color: #5a4a2b;
+  user-select: none;
+}
+.ob-sen-summary::-webkit-details-marker { display: none; }
+.ob-sen-summary-plus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  background: #c77dff;
+  color: #fff;
+  font-weight: 800;
+  font-size: 1rem;
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+.ob-sen-details[open] .ob-sen-summary-plus { transform: rotate(45deg); }
+.ob-sen-summary-optional {
+  color: #8a7a5b;
+  font-weight: 600;
+  font-style: italic;
+}
+.ob-sen-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin: 0.75rem 0 0.35rem;
+  padding-left: 1.95rem;  /* aligns with the + icon */
+}
+.ob-sen-option {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #2a2a2a;
+  cursor: pointer;
+}
+.ob-sen-option input { width: 1rem; height: 1rem; cursor: pointer; }
+
+.ob-confidence-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.35rem;
+}
