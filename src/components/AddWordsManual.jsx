@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
 import './AddWordsManual.css';
 import FileUpload from './FileUpload';
+import { isSafeWord, logBlockedAttempt } from '../utils/contentFilter';
+
+// Neutral message shown when a word fails the content-safety filter.
+// Deliberately generic — never references the word itself or that it
+// was flagged as profanity.
+const UNSAFE_TOAST = "That word couldn't be added — try another";
 
 const WORD_COLORS = [
   { bg: '#fff0f0', border: '#ff6b6b' },
@@ -32,6 +38,12 @@ function AddWordsManual({ onWordsReady, collectTestDate = false }) {
   const commitWord = () => {
     const w = input.trim().toLowerCase().replace(/[^a-z'-]/g, '');
     if (!w) return;
+    if (!isSafeWord(w)) {
+      logBlockedAttempt(w, 'manual');
+      showToast(UNSAFE_TOAST);
+      setInput('');
+      return;
+    }
     if (words.includes(w)) { showToast(`"${w}" is already in your list`); setInput(''); return; }
     if (words.length >= 30) { showToast('Maximum 30 words reached'); return; }
     setWords((prev) => [...prev, w]);

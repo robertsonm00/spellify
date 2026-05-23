@@ -1,8 +1,10 @@
 import React, { useState, useRef } from 'react';
 import './CreateListModal.css';
+import { isSafeWord, logBlockedAttempt } from '../../utils/contentFilter';
 
 const MIN_WORDS = 3;
 const MAX_WORDS = 50;
+const UNSAFE_MESSAGE = "That word couldn't be added — try another";
 
 export default function CreateListModal({ onClose, onSave, isGuest }) {
   const [listName, setListName]   = useState('');
@@ -15,6 +17,13 @@ export default function CreateListModal({ onClose, onSave, isGuest }) {
   const addWord = () => {
     const w = input.trim().replace(/[^a-zA-Z'-]/g, '');
     if (!w) return;
+    if (!isSafeWord(w)) {
+      logBlockedAttempt(w, 'custom-list');
+      setError(UNSAFE_MESSAGE);
+      setInput('');
+      inputRef.current?.focus();
+      return;
+    }
     if (words.some(x => x.toLowerCase() === w.toLowerCase())) {
       setError(`"${w}" is already in your list.`); return;
     }

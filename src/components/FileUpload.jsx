@@ -4,6 +4,7 @@ import { validateFile } from '../utils/fileValidator';
 import { extractCandidatesFromImage, classifyTextWords } from '../utils/ocrExtract';
 import { extractWordsFromPDF } from '../utils/pdfExtractor';
 import { preprocessImageFile } from '../utils/imagePreprocess';
+import { isSafeWord, logBlockedAttempt } from '../utils/contentFilter';
 import ImageCropper from './ImageCropper';
 import OcrReview   from './OcrReview';
 
@@ -121,7 +122,21 @@ export default function FileUpload({ onWordsConfirmed, onCancel }) {
       return;
     }
 
-    setCandidates(extracted.slice(0, 60));
+    // Strip unsafe words before the user ever sees the OCR review pane.
+    // Each dropped candidate is logged silently for later review.
+    const safe = extracted.filter((c) => {
+      const text = (c && typeof c === 'object') ? c.rawText : c;
+      if (isSafeWord(text)) return true;
+      logBlockedAttempt(text, 'ocr');
+      return false;
+    });
+
+    if (safe.length === 0) {
+      setUiState(NO_WORDS);
+      return;
+    }
+
+    setCandidates(safe.slice(0, 60));
     setUiState(PREVIEW);
   }, []);
 

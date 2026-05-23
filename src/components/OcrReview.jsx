@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import './OcrReview.css';
 import { STATUS, classifyCandidate, normalizeWord } from '../utils/wordValidation.js';
+import { isSafeWord, logBlockedAttempt } from '../utils/contentFilter';
 
 const MAX_WORDS = 30;
+const UNSAFE_TOAST = "That word couldn't be added — try another";
 
 /**
  * OcrReview
@@ -32,12 +34,18 @@ export default function OcrReview({ candidates, onConfirm, onBack }) {
   const [editValue, setEditValue] = useState('');
   const [showAdd,   setShowAdd]   = useState(false);
   const [addValue,  setAddValue]  = useState('');
+  const [toast,     setToast]     = useState(null);
 
   const editInputRef = useRef(null);
   const addInputRef  = useRef(null);
 
   useEffect(() => { if (editingId !== null) editInputRef.current?.select(); }, [editingId]);
   useEffect(() => { if (showAdd) addInputRef.current?.focus(); }, [showAdd]);
+  useEffect(() => {
+    if (!toast) return undefined;
+    const t = setTimeout(() => setToast(null), 3000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
@@ -110,6 +118,13 @@ export default function OcrReview({ candidates, onConfirm, onBack }) {
   const commitAdd = useCallback(() => {
     const cleaned = normalizeWord(addValue);
     if (cleaned.length >= 2) {
+      if (!isSafeWord(cleaned)) {
+        logBlockedAttempt(cleaned, 'ocr-manual');
+        setToast(UNSAFE_TOAST);
+        setAddValue('');
+        setShowAdd(false);
+        return;
+      }
       setItems((prev) => {
         if (prev.length >= MAX_WORDS) return prev;
         const reclassified = classifyCandidate({
@@ -264,6 +279,9 @@ export default function OcrReview({ candidates, onConfirm, onBack }) {
 
   return (
     <div className="ocr-wrap">
+
+      {/* Neutral toast — used by safety filter; no word referenced. */}
+      {toast && <div className="aw-toast" role="status">{toast}</div>}
 
       {/* Header */}
       <div className="ocr-header">

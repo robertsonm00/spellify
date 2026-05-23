@@ -1,4 +1,23 @@
 import { hasMorphology } from '../data/morphology';
+import { getClueSync } from './clueResolver';
+
+// Crossword needs enough clue-available words to make a meaningful puzzle.
+// Sync check — getClueSync covers DEFINITIONS + word database (no API).
+// Words that only resolve via the dictionary API count as clueless here
+// so the gate is deterministic and doesn't depend on network.
+const CROSSWORD_MIN_CLUE_WORDS = 6;
+const CROSSWORD_LOCK_MESSAGE =
+  'You need at least 6 words with definitions to play Crossword — keep adding words to unlock it.';
+
+function countClueAvailable(words, year) {
+  if (!Array.isArray(words)) return 0;
+  let count = 0;
+  for (const w of words) {
+    const clue = getClueSync(w, year);
+    if (typeof clue === 'string' && clue.trim().length > 0) count += 1;
+  }
+  return count;
+}
 
 // Single point of truth for "is this activity available right now?"
 //
@@ -83,6 +102,25 @@ export function getActivityAvailability(activity, ctx = {}) {
     if (!words.some(hasMorphology)) {
       return { available: false, locked: true, reason: 'unsupported',
                message: 'Needs prefix/suffix words' };
+    }
+  }
+
+  // Crossword needs at least 6 clue-available words. Without enough
+  // definitions the puzzle would have empty clue boxes — we keep the
+  // card visible in a locked state so the child sees the unlock
+  // criterion rather than the game vanishing from the grid. (Using
+  // reason: 'locked' rather than 'unsupported' is what keeps the card
+  // rendered — see ListHub's phaseActivities filter.)
+  if (activity.id === 'crossword') {
+    const words = ctx.session?.words ?? [];
+    const year  = ctx.session?.year ?? null;
+    if (countClueAvailable(words, year) < CROSSWORD_MIN_CLUE_WORDS) {
+      return {
+        available: false,
+        locked:    true,
+        reason:    'locked',
+        message:   CROSSWORD_LOCK_MESSAGE,
+      };
     }
   }
 

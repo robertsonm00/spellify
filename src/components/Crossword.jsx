@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import confetti from 'canvas-confetti';
 import { generateCrossword, wordCells } from '../utils/crosswordEngine';
 import { getClueSync } from '../utils/clueResolver';
-import { isSafeDefinition } from '../utils/definitionSafety';
 import GameHeader from './GameHeader';
 import GameProgressStrip from './GameProgressStrip';
 import RestartButton from './RestartButton';
@@ -53,72 +52,12 @@ function getMaxHints(userAge) {
   return 1;
 }
 
-// ── Definition lookup ────────────────────────────────────────────────────────
-
-// Walk the API meanings in noun → verb → other order, returning the first
-// safe primary-sense definition. This biases toward concrete, kid-friendly
-// senses (e.g. "mouse" = animal, not "a shy person"). Short definitions
-// (e.g. "An enemy.") are kept — kid-friendly clues are often terse.
-function pickKidFriendly(meanings) {
-  const PART_ORDER = { noun: 0, verb: 1 };
-  const ordered = [...meanings].sort((a, b) =>
-    (PART_ORDER[a.partOfSpeech] ?? 2) - (PART_ORDER[b.partOfSpeech] ?? 2)
-  );
-  for (const meaning of ordered) {
-    for (const def of (meaning.definitions || [])) {
-      const text = def.definition;
-      if (!text || text.startsWith('(') || text.length < 5) continue;
-      if (!isSafeDefinition(text)) continue;
-      return text;
-    }
-  }
-  return null;
-}
-
-// Returns:
-//   { found: true,  definition: 'text' | null }   — word exists in the dictionary
-//   { found: false }                              — confirmed not a word (404)
-//   { found: 'unknown' }                          — network failed; treat permissively
-async function lookupApi(word) {
-  try {
-    const res = await fetch(
-      `https://api.dictionaryapi.dev/api/v2/entries/en/${word.toLowerCase()}`
-    );
-    if (res.status === 404) return { found: false };
-    if (!res.ok)            return { found: 'unknown' };
-    const data = await res.json();
-    if (!Array.isArray(data) || data.length === 0) return { found: false };
-    // Some words (e.g. "foe") have a kid-safe sense in entry 0 and an
-    // obscure-but-longer sense in entry 1 — flatten so we don't miss either.
-    const allMeanings = data.flatMap(entry => entry?.meanings || []);
-    if (allMeanings.length === 0) return { found: false };
-    return { found: true, definition: pickKidFriendly(allMeanings) };
-  } catch {
-    return { found: 'unknown' };
-  }
-}
-
-// Validates a single word and resolves a kid-friendly definition.
-//   - Curated sources (DEFINITIONS map + word database) always win — covers
-//     all curriculum words with no API call needed.
-//   - For non-curriculum words the dictionary API decides validity.
-//   - Words confirmed to exist but with no usable kid-safe clue are
-//     marked invalid so they're excluded from the crossword.
-//   - Network/server failures keep the word but leave the clue blank.
-async function validateWord(word, year) {
-  const key = word.toLowerCase();
-
-  // Steps 1 + 2: curated sources (sync, no API — hits for all curriculum words)
-  const curated = getClueSync(key, year);
-  if (curated) return { word, valid: true, definition: curated };
-
-  // Step 3: API for non-curriculum words (validity check + definition)
-  const api = await lookupApi(key);
-  if (api.found === false)     return { word, valid: false, reason: 'not_a_word' };
-  if (api.found === 'unknown') return { word, valid: true,  definition: null };
-  if (!api.definition)         return { word, valid: false, reason: 'no_clue' };
-  return { word, valid: true, definition: api.definition };
-}
+// Note: the previous async dictionary-API validator (with pickKidFriendly
+// + isSafeDefinition) has been removed. Word eligibility is now decided
+// synchronously by getClueSync via the `activityAvailability` gate AND
+// the in-game pre-filter (see useEffect below). If the API path returns
+// later for non-curriculum custom lists, re-introduce the helpers from
+// the file's git history.
 
 function ageAwareDefinition(def, userAge) {
   if (!def) return def;
@@ -174,29 +113,40 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
   const [listSide,       setListSide]       = useState('left');
   const containerRef     = useRef(null);
 
-  // Validate every word against the dictionary, then build the crossword
-  // from the survivors. Words confirmed-missing (404) are excluded;
-  // network failures stay in (permissive) but with no definition.
+  // Pre-filter the session word list to clue-available words only — every
+  // word in the crossword needs a kid-friendly clue, otherwise the
+  // puzzle's clue boxes would be blank. We use the sync resolver
+  // (DEFINITIONS + word database, no API) so puzzle generation is
+  // deterministic and instant. The availability gate
+  // (activityAvailability.js) uses the same predicate to lock the card
+  // when fewer than 6 words qualify, so by the time we reach this
+  // effect we should always have ≥ 6 clue-words.
   useEffect(() => {
     let cancelled = false;
     setValidation(null);
     setLayout(null);
     (async () => {
       const approxYear = userAge <= 7 ? 2 : 4;
-      const results = await Promise.all(words.map(w => validateWord(w, approxYear)));
+      const clueLookup = new Map();
+      const validList  = [];
+      const skipped    = [];
+      for (const w of words) {
+        const clue = getClueSync(w, approxYear);
+        if (typeof clue === 'string' && clue.trim().length > 0) {
+          clueLookup.set(w.toLowerCase(), clue);
+          validList.push(w);
+        } else {
+          skipped.push(w);
+        }
+      }
       if (cancelled) return;
-      const valid     = results.filter(r => r.valid);
-      const validList = valid.map(r => r.word);
-      const skipped   = results.filter(r => !r.valid).map(r => r.word);
 
       const built = generateCrossword(validList, maxWords);
       const defs  = new Map();
       if (built) {
         for (const pw of built.placedWords) {
-          const match = valid.find(r => r.word.toLowerCase() === pw.word.toLowerCase());
-          if (match?.definition) {
-            defs.set(pw.word, ageAwareDefinition(match.definition, userAge));
-          }
+          const def = clueLookup.get(pw.word.toLowerCase());
+          if (def) defs.set(pw.word, ageAwareDefinition(def, userAge));
         }
       }
       setValidation({ skipped });

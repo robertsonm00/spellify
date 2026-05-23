@@ -20,6 +20,7 @@
 import DEFINITIONS      from '../data/definitions.js';
 import { isSafeDefinition } from './definitionSafety.js';
 import { getDefinition as getWordLookupDef } from './wordLookup.js';
+import { logUnknownWord } from './contentFilter.js';
 
 // ── Internal API-result cache ─────────────────────────────────────────────────
 // Only API (step 3) results are cached here — DEFINITIONS and wordLookup are
@@ -197,6 +198,10 @@ export async function getClue(word, yearOrBand) {
   const apiResult = await fetchApi(word);
   const def = apiResult?.definition ?? null;
   apiCache.set(ck, def);
+  // Gap tracking: every word that falls through all three steps gets
+  // logged so the team can backfill the static dictionary later.
+  // Unsafe words are routed to the blocked-attempts log instead.
+  if (def === null) logUnknownWord(word, 'clue-resolver');
   return def;
 }
 
@@ -233,6 +238,8 @@ export async function getWordInfo(word, userAge = 8) {
     ? apiResult
     : { definition: null, phonetic: null, partOfSpeech: null, example: null };
   wordInfoCache.set(key, result);
+  // Gap tracking — see getClue() for the same pattern.
+  if (!result.definition) logUnknownWord(key, 'word-info');
   return result;
 }
 
