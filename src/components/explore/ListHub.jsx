@@ -361,13 +361,6 @@ export default function ListHub({
             if (phaseActivities.length === 0) return null;
             return (
               <div key={phase.key} className="hub-phase">
-                <div className="hub-phase-header">
-                  <span className="hub-phase-num">{phaseIdx + 1}</span>
-                  <div className="hub-phase-text">
-                    <strong className="hub-phase-label">{phase.label}</strong>
-                    <span className="hub-phase-hint">{phase.hint}</span>
-                  </div>
-                </div>
                 <div className="hub-grid">
                   {phaseActivities.map((activity) => {
                     const avail  = getActivityAvailability(activity, { session: exploreSession, user });
