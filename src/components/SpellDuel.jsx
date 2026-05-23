@@ -172,7 +172,11 @@ function SpellDuel({
     return savedSet.size === currentSet.size && [...savedSet].every(w => currentSet.has(w));
   })();
 
-  const [queue]          = useState(() => savedIsValid ? savedProgress.queue : [...words].sort(() => Math.random() - 0.5));
+  const [queue, setQueue] = useState(() => savedIsValid ? savedProgress.queue : [...words].sort(() => Math.random() - 0.5));
+  // Track which words have already been silently re-queued so we never
+  // push the same word back a second time. Survives a mid-session
+  // restore via savedProgress.requeued.
+  const requeuedRef = useRef(new Set(savedProgress?.requeued ?? []));
   const [wordIndex,      setWordIndex]      = useState(savedIsValid ? (savedProgress.wordIndex ?? 0) : 0);
   const [guessed,        setGuessed]        = useState(() => new Set(savedIsValid ? (savedProgress.guessed ?? []) : []));
   const [wordResults,    setWordResults]    = useState(savedIsValid ? (savedProgress.wordResults ?? []) : []);
@@ -236,8 +240,21 @@ function SpellDuel({
     if (phase !== 'word-result') return;
     const hasTip = dyslexiaMode && !won && getSupportTip(queue[wordIndex]);
     const id = setTimeout(() => {
-      const updatedResults = [...wordResults, { word: queue[wordIndex], won, wrongCount }];
-      if (wordIndex + 1 >= queue.length) {
+      const currentWordText = queue[wordIndex];
+      const updatedResults  = [...wordResults, { word: currentWordText, won, wrongCount }];
+
+      // Silent re-queue: on the first lost word of the session push it to
+      // the end of the queue for a second attempt. Capped at one re-queue
+      // per word.
+      let nextQueue = queue;
+      const lower   = currentWordText.toLowerCase();
+      if (!won && !requeuedRef.current.has(lower)) {
+        requeuedRef.current.add(lower);
+        nextQueue = [...queue, currentWordText];
+        setQueue(nextQueue);
+      }
+
+      if (wordIndex + 1 >= nextQueue.length) {
         setWordResults(updatedResults);
         setPhase('complete');
       } else {
@@ -297,7 +314,7 @@ function SpellDuel({
   }, [handleGuess]);
 
   useEffect(() => {
-    onSaveProgress?.({ queue, wordIndex, wordResults, guessed: [...guessed] });
+    onSaveProgress?.({ queue, wordIndex, wordResults, guessed: [...guessed], requeued: Array.from(requeuedRef.current) });
   }, [wordResults, wordIndex, guessed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -362,24 +379,31 @@ function SpellDuel({
             <button onClick={restart}>Play Again</button>
             <button onClick={() => {
               onSaveProgress?.(null);
-              // Map wrong-letter count to the framework's `attempts` bucket:
-              //   ≤2 wrong → 1st-attempt feel (clean win)
-              //   3-4 wrong → 2nd-attempt feel (struggled but got there)
-              //   loss → ≥2 attempts (triggers the -0.5 struggling signal)
-              // SpellDuel has no hint mechanism, so hintUsed is always false.
-              onComplete(wordResults.map(r => {
-                const wc = Number.isFinite(r.wrongCount) ? r.wrongCount : 0;
-                let attempts;
-                if (!r.won)      attempts = 2;  // lost: treat as struggle
-                else if (wc <= 2) attempts = 1;
-                else              attempts = 2;
-                return {
-                  word:     r.word,
-                  correct:  !!r.won,
-                  attempts,
-                  hintUsed: false,
-                };
-              }));
+              // Aggregate per-word: a word may appear twice in wordResults
+              // because of the in-session re-queue (first loss, second
+              // attempt). For the credit framework we want:
+              //   - attempts: total tries (1 or 2)
+              //   - correct:  most-recent outcome
+              //   - wrongCount drives the attempts bucket on a single
+              //     try: ≤2 wrong = 1st-attempt feel, 3+ = 2nd-attempt
+              //     feel. Re-queued runs always carry attempts ≥ 2.
+              const byWord = {};
+              for (const r of wordResults) {
+                const key = r.word.toLowerCase();
+                const wc  = Number.isFinite(r.wrongCount) ? r.wrongCount : 0;
+                const prev = byWord[key];
+                if (!prev) {
+                  let attempts;
+                  if (!r.won)        attempts = 2;
+                  else if (wc <= 2)  attempts = 1;
+                  else               attempts = 2;
+                  byWord[key] = { word: r.word, correct: !!r.won, attempts, hintUsed: false };
+                } else {
+                  prev.attempts = Math.min(prev.attempts + 1, 3);
+                  prev.correct  = !!r.won; // most-recent outcome wins
+                }
+              }
+              onComplete(Object.values(byWord));
             }}>
               Back to Hub
             </button>

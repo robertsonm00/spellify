@@ -23,6 +23,8 @@
 import { YEAR_DATA, YEAR1_CEW, YEAR2_CEW, YEAR3_4, YEAR5_6 } from '../data/spelling/index.js';
 import { getMorphology } from '../data/morphology';
 import { getWordData } from './wordLookup.js';
+import { incrementSessionCount } from './sessionCounter';
+import { recordSessionAppearance } from './masteryEngine';
 
 // ── Y1 / Y2 phonics rule buckets ───────────────────────────────────────────
 // Drawn from the NC 2014 English Appendix 1 example words for each rule.
@@ -342,30 +344,89 @@ export function selectWords({ yearGroup, count = 10, dyslexiaMode = false, group
  * ══════════════════════════════════════════════════════════════════════ */
 
 /**
- * Pick up to `windowSize` words for the next session — evergreen.
+ * Three-state word selection for a new session.
  *
- * Priority order:
- *   1. Attempted-but-not-yet-mastered (the child is mid-learning these)
- *   2. Untouched words (never seen)
- *   3. Already-mastered words, recycled in when the unmastered pool runs
- *      thin — so mastered words never permanently leave the game and the
- *      session always tries to deliver `windowSize` words when the list is
- *      big enough.
+ * Words are bucketed by their mastery / reinforcement state:
  *
- * If every word is mastered ("evergreen mode") we still return a randomly
- * shuffled set of `windowSize` words from the whole list so the child can
- * keep playing.
+ *   active        attempted-but-not-mastered  +  untouched
+ *   consolidating mastered, postMasterySessions < CONSOLIDATING_LIMIT
+ *   retained      mastered, postMasterySessions ≥ CONSOLIDATING_LIMIT
  *
- * Pure function — no side effects.
+ * Selection rules:
+ *   - active words are always included (priority practice)
+ *   - consolidating words are included on a regular schedule
+ *     (every CONSOLIDATING_FREQ-th session) OR when the pool would
+ *     otherwise be under MIN_POOL words
+ *   - retained words are included on a slower schedule (every
+ *     RETAINED_FREQ-th session) OR when the pool is still under MIN_POOL
  *
- * @param {string} listId        included for symmetry / future per-list config
+ * SEN profiles (`'dyslexia' | 'often-tricky' | 'support-mode'`) get a
+ * multiplier that increases reinforcement: consolidating runs longer
+ * before becoming retained, retained words appear more often.
+ *
+ * Side effects:
+ *   - Increments the global session counter once per call.
+ *   - For each consolidating / retained word actually included, ticks its
+ *     `postMasterySessions` so it eventually graduates from one pool to
+ *     the next.
+ *
+ * Evergreen mode: if every word is mastered (no active words at all), we
+ * still return a fresh shuffled window so the child can keep playing.
+ * All mastered words are treated as retained for the tick.
+ *
+ * @param {string} listId
  * @param {Array<string>} fullWordList
  * @param {object} masteryState  see masteryEngine.getMasteryState
  * @param {number} [windowSize=15]
+ * @param {string|null} [senProfile]  override; falls back to
+ *                                    localStorage 'spellify_sen_profile'
  * @returns {Array<string>}
  */
-export function getActiveWindow(listId, fullWordList, masteryState, windowSize = 15) {
+
+// Default schedule — tuneable in one place.
+const ACTIVE_WINDOW_DEFAULTS = {
+  CONSOLIDATING_LIMIT: 3,   // mastered + < 3 post-sessions  → consolidating
+  CONSOLIDATING_FREQ:  3,   // include consolidating words every 3rd session
+  RETAINED_FREQ:      10,   // include retained words every 10th session
+  MIN_POOL:            4,   // never let the available pool drop below this
+};
+
+// SEN profile multipliers (dyslexia / often-tricky / support-mode).
+// Consolidating words stay in the consolidating pool for twice as long,
+// retained words rotate back in more frequently (every 5 vs every 10).
+const ACTIVE_WINDOW_SEN = {
+  CONSOLIDATING_LIMIT: 6,
+  CONSOLIDATING_FREQ:  6,
+  RETAINED_FREQ:       5,
+  MIN_POOL:            4,
+};
+
+const SEN_PROFILES = new Set(['dyslexia', 'often-tricky', 'support-mode']);
+
+function readSenProfile() {
+  if (typeof window === 'undefined' || !window.localStorage) return null;
+  try {
+    const raw = localStorage.getItem('spellify_sen_profile');
+    return raw && SEN_PROFILES.has(raw) ? raw : null;
+  } catch {
+    return null;
+  }
+}
+
+export function getActiveWindow(listId, fullWordList, masteryState, windowSize = 15, senProfile = undefined) {
   if (!Array.isArray(fullWordList) || fullWordList.length === 0) return [];
+
+  // Resolve SEN profile: explicit param wins; otherwise read localStorage.
+  // `undefined` means "no override supplied" → consult storage.
+  // `null` means "explicitly no profile" → skip storage.
+  const resolvedSen = senProfile === undefined ? readSenProfile() : senProfile;
+  const sched = (resolvedSen && SEN_PROFILES.has(resolvedSen))
+    ? ACTIVE_WINDOW_SEN
+    : ACTIVE_WINDOW_DEFAULTS;
+
+  // Advance the global session counter. Every call increments — see file
+  // header for the rationale.
+  const currentSession = incrementSessionCount();
 
   const shuffle = (arr) => {
     const a = [...arr];
@@ -378,36 +439,98 @@ export function getActiveWindow(listId, fullWordList, masteryState, windowSize =
 
   const wordEntry = (w) => masteryState?.words?.[String(w).toLowerCase()];
 
-  // Bucket the list. We preserve list order for "attempted" (priority
-  // practice keeps a stable sequence) and shuffle the random pools.
-  const attempted = [];
-  const untouched = [];
-  const mastered  = [];
+  // Bucket the list into active / consolidating / retained.
+  //
+  // Struggling words ALWAYS go into the active bucket, regardless of
+  // mastery status. The whole point of the struggling flag is that
+  // these words need extra practice — they take precedence over the
+  // spaced-repetition schedule until they recover.
+  const attempted     = [];
+  const untouched     = [];
+  const consolidating = [];
+  const retained      = [];
   for (const w of fullWordList) {
     const entry = wordEntry(w);
-    if (entry?.mastered)              mastered.push(w);
-    else if ((entry?.attempts || 0) > 0) attempted.push(w);
-    else                                 untouched.push(w);
+    if (entry?.struggling) {
+      attempted.push(w);     // promote into active, head of practice
+      continue;
+    }
+    if (entry?.mastered) {
+      const postMaster = entry.spacedRepetition?.postMasterySessions ?? 0;
+      if (postMaster < sched.CONSOLIDATING_LIMIT) consolidating.push(w);
+      else                                        retained.push(w);
+    } else if ((entry?.attempts || 0) > 0) {
+      attempted.push(w);
+    } else {
+      untouched.push(w);
+    }
   }
 
-  // Evergreen mode — every word already mastered. Pick at random from the
-  // full list so the child gets a fresh-feeling round each session.
+  // Evergreen — every word is mastered. Shuffle the full list as before;
+  // tick every selected word's postMasterySessions (treating them all as
+  // retained, since the original three-state spec asks for that).
   if (attempted.length === 0 && untouched.length === 0) {
-    return shuffle(fullWordList).slice(0, windowSize);
+    const out = shuffle(fullWordList).slice(0, windowSize);
+    recordSessionAppearance(listId, out);
+    return out;
   }
 
-  // Fill attempted → untouched → mastered (padding) until we hit the cap.
+  // Active = attempted (in-list order, keeps a stable practice sequence) +
+  // untouched (shuffled for variety).
+  const active = [...attempted, ...shuffle(untouched)];
+
+  // Schedule decisions for this session.
+  const onConsolidatingTick =
+    sched.CONSOLIDATING_FREQ > 0 && (currentSession % sched.CONSOLIDATING_FREQ === 0);
+  const onRetainedTick =
+    sched.RETAINED_FREQ > 0 && (currentSession % sched.RETAINED_FREQ === 0);
+
+  // Pool builder — fill in active first, then consolidating per schedule
+  // (or to keep the pool ≥ MIN_POOL), then retained per schedule (or to
+  // still meet MIN_POOL).
   const out = [];
-  for (const w of attempted)            { if (out.length < windowSize) out.push(w); }
-  for (const w of shuffle(untouched))   { if (out.length < windowSize) out.push(w); }
-  if (out.length < windowSize) {
-    for (const w of shuffle(mastered))  { if (out.length < windowSize) out.push(w); }
+  const reinforcementPicked = []; // mastered words we actually included
+
+  for (const w of active) {
+    if (out.length >= windowSize) break;
+    out.push(w);
   }
 
-  // Final shuffle so already-mastered padders aren't always at the end and
-  // the child experiences a freshly-arranged round.
+  const needConsolidatingForMin = out.length < sched.MIN_POOL;
+  if (onConsolidatingTick || needConsolidatingForMin) {
+    for (const w of shuffle(consolidating)) {
+      if (out.length >= windowSize) break;
+      out.push(w);
+      reinforcementPicked.push(w);
+    }
+  }
+
+  const needRetainedForMin = out.length < sched.MIN_POOL;
+  if (onRetainedTick || needRetainedForMin) {
+    for (const w of shuffle(retained)) {
+      if (out.length >= windowSize) break;
+      out.push(w);
+      reinforcementPicked.push(w);
+    }
+  }
+
+  // Tick postMasterySessions for every mastered word that actually
+  // appeared in the window. Words selected purely to hit MIN_POOL count
+  // too — they're still session appearances for the child.
+  if (reinforcementPicked.length > 0) {
+    recordSessionAppearance(listId, reinforcementPicked);
+  }
+
+  // Final shuffle so reinforcement words aren't always at the tail.
   return shuffle(out);
 }
+
+// Exposed for tests / verification — no side effects.
+export const _activeWindowInternals = {
+  ACTIVE_WINDOW_DEFAULTS,
+  ACTIVE_WINDOW_SEN,
+  SEN_PROFILES,
+};
 
 /**
  * Summarise a list's progress against its mastery state.

@@ -1,3 +1,5 @@
+import { getSessionCount } from './sessionCounter';
+
 /**
  * Per-list, per-word mastery tracking — credit-based framework.
  *
@@ -21,14 +23,23 @@
  * Word state shape (current):
  *   {
  *     word, attempts, creditByGame: Record<game, number>, totalCredit,
- *     lastAttempted, mastered, spacedRepetition: false
+ *     lastAttempted, mastered,
+ *     spacedRepetition: {
+ *       masteredAtSession:  number,   // session count when mastery first achieved
+ *       postMasterySessions: number,  // sessions this word has been included since mastery
+ *     } | null
  *   }
  *
- * Backward compatibility: states stored under the old shape
- * (`correctGames: string[]`) are migrated on read — each entry in
- * `correctGames` becomes 1.0 credit under that game in `creditByGame`.
- * This means legacy "correct in ≥2 games" mastery decisions are
- * preserved (each contributing 1.0 → 2.0 total).
+ * Backward compatibility:
+ *   - Records under the old shape (`correctGames: string[]`) are migrated
+ *     on read — each entry in `correctGames` becomes 1.0 credit under
+ *     that game in `creditByGame`. Legacy "correct in ≥ 2 games" mastery
+ *     decisions are preserved (each contributing 1.0 → 2.0 total).
+ *   - `spacedRepetition` used to be a reserved `false` boolean. When a
+ *     legacy mastered record is migrated and has no SR object, we treat
+ *     it as long-mastered ("retained") so the new reinforcement schedule
+ *     doesn't suddenly demote it: masteredAtSession = currentSession − 10,
+ *     postMasterySessions = 10.
  *
  * This engine is deliberately separate from `gamificationEngine.js` —
  * mastery is "what the child has learned"; gamification is "what they earn
@@ -64,9 +75,25 @@ function emptyWord(word) {
     totalCredit: 0,
     lastAttempted: 0,
     mastered: false,
-    spacedRepetition: false,
+    spacedRepetition: null,  // { masteredAtSession, postMasterySessions } once mastered
+    // ── Struggling pool ────────────────────────────────────────────────
+    // A word is flagged `struggling` when either trigger fires:
+    //   (a) totalCredit <= -0.5 — the cumulative signal is in the red
+    //   (b) consecutiveMisses >= 2 — two sessions in a row with negative
+    //       credit (rough "missed it again" trigger)
+    // Once flagged, it must score positive credit in TWO sessions to
+    // come back out of the struggling pool. Selection promotes struggling
+    // words to the active bucket regardless of mastery.
+    struggling: false,
+    consecutiveMisses: 0,
+    cleanSessionsPostFlag: 0,
   };
 }
+
+const LEGACY_MASTERY_OFFSET   = 10; // see file doc comment
+const STRUGGLING_CREDIT_FLOOR = -0.5; // totalCredit ≤ this → struggling
+const STRUGGLING_MISS_LIMIT   = 2;    // consecutive negative-credit sessions → struggling
+const STRUGGLING_CLEAN_EXIT   = 2;    // clean positive-credit sessions after flag → clear
 
 /**
  * Bring a stored word entry up to the current shape. Legacy entries used
@@ -78,7 +105,6 @@ function migrateWord(stored) {
   const out = emptyWord(stored.word);
   out.attempts       = Number(stored.attempts) || 0;
   out.lastAttempted  = Number(stored.lastAttempted) || 0;
-  out.spacedRepetition = !!stored.spacedRepetition;
 
   if (stored.creditByGame && typeof stored.creditByGame === 'object') {
     // Current shape — copy through.
@@ -91,6 +117,38 @@ function migrateWord(stored) {
   }
   out.totalCredit = Object.values(out.creditByGame).reduce((s, v) => s + v, 0);
   out.mastered = isMastered(out);
+
+  // spacedRepetition — was a reserved `false` boolean in legacy records.
+  // If we already have a SR object, copy it through. Otherwise: if the
+  // word is mastered, seed it as long-mastered ("retained") so the new
+  // reinforcement schedule doesn't yank it back into heavy rotation.
+  const sr = stored.spacedRepetition;
+  if (sr && typeof sr === 'object' && !Array.isArray(sr)) {
+    out.spacedRepetition = {
+      masteredAtSession:   Number.isFinite(sr.masteredAtSession)   ? sr.masteredAtSession   : 0,
+      postMasterySessions: Number.isFinite(sr.postMasterySessions) ? sr.postMasterySessions : 0,
+    };
+  } else if (out.mastered) {
+    const current = getSessionCount();
+    out.spacedRepetition = {
+      masteredAtSession:   current - LEGACY_MASTERY_OFFSET,
+      postMasterySessions: LEGACY_MASTERY_OFFSET,
+    };
+  } else {
+    out.spacedRepetition = null;
+  }
+
+  // Struggling fields — carry through if present in stored record;
+  // otherwise derive `struggling` from the credit floor (so a legacy
+  // record with a heavy negative total still shows up correctly).
+  out.consecutiveMisses     = Number.isFinite(stored.consecutiveMisses) ? stored.consecutiveMisses : 0;
+  out.cleanSessionsPostFlag = Number.isFinite(stored.cleanSessionsPostFlag) ? stored.cleanSessionsPostFlag : 0;
+  if (typeof stored.struggling === 'boolean') {
+    out.struggling = stored.struggling;
+  } else {
+    out.struggling = out.totalCredit <= STRUGGLING_CREDIT_FLOOR;
+  }
+
   return out;
 }
 
@@ -197,9 +255,82 @@ export function recordWordResult(listId, word, gameName, credit) {
 
   const wordMastered = updated.mastered && !prev.mastered;
 
+  // First time this word crosses the mastery threshold — tag it with the
+  // current session number so the reinforcement scheduler can decide when
+  // to bring it back. If the entry already has `spacedRepetition` (e.g.
+  // legacy long-mastered records migrated on read, or a re-mastery after
+  // a reset), we keep the existing value rather than overwriting.
+  if (wordMastered && !updated.spacedRepetition) {
+    updated.spacedRepetition = {
+      masteredAtSession:   getSessionCount(),
+      postMasterySessions: 0,
+    };
+  }
+
+  // ── Struggling pool bookkeeping ───────────────────────────────────────
+  // The `creditAmount` for this call represents the current session's
+  // contribution. Positive → reset miss counter and tick clean-sessions
+  // (if currently flagged). Negative → increment miss counter and reset
+  // any clean-session progress.
+  if (creditAmount > 0) {
+    updated.consecutiveMisses = 0;
+    if (updated.struggling) {
+      updated.cleanSessionsPostFlag = (updated.cleanSessionsPostFlag || 0) + 1;
+    }
+  } else if (creditAmount < 0) {
+    updated.consecutiveMisses = (updated.consecutiveMisses || 0) + 1;
+    if (updated.struggling) updated.cleanSessionsPostFlag = 0;
+  }
+  // creditAmount === 0 (neutral session) — no change to either counter.
+
+  // Decide the new struggling state. Exit takes priority — a word with
+  // enough clean post-flag sessions comes off the list cleanly.
+  if (updated.struggling && (updated.cleanSessionsPostFlag || 0) >= STRUGGLING_CLEAN_EXIT) {
+    updated.struggling = false;
+    updated.consecutiveMisses = 0;
+    updated.cleanSessionsPostFlag = 0;
+  } else if (!updated.struggling) {
+    const triggersFlag =
+      updated.totalCredit <= STRUGGLING_CREDIT_FLOOR ||
+      (updated.consecutiveMisses || 0) >= STRUGGLING_MISS_LIMIT;
+    if (triggersFlag) {
+      updated.struggling = true;
+      updated.cleanSessionsPostFlag = 0;
+    }
+  }
+  // else: struggling stays true, counters already updated above.
+
   state.words[key] = updated;
   saveMasteryState(listId, state);
   return { wordMastered, listCompleted: false };
+}
+
+/**
+ * Increment `postMasterySessions` for every word in `wordsToTick` (case-
+ * insensitive). Called by `getActiveWindow` when it picks consolidating
+ * or retained words into the active window. No-op for words that aren't
+ * yet mastered or don't have a `spacedRepetition` record.
+ *
+ * Persists the mastery state once.
+ */
+export function recordSessionAppearance(listId, wordsToTick) {
+  if (!listId || !Array.isArray(wordsToTick) || wordsToTick.length === 0) return;
+  const state = getMasteryState(listId);
+  let dirty = false;
+  for (const w of wordsToTick) {
+    const key = normalise(w);
+    const entry = state.words[key];
+    if (!entry || !entry.spacedRepetition) continue;
+    state.words[key] = {
+      ...entry,
+      spacedRepetition: {
+        ...entry.spacedRepetition,
+        postMasterySessions: (entry.spacedRepetition.postMasterySessions || 0) + 1,
+      },
+    };
+    dirty = true;
+  }
+  if (dirty) saveMasteryState(listId, state);
 }
 
 /* ── Read helpers ─────────────────────────────────────────────────────── */
@@ -220,6 +351,18 @@ export function getUnmasteredWords(listId, fullWordList) {
   if (!Array.isArray(fullWordList)) return [];
   const state = getMasteryState(listId);
   return fullWordList.filter(w => !state.words[normalise(w)]?.mastered);
+}
+
+/**
+ * Every word currently flagged as struggling for this list. Use to drive
+ * any "extra practice" UI or to surface the struggling cohort to the
+ * hub. Returns the canonical-cased word strings.
+ */
+export function getStrugglingWords(listId) {
+  const state = getMasteryState(listId);
+  return Object.values(state.words)
+    .filter(entry => entry.struggling)
+    .map(entry => entry.word);
 }
 
 /**

@@ -139,11 +139,17 @@ export default function MemorySpell({
   const [results,    setResults]    = useState(initResults);
   const [hints,      setHints]      = useState({ ...INITIAL_HINTS });
   const [lastResult, setLastResult] = useState(null);
+  // Internal session queue — starts as the prop `words` but grows by one
+  // when the child gets a word wrong for the first time (push to the
+  // end). Subsequent wrong answers on the same word do NOT re-queue, so
+  // queue length is capped at words.length * 2.
+  const [queue,      setQueue]      = useState(() => savedProgress?.queue ?? [...words]);
+  const requeuedRef = useRef(new Set(savedProgress?.requeued ?? []));
   const inputRef  = useRef(null);
   const hintsRef  = useRef(hints);
   hintsRef.current = hints; // always current without stale-closure issues
 
-  const word  = words[wordIdx] ?? '';
+  const word  = queue[wordIdx] ?? '';
   const chunk = chunkWord(word);
 
 
@@ -164,12 +170,29 @@ export default function MemorySpell({
     }
     const result = { word, correct, hintsUsed: { ...hintsRef.current }, typed: value };
     const next = [...results, result];
+
+    // Silent re-queue: on the first wrong attempt for a word, push it to
+    // the end of the session queue so the child gets one more shot. Cap
+    // at one re-queue per word per session.
+    let nextQueue = queue;
+    const lower = word.toLowerCase();
+    if (!correct && !requeuedRef.current.has(lower)) {
+      requeuedRef.current.add(lower);
+      nextQueue = [...queue, word];
+      setQueue(nextQueue);
+    }
+
     setLastResult(result);
     setResults(next);
-    onSaveProgress?.({ wordIdx: wordIdx + 1, results: next });
+    onSaveProgress?.({
+      wordIdx: wordIdx + 1,
+      results: next,
+      queue: nextQueue,
+      requeued: Array.from(requeuedRef.current),
+    });
     // Stay on the recall screen — the in-place feedback layer takes over.
     // (Phase stays 'recall'; lastResult drives the alternate render.)
-  }, [word, wordIdx, results, onSaveProgress]);
+  }, [word, wordIdx, results, queue, onSaveProgress]);
 
   // ── Input handlers ─────────────────────────────────────────────────────────
 
@@ -212,7 +235,7 @@ export default function MemorySpell({
 
   const nextWord = () => {
     setLastResult(null);   // clear inline feedback as we advance
-    if (wordIdx + 1 >= words.length) {
+    if (wordIdx + 1 >= queue.length) {
       setPhase('results');
     } else {
       setWordIdx(i => i + 1);
@@ -256,20 +279,33 @@ export default function MemorySpell({
 
   const handleComplete = () => {
     onSaveProgress?.(null); // wipe snapshot — activity is fully done
-    // Memory Spell is one-shot per word (no in-game retry), so every
-    // result is a 1st-attempt outcome. Hint usage covers letter-reveal
-    // affordances — "🔊 Hear it" is treated as core gameplay, not a
-    // hint, per spec.
-    onComplete(results.map(r => {
-      const h = r.hintsUsed || {};
-      const hintUsed = !!(h.firstLetter || h.letterCount || h.chunk);
-      return {
-        word:     r.word,
-        correct:  !!r.correct,
-        attempts: 1,
-        hintUsed,
-      };
-    }));
+    // Aggregate per-word for the credit framework. A word can appear up
+    // to twice in `results` because of the silent in-session re-queue:
+    //   - attempts = number of results for that word (1 or 2)
+    //   - correct  = most-recent outcome (rolling — 1st wrong then 2nd
+    //                correct counts as correct-on-2nd-attempt)
+    //   - hintUsed = any letter-reveal hint across either attempt
+    //                ("🔊 Hear it" is treated as core gameplay, not a hint)
+    const byWord = {};
+    for (const r of results) {
+      const key = r.word.toLowerCase();
+      const h   = r.hintsUsed || {};
+      const hintThisRound = !!(h.firstLetter || h.letterCount || h.chunk);
+      const prev = byWord[key];
+      if (!prev) {
+        byWord[key] = {
+          word:     r.word,
+          correct:  !!r.correct,
+          attempts: 1,
+          hintUsed: hintThisRound,
+        };
+      } else {
+        prev.attempts += 1;
+        prev.correct  = !!r.correct;       // most-recent outcome wins
+        prev.hintUsed = prev.hintUsed || hintThisRound;
+      }
+    }
+    onComplete(Object.values(byWord));
   };
 
   // Chunk hint hides once the user starts typing.
@@ -282,8 +318,8 @@ export default function MemorySpell({
   const topbar = <GameHeader title="Memory Spell" onExit={onExit} />;
 
   const progressBar = (
-    <GameProgressStrip percent={(results.length / words.length) * 100}>
-      Word {Math.min(wordIdx + 1, words.length)} of {words.length}
+    <GameProgressStrip percent={(results.length / queue.length) * 100}>
+      Word {Math.min(wordIdx + 1, queue.length)} of {queue.length}
     </GameProgressStrip>
   );
 

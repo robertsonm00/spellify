@@ -372,7 +372,7 @@ export default function QuizQuest({
 }) {
   // Build the quiz once per mount. useMemo ensures we don't reshuffle on
   // every state change.
-  const questions = useMemo(
+  const baseQuestions = useMemo(
     () => buildQuiz(words, { count: 10, year, wordObjects }),
     [words], // eslint-disable-line react-hooks/exhaustive-deps
   );
@@ -381,6 +381,17 @@ export default function QuizQuest({
   const [qIdx,       setQIdx]       = useState(savedProgress?.qIdx ?? 0);
   const [results,    setResults]    = useState(savedProgress?.results ?? []);
   const [lastResult,      setLastResult]      = useState(null);
+  // Silent re-queue: questions appended to the back of the quiz when the
+  // child gets a word wrong for the first time. Capped at one re-queue
+  // per word per session.
+  const [extraQuestions, setExtraQuestions] = useState(savedProgress?.extraQuestions ?? []);
+  const requeuedRef = useRef(new Set(savedProgress?.requeued ?? []));
+
+  // Effective question list = base quiz + any silent re-queues.
+  const questions = useMemo(
+    () => [...baseQuestions, ...extraQuestions],
+    [baseQuestions, extraQuestions],
+  );
 
   const question = questions[qIdx] ?? null;
 
@@ -423,12 +434,32 @@ export default function QuizQuest({
       // either have no hint or supply false implicitly).
       const result = { word: question.word, correct, given, hintUsed: !!meta.hintUsed };
       const next = [...results, result];
+
+      // Silent re-queue: on the first wrong answer for this word in the
+      // session, append a fresh question for that word to the end of
+      // the quiz. The child gets one more shot before the session ends.
+      let nextExtras = extraQuestions;
+      const lower = String(question.word || '').toLowerCase();
+      if (!correct && !requeuedRef.current.has(lower)) {
+        const followUps = buildQuiz([question.word], { count: 1, year, wordObjects });
+        if (followUps.length > 0) {
+          requeuedRef.current.add(lower);
+          nextExtras = [...extraQuestions, ...followUps];
+          setExtraQuestions(nextExtras);
+        }
+      }
+
       setLastResult(result);
       setResults(next);
-      onSaveProgress?.({ qIdx: qIdx + 1, results: next });
+      onSaveProgress?.({
+        qIdx: qIdx + 1,
+        results: next,
+        extraQuestions: nextExtras,
+        requeued: Array.from(requeuedRef.current),
+      });
       setPhase('feedback');
     },
-    [question, qIdx, results, onSaveProgress]
+    [question, qIdx, results, extraQuestions, year, wordObjects, onSaveProgress]
   );
 
   const handleNext = () => {

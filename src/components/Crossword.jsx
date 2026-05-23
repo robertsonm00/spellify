@@ -107,6 +107,18 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
   const [hints,          setHints]          = useState(new Map());
   const [hintsUsed,      setHintsUsed]      = useState(0);
   const [revealedWords,  setRevealedWords]  = useState(new Set());
+  // Retry phase state — after the main grid is solved, any words that
+  // the child revealed via "Reveal Answer" get a single follow-up
+  // attempt. Each revealed word is presented in turn with its clue;
+  // the child types the word and we record correct/incorrect.
+  //
+  //   retryIndex      walks the revealed-words list (-1 = retry phase
+  //                   not yet active; revealedList.length = finished)
+  //   retryResults    Map<wordId, boolean>  true = retried correctly
+  const [retryIndex,     setRetryIndex]     = useState(-1);
+  const [retryInput,     setRetryInput]     = useState('');
+  const [retryResults,   setRetryResults]   = useState(() => new Map());
+  const [retryFeedback,  setRetryFeedback]  = useState(null); // 'correct' | 'wrong' | null
   const [startTime]      = useState(Date.now);
   const [endTime,        setEndTime]        = useState(null);
   const [wordsVisible,   setWordsVisible]   = useState(true);
@@ -469,6 +481,101 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
     );
   }
 
+  // ── Retry phase: one more attempt for each revealed word ─────────────
+  //
+  // When the main grid is fully complete, before showing the celebration
+  // screen we walk the list of words the child revealed via "Reveal
+  // Answer" and give each one a single follow-up attempt. The clue is
+  // shown; the child types the word; correct/wrong is captured and
+  // folded into the final results sent to the mastery engine.
+
+  const revealedList = layout
+    ? layout.placedWords.filter(pw => revealedWords.has(pw.id))
+    : [];
+
+  // Auto-activate the retry phase the first time we land on the
+  // completion screen with at least one revealed word.
+  useEffect(() => {
+    if (!isGameComplete) return;
+    if (retryIndex !== -1) return;
+    if (revealedList.length === 0) return;
+    setRetryIndex(0);
+    setRetryInput('');
+    setRetryFeedback(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isGameComplete, revealedList.length]);
+
+  const retryActive = isGameComplete
+    && retryIndex >= 0
+    && retryIndex < revealedList.length;
+
+  if (retryActive) {
+    const pw      = revealedList[retryIndex];
+    const def     = definitions.get(pw.word);
+    const target  = pw.word;
+    const advance = (correct) => {
+      setRetryResults(prev => {
+        const next = new Map(prev);
+        next.set(pw.id, !!correct);
+        return next;
+      });
+      setRetryFeedback(correct ? 'correct' : 'wrong');
+      // Brief pause so the child sees the outcome before moving on.
+      setTimeout(() => {
+        setRetryInput('');
+        setRetryFeedback(null);
+        setRetryIndex(i => i + 1);
+      }, 1100);
+    };
+    const submitRetry = () => {
+      if (retryFeedback) return; // already submitted, waiting for advance
+      const correct = retryInput.trim().toLowerCase() === target.toLowerCase();
+      advance(correct);
+    };
+
+    return (
+      <div className="cw-wrap cw-wrap--complete">
+        <div className="cw-complete cw-retry">
+          <div className="cw-complete-emoji">🎯</div>
+          <h2 className="cw-complete-title">One more go!</h2>
+          <p className="cw-retry-sub">
+            {retryIndex + 1} of {revealedList.length} — try this word again.
+          </p>
+          {def && <p className="cw-retry-clue">"{def}"</p>}
+          <p className="cw-retry-meta">{target.length}-letter word</p>
+          <input
+            className={`cw-retry-input${retryFeedback ? ' cw-retry-input--' + retryFeedback : ''}`}
+            type="text"
+            value={retryInput}
+            onChange={e => setRetryInput(e.target.value.replace(/[^a-zA-Z]/g, ''))}
+            onKeyDown={e => { if (e.key === 'Enter') submitRetry(); }}
+            autoFocus
+            maxLength={target.length}
+            disabled={!!retryFeedback}
+            aria-label="Type the word"
+          />
+          <div className="cw-done-actions">
+            <button
+              className="cw-done-btn cw-done-btn--primary"
+              onClick={submitRetry}
+              disabled={!!retryFeedback || retryInput.length === 0}
+            >
+              Check ▶
+            </button>
+          </div>
+          {retryFeedback === 'correct' && (
+            <p className="cw-retry-feedback cw-retry-feedback--correct">Nice one!</p>
+          )}
+          {retryFeedback === 'wrong' && (
+            <p className="cw-retry-feedback cw-retry-feedback--wrong">
+              The word was <strong>{target}</strong>
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   // ── Completion screen ─────────────────────────────────────────────────────
 
   if (isGameComplete) {
@@ -504,21 +611,24 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
             </button>
             <button className="cw-done-btn cw-done-btn--primary" onClick={() => {
               // Build the per-word result shape expected by the credit
-              // framework in gamificationEngine.
-              //   - correct: the child filled the word without hitting the
-              //     "Reveal Answer" button (peeking at the full answer
-              //     wipes out credit).
-              //   - hintUsed: any letter-reveal hint OR a full reveal
-              //     counts the word as hinted.
-              //   - attempts: crossword doesn't track per-word edit retries
-              //     in detail. Treat a "Reveal Answer" as a 2nd-attempt
-              //     outcome (struggling); everything else as 1st attempt.
+              // framework in gamificationEngine. Revealed words get one
+              // follow-up attempt via the retry phase above — the retry
+              // outcome (if any) overrides the initial "wrong on reveal"
+              // result so the child can recover credit on a 2nd attempt.
+              //
+              //   - hintUsed: a letter-reveal or full reveal counts as hinted
+              //   - attempts: reveals are always 2nd-attempt outcomes
+              //   - correct: TRUE if the word was filled cleanly OR if the
+              //     retry input matched; FALSE only when revealed AND the
+              //     retry was either missed or never offered.
               const results = layout.placedWords.map(pw => {
                 const fullyRevealed = revealedWords.has(pw.id);
                 const anyHint       = hints.has(pw.id) || fullyRevealed;
+                const retried       = retryResults.has(pw.id);
+                const retryCorrect  = retryResults.get(pw.id) === true;
                 return {
                   word:     pw.word,
-                  correct:  !fullyRevealed,
+                  correct:  fullyRevealed ? (retried && retryCorrect) : true,
                   attempts: fullyRevealed ? 2 : 1,
                   hintUsed: anyHint,
                 };

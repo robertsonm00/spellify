@@ -610,3 +610,36 @@
   font-weight: 700;
   font-family: 'Nunito', sans-serif;
 }
+
+/* ── Retry mini-round (revealed words) ──────────────────────────────────── */
+
+.cw-retry        { gap: 0.85rem; }
+.cw-retry-sub    { margin: 0; color: rgba(255,255,255,0.85); font-family: 'Nunito', sans-serif; font-weight: 700; }
+.cw-retry-clue   { margin: 0.25rem 0 0; color: #fff; font-style: italic; font-size: 1.05rem; max-width: 28rem; text-align: center; }
+.cw-retry-meta   { margin: 0; color: rgba(255,255,255,0.7); font-size: 0.85rem; }
+.cw-retry-input  {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 1.4rem;
+  padding: 0.65rem 0.9rem;
+  border-radius: 8px;
+  border: 2px solid #c77dff;
+  background: rgba(0,0,0,0.35);
+  color: #ffd97c;
+  text-align: center;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  width: min(80vw, 22rem);
+  outline: none;
+  caret-color: #ffd97c;
+}
+.cw-retry-input:focus            { border-color: #FFD700; box-shadow: 0 0 12px rgba(251, 191, 36, 0.45); }
+.cw-retry-input--correct         { border-color: #6bcb77; box-shadow: 0 0 14px rgba(107, 203, 119, 0.45); }
+.cw-retry-input--wrong           { border-color: #ff6b6b; box-shadow: 0 0 14px rgba(255, 107, 107, 0.45); animation: cw-retry-shake 0.32s; }
+.cw-retry-feedback               { margin: 0; font-family: 'Nunito', sans-serif; font-weight: 800; }
+.cw-retry-feedback--correct      { color: #6bcb77; }
+.cw-retry-feedback--wrong        { color: #f9a8d4; }
+@keyframes cw-retry-shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
