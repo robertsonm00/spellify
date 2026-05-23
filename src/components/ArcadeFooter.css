@@ -19,11 +19,12 @@
   left: 0;
   right: 0;
   bottom: 0;
-  height: 68px;
+  height: 80px;
   /* Solid dark purple — a darker variant of the page palette so the footer
      reads as a distinct bezel without competing with the page's star-field. */
   background: #14082a;
   border-top: 3px solid var(--gold);
+  border-bottom: 6px solid #08031a;
   box-shadow: none;
   display: flex;
   align-items: center;

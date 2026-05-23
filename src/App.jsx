@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 import Welcome        from './components/Welcome';
 import OnboardingFlow from './components/OnboardingFlow';
-import WordListHub    from './components/WordListHub';
 import SpellingQuiz   from './components/SpellingQuiz';
 import { loadSession, saveSession, createSession, INITIAL_STATUSES, updateMastery, rebuildReviewQueue, getActivityProgress, setActivityProgress } from './data/spelling/sessionSchema';
 import { getActivity, getActivityTitle } from './data/activities';
@@ -10,9 +9,7 @@ import { isActivityAvailable } from './utils/activityAvailability';
 import { recordGameCompleted, getPlayerStats } from './utils/gamificationEngine';
 import TopNav         from './components/TopNav';
 import { fireBuddyCheer } from './components/BuddyAvatar';
-import ExplorePage    from './components/explore/ExplorePage';
 import ExploreDashboard from './components/explore/ExploreDashboard';
-import ExploreDashboard2 from './components/explore/ExploreDashboard2';
 import ArcadeFooter from './components/ArcadeFooter';
 import SignInModal    from './components/explore/SignInModal';
 import Settings       from './components/Settings';
@@ -30,7 +27,7 @@ function hasProgress(activityStatuses) {
 const REVIEW_TITLE = 'Spelling Quiz';
 
 function App() {
-  const [section,        setSection]        = useState('myWords'); // 'myWords' | 'explore'
+  const [section,        setSection]        = useState('home'); // 'home' | 'assignments' | 'mylists' | 'exploreDashboard' | 'favourites' | 'recent'
   // Increments on every top-nav tab click so ExploreDashboard can clear its
   // internal selectedList even when the user clicks the tab they're already on.
   const [navTick,        setNavTick]        = useState(0);
@@ -80,6 +77,7 @@ function App() {
       welcomeBonus: 100,
     });
     setIsFirstVisit(true);
+    setSection('mylists');
     setScreen('hub');
     setTimeout(fireBuddyCheer, 600);
   };
@@ -303,16 +301,16 @@ function App() {
   if (screen === 'onboarding') return <OnboardingFlow onComplete={handleOnboardingComplete} />;
 
   if (!session || !session.words || session.words.length === 0) {
-    // Show Explore even without a session — welcome screen not needed if they go via Explore
-    // Each arcade tab in TopNav maps to a single page inside ExploreDashboard.
+    // No session: render the dashboard so guests can browse Home / Explore /
+    // Favourites etc. Onboarding is launched from inside those flows.
     const dashboardSections = ['home', 'assignments', 'mylists', 'exploreDashboard', 'favourites', 'recent'];
-    if (section === 'explore' || dashboardSections.includes(section) || section === 'exploreDashboard2') {
-      const dashboardPage = section === 'exploreDashboard' ? 'explore' : section; // 'home'|'assignments'|'mylists'|'explore'|'favourites'|'recent'
+    if (dashboardSections.includes(section)) {
+      const dashboardPage = section === 'exploreDashboard' ? 'explore' : section;
       return (
         <>
           <TopNav
             section={section}
-            onSectionChange={(s) => { setSection(s); setNavTick(t => t + 1); if (s === 'myWords') setScreen('welcome'); }}
+            onSectionChange={(s) => { setSection(s); setNavTick(t => t + 1); }}
             user={user}
             profile={profile}
             onSignInClick={() => setShowSignIn(true)}
@@ -320,38 +318,17 @@ function App() {
             onExit={() => setScreen('welcome')}
             onSettings={() => setSettingsOpen(true)}
           />
-          {section === 'explore' ? (
-            <ExplorePage
-              session={session}
-              user={user}
-              profile={profile}
-              signIn={signIn}
-              signUp={signUp}
-              signInWithGoogle={signInWithGoogle}
-            />
-          ) : section === 'exploreDashboard2' ? (
-            <ExploreDashboard2
-              session={session}
-              user={user}
-              profile={profile}
-              signIn={signIn}
-              signUp={signUp}
-              signInWithGoogle={signInWithGoogle}
-              onOpenSettings={() => setSettingsOpen(true)}
-            />
-          ) : (
-            <ExploreDashboard
-              page={dashboardPage}
-              navTick={navTick}
-              session={session}
-              user={user}
-              profile={profile}
-              signIn={signIn}
-              signUp={signUp}
-              signInWithGoogle={signInWithGoogle}
-              onOpenSettings={() => setSettingsOpen(true)}
-            />
-          )}
+          <ExploreDashboard
+            page={dashboardPage}
+            navTick={navTick}
+            session={session}
+            user={user}
+            profile={profile}
+            signIn={signIn}
+            signUp={signUp}
+            signInWithGoogle={signInWithGoogle}
+            onOpenSettings={() => setSettingsOpen(true)}
+          />
           <ArcadeFooter
             playerName="ERNEST-WREN"
             year={5}
@@ -382,84 +359,23 @@ function App() {
         onSettings={() => setSettingsOpen(true)}
       />
 
-      {/* ── My Words ── */}
-      {section === 'myWords' && (
-        <>
-          <AppShell hideHeader>
-            <WordListHub
-              words={session.words}
-              userAge={session.age || 8}
-              year={session.year ?? null}
-              ruleLabel={session.ruleLabel || null}
-              session={session}
-              user={user}
-              dyslexiaMode={session.dyslexiaMode || false}
-              difficulty={session.difficulty || 'medium'}
-              activityStatuses={session.activityStatuses}
-              activityCompletions={session.activityCompletions || {}}
-              mastery={session.mastery || {}}
-              reviewQueue={session.reviewQueue || []}
-              childName={session.childName || ''}
-              childCharacter={session.childCharacter || null}
-              welcomeBonus={session.welcomeBonus || 0}
-              isFirstVisit={isFirstVisit}
-              onWelcomeSeen={() => setIsFirstVisit(false)}
-              onLaunch={handleLaunch}
-              onReview={() => handleLaunch('review')}
-              onChangeWords={handleChangeWords}
-              onSettingsUpdate={handleSettingsUpdate}
-              onClearProgress={handleClearProgress}
-              onBackToWelcome={handleBackToWelcome}
-              onOpenChangeWords={() => setChangeWordsOpen(true)}
-            />
-          </AppShell>
+      {/* ── Dashboard pages (home / assignments / mylists / explore / favourites / recent) ── */}
+      <ExploreDashboard
+        page={section === 'exploreDashboard' ? 'explore' : section}
+        navTick={navTick}
+        session={session}
+        user={user}
+        profile={profile}
+        signIn={signIn}
+        signUp={signUp}
+        signInWithGoogle={signInWithGoogle}
+        onOpenSettings={() => setSettingsOpen(true)}
+      />
 
-          {showExitModal && (
-            <ExitConfirmModal
-              onConfirm={confirmExit}
-              onCancel={() => setShowExitModal(false)}
-            />
-          )}
-        </>
-      )}
-
-      {/* ── Explore ── */}
-      {section === 'explore' && (
-        <ExplorePage
-          session={session}
-          user={user}
-          profile={profile}
-          signIn={signIn}
-          signUp={signUp}
-          signInWithGoogle={signInWithGoogle}
-        />
-      )}
-
-      {/* ── ExploreDashboard pages (home / assignments / mylists / explore) ── */}
-      {(section === 'home' || section === 'assignments' || section === 'mylists' || section === 'exploreDashboard' || section === 'favourites' || section === 'recent') && (
-        <ExploreDashboard
-          page={section === 'exploreDashboard' ? 'explore' : section}
-          navTick={navTick}
-          session={session}
-          user={user}
-          profile={profile}
-          signIn={signIn}
-          signUp={signUp}
-          signInWithGoogle={signInWithGoogle}
-          onOpenSettings={() => setSettingsOpen(true)}
-        />
-      )}
-
-      {/* ── Explore Dashboard 2 (experimental copy for UI iteration) ── */}
-      {section === 'exploreDashboard2' && (
-        <ExploreDashboard2
-          session={session}
-          user={user}
-          profile={profile}
-          signIn={signIn}
-          signUp={signUp}
-          signInWithGoogle={signInWithGoogle}
-          onOpenSettings={() => setSettingsOpen(true)}
+      {showExitModal && (
+        <ExitConfirmModal
+          onConfirm={confirmExit}
+          onCancel={() => setShowExitModal(false)}
         />
       )}
 
@@ -472,7 +388,7 @@ function App() {
           childName={session.childName || ''}
           childCharacter={session.childCharacter || null}
           onUpdate={handleSettingsUpdate}
-          onChangeWords={() => { setSettingsOpen(false); setSection('myWords'); setChangeWordsOpen(true); }}
+          onChangeWords={() => { setSettingsOpen(false); setSection('mylists'); setChangeWordsOpen(true); }}
           onClearProgress={handleClearProgress}
           onClose={() => setSettingsOpen(false)}
         />
@@ -537,22 +453,6 @@ function ExitConfirmModal({ onConfirm, onCancel }) {
           </button>
         </div>
       </div>
-    </div>
-  );
-}
-
-// ── App shell ─────────────────────────────────────────────────────────────
-
-function AppShell({ children, hideHeader = false }) {
-  return (
-    <div className="app-shell">
-      {!hideHeader && (
-        <header className="app-header">
-          <span className="app-header-logo">🎯</span>
-          <span className="app-header-title">Spellify</span>
-        </header>
-      )}
-      <main className="app-main">{children}</main>
     </div>
   );
 }
