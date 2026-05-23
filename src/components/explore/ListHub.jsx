@@ -9,12 +9,15 @@ import {
 import {
   getMasteryState,
   getUnmasteredWords,
+  recordWordResult,
+  getStrugglingWordEntries,
 } from '../../utils/masteryEngine';
 import { recordGameCompleted } from '../../utils/gamificationEngine';
 import { fireBuddyCheer } from '../BuddyAvatar';
 import confetti from 'canvas-confetti';
 import ActivityIcon from '../ActivityIcon';
 import CompletionTicks from '../CompletionTicks';
+import PracticeWriteIt from '../PracticeWriteIt';
 import { HubPlayerCard, WordDetailModal, preSeedWordInfoCache } from '../WordListHub';
 import '../WordListHub.css';
 import './ListHub.css';
@@ -76,6 +79,10 @@ export default function ListHub({
 }) {
   const [activeActivity, setActiveActivity] = useState(null);
   const [progress,       setProgress]       = useState({});
+  // Practice Quest — focused single-slot practice for struggling words.
+  // Lives outside the normal activity-registry flow because it can be
+  // launched from the hub layer too, not just the game grid.
+  const [practiceItems,  setPracticeItems]  = useState(null);
   // Test-All flow: 'idle' → user clicks → 'choose' → picks game → 'running' →
   // completes → back to 'idle'. While 'running', activity words are the
   // full unmastered list and isTestAll: true flows into recordGameCompleted.
@@ -136,9 +143,41 @@ export default function ListHub({
     () => getUnmasteredWords(list.id, fullWords),
     [list.id, fullWords, masteryTick],   // eslint-disable-line react-hooks/exhaustive-deps
   );
+  // Struggling entries for THIS list, sorted by consecutiveMisses desc.
+  // Capped at 5 inside the card preview / Practice Quest session.
+  const strugglingEntries = useMemo(
+    () => getStrugglingWordEntries(list.id),
+    [list.id, masteryTick],   // eslint-disable-line react-hooks/exhaustive-deps
+  );
   const masteryPct = listProgress.totalCount > 0
     ? Math.round((listProgress.masteredCount / listProgress.totalCount) * 100)
     : 0;
+
+  // ── Practice Quest launch / completion ─────────────────────────────────
+  const PRACTICE_QUEST_MAX = 5;
+  const launchPracticeQuest = () => {
+    const items = strugglingEntries.slice(0, PRACTICE_QUEST_MAX).map(e => ({
+      word:   e.word,
+      listId: e.listId,
+      // List-level launch: no source label — context is implicit.
+      // (Hub-level launches set listName so the "From:" pill shows.)
+    }));
+    if (items.length === 0) return;
+    setPracticeItems(items);
+  };
+  const handlePracticeComplete = (results) => {
+    // Persist each per-word outcome through the canonical credit
+    // framework so cleanSessionsPostFlag advances correctly. Practice
+    // Quest is its own "game type" for credit-by-game accounting.
+    for (const r of results) {
+      if (!r || !r.word) continue;
+      const credit = r.correct
+        ? (r.hintUsed ? 0.75 : 1.0)   // single-slot = 1st attempt
+        : 0;                          // wrong on a 1-attempt task → 0, not -0.5
+      recordWordResult(list.id, r.word, 'practicequest', credit);
+    }
+    setMasteryTick(t => t + 1);
+  };
 
   // Active window words drive normal game launches; chips render the full
   // list so the child sees everything (mastered chips can be styled later).
@@ -215,6 +254,19 @@ export default function ListHub({
   };
 
   // ── Active game — rendered fullscreen, covering sidebar + nav ───────────
+  if (practiceItems) {
+    return (
+      <div className="lh-game-fullscreen">
+        <PracticeWriteIt
+          items={practiceItems}
+          onComplete={handlePracticeComplete}
+          onExit={() => setPracticeItems(null)}
+          onBack={() => setPracticeItems(null)}
+        />
+      </div>
+    );
+  }
+
   if (activeActivity) {
     const activityWords = testAllStage === 'running' && unmasteredWords.length > 0
       ? unmasteredWords
@@ -349,6 +401,48 @@ export default function ListHub({
           </div>
         </section>
 
+        {/* ── Practice Quest — list-level scope.
+              Sits directly beneath the mastery progress bar so it
+              reads as part of the progress context for this list,
+              rather than buried below all the games.
+              Visibility: appears whenever this list has ≥1 struggling
+              word. The 3-attempt minimum in masteryEngine already
+              prevents day-1 surfacing; no further gate is applied at
+              list-level scope. */}
+        {strugglingEntries.length > 0 && (
+          <section className="hub-practice-quest hub-practice-quest--listpane">
+            <div
+              className="pq-card pq-card--compact"
+              role="button"
+              tabIndex={0}
+              onClick={launchPracticeQuest}
+              onKeyDown={(e) => { if (e.key === 'Enter') launchPracticeQuest(); }}
+            >
+              <div className="pq-card-row pq-card-row--top">
+                <div className="pq-card-headline">
+                  <span className="pq-card-icon" aria-hidden="true">🎯</span>
+                  <h3 className="pq-card-title">Practice Quest</h3>
+                </div>
+                <div className="pq-card-meta">
+                  <span className="pq-card-subtitle">Spells to Master</span>
+                  <span className="pq-card-count">
+                    {strugglingEntries.length} word
+                    {strugglingEntries.length === 1 ? '' : 's'} need practice
+                  </span>
+                </div>
+              </div>
+              <div className="pq-card-row pq-card-row--bottom">
+                <p className="pq-card-preview">
+                  {strugglingEntries.length <= 3
+                    ? strugglingEntries.map(e => e.word).join(', ')
+                    : `including ${strugglingEntries.slice(0, 2).map(e => e.word).join(', ')}…`}
+                </p>
+                <span className="pq-card-go">Start ▶</span>
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Activity cards grouped by phase */}
         <section className="hub-activities">
           <span className="hub-section-label">ACTIVITIES</span>
@@ -468,6 +562,7 @@ export default function ListHub({
       </div>
 
     </div>
+
     </div>
   );
 }

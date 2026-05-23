@@ -19,12 +19,18 @@ import { YEAR_GROUPS, getListsForYear, curriculumLists, getEnrichedLesson } from
 import { useCustomLists } from '../../hooks/useCustomLists';
 import { useProgress }    from '../../hooks/useProgress';
 import { ACTIVITIES }     from '../../data/activities';
-import { getMasteryState } from '../../utils/masteryEngine';
+import {
+  getMasteryState,
+  getStrugglingWordsAcrossLists,
+  recordWordResult,
+} from '../../utils/masteryEngine';
 import ListHub            from './ListHub';
 import SignInModal        from './SignInModal';
 import { HubPlayerCard }  from '../WordListHub';
 import { GeneratedWords } from '../OnboardingFlow';
 import AddWordsManual     from '../AddWordsManual';
+import PracticeWriteIt    from '../PracticeWriteIt';
+import '../PracticeWriteIt.css';
 import '../WordListHub.css';
 import './ExplorePage.css';
 import './ExploreDashboard.css';
@@ -612,6 +618,59 @@ export default function ExploreDashboard({
     return map;
   }, [normalisedCustom]);
 
+  // ── Practice Quest ───────────────────────────────────────────────────
+  // Aggregate struggling words across every Explore list visible to this
+  // user — curriculum lists for their year plus their custom lists.
+  // Hub-level launches set listName so PracticeWriteIt can show the
+  // "From: …" pill beneath each word.
+  const [practiceItems, setPracticeItems] = useState(null);
+  const [practiceTick,  setPracticeTick]  = useState(0);
+  const PRACTICE_QUEST_MAX = 5;
+  const explorableListRefs = useMemo(() => {
+    const refs = [];
+    curriculumLists.forEach(l => refs.push({ id: l.id, name: l.name || l.title || 'Curriculum list' }));
+    normalisedCustom.forEach(l => refs.push({ id: l.id, name: l.name || 'My list' }));
+    return refs;
+  }, [normalisedCustom]);
+  const strugglingAggregate = useMemo(
+    () => getStrugglingWordsAcrossLists(explorableListRefs),
+    // practiceTick refreshes after a session writes results
+    [explorableListRefs, practiceTick], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  const totalListsWithStruggling = useMemo(() => {
+    return new Set(strugglingAggregate.map(e => e.listId)).size;
+  }, [strugglingAggregate]);
+  // Visibility gate: only surface Practice Quest once the child has
+  // some demonstrable progress (at least one mastered word across any
+  // visible list). Avoids surfacing it during the initial-learning
+  // phase right after one rough game.
+  const hasAnyMastered = useMemo(() => {
+    for (const ref of explorableListRefs) {
+      const state = getMasteryState(ref.id);
+      for (const entry of Object.values(state.words || {})) {
+        if (entry?.mastered) return true;
+      }
+    }
+    return false;
+  }, [explorableListRefs, practiceTick]); // eslint-disable-line react-hooks/exhaustive-deps
+  const launchPracticeQuest = () => {
+    const items = strugglingAggregate.slice(0, PRACTICE_QUEST_MAX).map(e => ({
+      word:     e.word,
+      listId:   e.listId,
+      listName: e.listName,
+    }));
+    if (items.length === 0) return;
+    setPracticeItems(items);
+  };
+  const handlePracticeComplete = (results) => {
+    for (const r of results) {
+      if (!r || !r.word || !r.listId) continue;
+      const credit = r.correct ? (r.hintUsed ? 0.75 : 1.0) : 0;
+      recordWordResult(r.listId, r.word, 'practicequest', credit);
+    }
+    setPracticeTick(t => t + 1);
+  };
+
   const favouriteEntries = useMemo(
     () => favourites.map(id => listsById.get(id)).filter(Boolean),
     [favourites, listsById],
@@ -732,6 +791,48 @@ export default function ExploreDashboard({
     setProgressCache(prev => ({ ...prev, [listId]: p || {} }));
   };
 
+  // Render the hub-level Practice Quest banner. Pure presentation — pulls
+  // straight from the aggregated struggling-words state computed above.
+  // Hidden when no struggling words exist anywhere across visible lists.
+  const renderPracticeQuestBanner = () => {
+    if (strugglingAggregate.length === 0) return null;
+    // Visibility gate — see hasAnyMastered above.
+    if (!hasAnyMastered) return null;
+    const preview = strugglingAggregate.length <= 3
+      ? strugglingAggregate.map(e => e.word).join(', ')
+      : `including ${strugglingAggregate.slice(0, 2).map(e => e.word).join(', ')}…`;
+    return (
+      <section className="hub-practice-quest ed-practice-quest-banner">
+        <div
+          className="pq-card pq-card--compact"
+          role="button"
+          tabIndex={0}
+          onClick={launchPracticeQuest}
+          onKeyDown={(e) => { if (e.key === 'Enter') launchPracticeQuest(); }}
+        >
+          <div className="pq-card-row pq-card-row--top">
+            <div className="pq-card-headline">
+              <span className="pq-card-icon" aria-hidden="true">🎯</span>
+              <h3 className="pq-card-title">Practice Quest</h3>
+            </div>
+            <div className="pq-card-meta">
+              <span className="pq-card-subtitle">Spells to Master</span>
+              <span className="pq-card-count">
+                {strugglingAggregate.length} word
+                {strugglingAggregate.length === 1 ? '' : 's'} across {totalListsWithStruggling}{' '}
+                list{totalListsWithStruggling === 1 ? '' : 's'} need practice
+              </span>
+            </div>
+          </div>
+          <div className="pq-card-row pq-card-row--bottom">
+            <p className="pq-card-preview">{preview}</p>
+            <span className="pq-card-go">Start ▶</span>
+          </div>
+        </div>
+      </section>
+    );
+  };
+
   // Render a grid of list cards from { list, listType } entries.
   const renderGrid = (entries, emptyMsg) => {
     if (!entries.length) return <p className="ep-phase-empty">{emptyMsg}</p>;
@@ -843,6 +944,7 @@ export default function ExploreDashboard({
     if (page === 'home') {
       return (
         <main className="ed-main ed-main--home">
+          {renderPracticeQuestBanner()}
           <PaneSection headerClass="ep-home-phase" label="Home" hint="Coming soon">
             <div className="ed-list-frame">
               <p className="ep-phase-empty">
@@ -890,6 +992,7 @@ export default function ExploreDashboard({
       const hasLists = filteredCustom.length > 0;
       return (
         <main className="ed-main ed-main--mylists">
+          {renderPracticeQuestBanner()}
           <PaneSection headerClass="ep-your-lists-phase" label="My Lists" hint="Your custom word lists">
             <div className="ed-list-frame">
               <FilterRow
@@ -947,6 +1050,7 @@ export default function ExploreDashboard({
 
       return (
         <main className="ed-main ed-main--explore">
+          {renderPracticeQuestBanner()}
           <PaneSection
             headerClass="ep-curriculum-phase"
             label="Explore"
@@ -1023,6 +1127,22 @@ export default function ExploreDashboard({
     return null;
   };
 
+  // Practice Quest session takes over the dashboard area when active.
+  // The sidebar still renders so the child can exit / navigate, but the
+  // main pane is the practice flow.
+  if (practiceItems) {
+    return (
+      <div className="lh-game-fullscreen">
+        <PracticeWriteIt
+          items={practiceItems}
+          onComplete={handlePracticeComplete}
+          onExit={() => setPracticeItems(null)}
+          onBack={() => setPracticeItems(null)}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="ed-shell">
       {/* Decorative shooting stars — three independent paths with staggered
@@ -1055,6 +1175,7 @@ export default function ExploreDashboard({
             <NavLink icon="⭐" label="Favourites"      count={favouriteEntries.length}                   active={page === 'favourites'  && !selectedList} onClick={() => { setSelectedList(null); setPage('favourites'); }} />
             <NavLink icon="🕒" label="Recently viewed" count={recentEntries.length}                      active={page === 'recent'      && !selectedList} onClick={() => { setSelectedList(null); setPage('recent'); }} />
           </nav>
+
 
           <div className="ed-footer">
             {!user && (

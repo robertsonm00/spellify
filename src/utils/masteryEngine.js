@@ -77,10 +77,13 @@ function emptyWord(word) {
     mastered: false,
     spacedRepetition: null,  // { masteredAtSession, postMasterySessions } once mastered
     // ── Struggling pool ────────────────────────────────────────────────
-    // A word is flagged `struggling` when either trigger fires:
-    //   (a) totalCredit <= -0.5 — the cumulative signal is in the red
-    //   (b) consecutiveMisses >= 2 — two sessions in a row with negative
-    //       credit (rough "missed it again" trigger)
+    // A word is flagged `struggling` when BOTH:
+    //   - it has been attempted at least 3 times (gate against premature
+    //     flagging after a single rough game), AND
+    //   - either:
+    //       (a) totalCredit <= -0.5 — cumulative signal in the red, or
+    //       (b) consecutiveMisses >= 2 — two negative-credit sessions
+    //         in a row
     // Once flagged, it must score positive credit in TWO sessions to
     // come back out of the struggling pool. Selection promotes struggling
     // words to the active bucket regardless of mastery.
@@ -94,6 +97,7 @@ const LEGACY_MASTERY_OFFSET   = 10; // see file doc comment
 const STRUGGLING_CREDIT_FLOOR = -0.5; // totalCredit ≤ this → struggling
 const STRUGGLING_MISS_LIMIT   = 2;    // consecutive negative-credit sessions → struggling
 const STRUGGLING_CLEAN_EXIT   = 2;    // clean positive-credit sessions after flag → clear
+const STRUGGLING_MIN_ATTEMPTS = 3;    // word must be tried at least N times before it can be flagged
 
 /**
  * Bring a stored word entry up to the current shape. Legacy entries used
@@ -290,9 +294,15 @@ export function recordWordResult(listId, word, gameName, credit) {
     updated.consecutiveMisses = 0;
     updated.cleanSessionsPostFlag = 0;
   } else if (!updated.struggling) {
-    const triggersFlag =
+    // Don't flag a word as struggling until the child has had a fair
+    // chance to try it — minimum 3 attempts. Without this gate a single
+    // bad game on a word (one −0.5 credit) would tip the credit floor
+    // and surface Practice Quest immediately, which feels premature.
+    const hasEnoughAttempts = (updated.attempts || 0) >= STRUGGLING_MIN_ATTEMPTS;
+    const triggersFlag = hasEnoughAttempts && (
       updated.totalCredit <= STRUGGLING_CREDIT_FLOOR ||
-      (updated.consecutiveMisses || 0) >= STRUGGLING_MISS_LIMIT;
+      (updated.consecutiveMisses || 0) >= STRUGGLING_MISS_LIMIT
+    );
     if (triggersFlag) {
       updated.struggling = true;
       updated.cleanSessionsPostFlag = 0;
@@ -363,6 +373,66 @@ export function getStrugglingWords(listId) {
   return Object.values(state.words)
     .filter(entry => entry.struggling)
     .map(entry => entry.word);
+}
+
+/**
+ * Aggregate every struggling word across a set of lists, sorted by
+ * `consecutiveMisses` descending (most-missed first). Used by the
+ * hub-level Practice Quest sections that span multiple lists.
+ *
+ * @param {Array<{ id: string, name?: string }>} listRefs
+ * @returns {Array<{ word: string, listId: string, listName: string|null,
+ *                   consecutiveMisses: number, totalCredit: number }>}
+ */
+export function getStrugglingWordsAcrossLists(listRefs) {
+  if (!Array.isArray(listRefs) || listRefs.length === 0) return [];
+  const out = [];
+  for (const ref of listRefs) {
+    if (!ref || !ref.id) continue;
+    const state = getMasteryState(ref.id);
+    for (const entry of Object.values(state.words || {})) {
+      if (!entry?.struggling) continue;
+      out.push({
+        word:              entry.word,
+        listId:            ref.id,
+        listName:          ref.name ?? null,
+        consecutiveMisses: Number(entry.consecutiveMisses) || 0,
+        totalCredit:       Number(entry.totalCredit)       || 0,
+      });
+    }
+  }
+  // Most-missed first; tie-break on lowest (most-negative) total credit.
+  out.sort((a, b) => {
+    if (b.consecutiveMisses !== a.consecutiveMisses) {
+      return b.consecutiveMisses - a.consecutiveMisses;
+    }
+    return a.totalCredit - b.totalCredit;
+  });
+  return out;
+}
+
+/**
+ * Per-list version of the same shape, sorted the same way. Useful for
+ * the list-level Practice Quest card which already knows the list and
+ * just needs the words in priority order.
+ */
+export function getStrugglingWordEntries(listId) {
+  const state = getMasteryState(listId);
+  return Object.values(state.words || {})
+    .filter(entry => entry.struggling)
+    .map(entry => ({
+      word:              entry.word,
+      listId,
+      listName:          null,
+      consecutiveMisses: Number(entry.consecutiveMisses) || 0,
+      totalCredit:       Number(entry.totalCredit)       || 0,
+    }))
+    .sort((a, b) => {
+      if (b.consecutiveMisses !== a.consecutiveMisses) {
+        return b.consecutiveMisses - a.consecutiveMisses;
+      }
+      return a.totalCredit - b.totalCredit;
+    });
 }
 
 /**

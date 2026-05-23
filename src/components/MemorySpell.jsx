@@ -326,8 +326,25 @@ export default function MemorySpell({
   // ── Results screen ─────────────────────────────────────────────────────────
 
   if (phase === 'results') {
-    const correctWords = results.filter(r =>  r.correct).map(r => r.word);
-    const wrongWords   = results.filter(r => !r.correct).map(r => r.word);
+    // Roll the per-attempt results up to one entry per word. Since
+    // Phase 1 added in-session re-queue (a missed word gets a second
+    // attempt at the end), a single word can appear up to twice in
+    // `results` — once for its first try, once for the re-queued try.
+    // The summary shows each word exactly once, classified by its
+    // *most recent* outcome:
+    //   wrong then right → "Words you got right"
+    //   right (only) → "Words you got right"
+    //   wrong (only) or wrong both times → "Words to practise"
+    const byWord = new Map();
+    for (const r of results) {
+      const key = String(r.word).toLowerCase();
+      // Later entries overwrite earlier ones — that's exactly the
+      // rolling-most-recent semantic we want.
+      byWord.set(key, { word: r.word, correct: !!r.correct });
+    }
+    const unique = Array.from(byWord.values());
+    const correctWords = unique.filter(e =>  e.correct).map(e => e.word);
+    const wrongWords   = unique.filter(e => !e.correct).map(e => e.word);
     const score        = correctWords.length;
     const perfect      = score === words.length;
 
