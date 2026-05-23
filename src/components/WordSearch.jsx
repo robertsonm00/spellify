@@ -410,10 +410,18 @@ export default function WordSearch({ words, year = null, savedProgress = null, o
                 Play Again
               </button>
               <button className="ws-done-btn ws-done-btn--secondary" onClick={() => {
-                // Per-word accuracy for the mastery engine: a word counts as
-                // "correct" only if it was found this session.
+                // Per-word result for the mastery engine. Word Search is
+                // recognition-only — there are no attempts and no hint
+                // affordance, so every word is reported as a 1st-attempt
+                // outcome with no hint. The 0.5x recognition multiplier is
+                // applied centrally in gamificationEngine.
                 onSaveProgress?.(null);
-                onComplete(words.map(w => ({ word: w, correct: foundWords.includes(w) })));
+                onComplete(words.map(w => ({
+                  word:     w,
+                  correct:  foundWords.includes(w),
+                  attempts: 1,
+                  hintUsed: false,
+                })));
               }}>
                 Back to Hub
               </button>

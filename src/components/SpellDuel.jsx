@@ -236,7 +236,7 @@ function SpellDuel({
     if (phase !== 'word-result') return;
     const hasTip = dyslexiaMode && !won && getSupportTip(queue[wordIndex]);
     const id = setTimeout(() => {
-      const updatedResults = [...wordResults, { word: queue[wordIndex], won }];
+      const updatedResults = [...wordResults, { word: queue[wordIndex], won, wrongCount }];
       if (wordIndex + 1 >= queue.length) {
         setWordResults(updatedResults);
         setPhase('complete');
@@ -362,7 +362,24 @@ function SpellDuel({
             <button onClick={restart}>Play Again</button>
             <button onClick={() => {
               onSaveProgress?.(null);
-              onComplete(wordResults.map(r => ({ word: r.word, correct: r.won })));
+              // Map wrong-letter count to the framework's `attempts` bucket:
+              //   ≤2 wrong → 1st-attempt feel (clean win)
+              //   3-4 wrong → 2nd-attempt feel (struggled but got there)
+              //   loss → ≥2 attempts (triggers the -0.5 struggling signal)
+              // SpellDuel has no hint mechanism, so hintUsed is always false.
+              onComplete(wordResults.map(r => {
+                const wc = Number.isFinite(r.wrongCount) ? r.wrongCount : 0;
+                let attempts;
+                if (!r.won)      attempts = 2;  // lost: treat as struggle
+                else if (wc <= 2) attempts = 1;
+                else              attempts = 2;
+                return {
+                  word:     r.word,
+                  correct:  !!r.won,
+                  attempts,
+                  hintUsed: false,
+                };
+              }));
             }}>
               Back to Hub
             </button>

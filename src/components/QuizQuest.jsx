@@ -182,13 +182,13 @@ function MissingLettersBoxes({ question, onAnswer, year }) {
     if (clean.length === blankPositions.length) {
       const full = reconstruct(clean);
       if (full.toLowerCase() === target.toLowerCase()) {
-        onAnswer(full);
+        onAnswer(full, { hintUsed: showClue });
       }
     }
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter') { e.preventDefault(); onAnswer(reconstruct(typed)); }
+    if (e.key === 'Enter') { e.preventDefault(); onAnswer(reconstruct(typed), { hintUsed: showClue }); }
   };
 
   return (
@@ -257,7 +257,7 @@ function MissingLettersBoxes({ question, onAnswer, year }) {
 
       <button
         className="qq-submit"
-        onClick={() => onAnswer(reconstruct(typed))}
+        onClick={() => onAnswer(reconstruct(typed), { hintUsed: showClue })}
         disabled={typed.length < blankPositions.length}
       >
         Submit
@@ -411,14 +411,17 @@ export default function QuizQuest({
   const handleStart = () => setPhase('question');
 
   const handleAnswer = useCallback(
-    (given) => {
+    (given, meta = {}) => {
       if (!question) return;
       const correct = isCorrectAnswer(given, question.answer);
       if (correct) {
         playChime();
         fireConfetti();
       }
-      const result = { word: question.word, correct, given };
+      // `hintUsed` flows up from question subcomponents that expose a
+      // 💡 affordance (currently only MissingLettersBoxes — others
+      // either have no hint or supply false implicitly).
+      const result = { word: question.word, correct, given, hintUsed: !!meta.hintUsed };
       const next = [...results, result];
       setLastResult(result);
       setResults(next);
@@ -449,13 +452,29 @@ export default function QuizQuest({
 
   const handleComplete = () => {
     onSaveProgress?.(null);
-    // Collapse multiple results-per-word into a single { word, correct } per
-    // unique word so mastery tracking sees the right outcome.
+    // Collapse multiple per-question results into a single per-word entry
+    // shaped for the credit-mastery framework:
+    //   - attempts:  count of questions the word appeared in (capped at 3+)
+    //   - correct:   the *final* outcome on the last question for that word
+    //                (rolling — getting it wrong then right counts as correct
+    //                on the 2nd attempt)
+    //   - hintUsed:  true if any question for that word used the 💡 affordance
     const byWord = {};
     for (const r of results) {
       const key = r.word.toLowerCase();
-      if (!(key in byWord)) byWord[key] = { word: r.word, correct: r.correct };
-      else byWord[key].correct = byWord[key].correct && r.correct;
+      const prev = byWord[key];
+      if (!prev) {
+        byWord[key] = {
+          word: r.word,
+          correct: !!r.correct,
+          attempts: 1,
+          hintUsed: !!r.hintUsed,
+        };
+      } else {
+        prev.attempts += 1;
+        prev.correct  = !!r.correct;            // most-recent outcome
+        prev.hintUsed = prev.hintUsed || !!r.hintUsed;
+      }
     }
     onComplete(Object.values(byWord));
   };

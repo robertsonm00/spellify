@@ -386,7 +386,23 @@ function WriteIt({
 
   const handleComplete = () => {
     onSaveRef.current?.(null);
-    onComplete(rows.map(r => ({ word: r.word, correct: r.practices.slice(0, NUM_BASE).every(p => p.done) })));
+    // WriteIt tracks per-practice attempts & a one-shot auto-reveal hint.
+    // Roll up to a single per-word result for the credit framework:
+    //   - correct:  every base practice marked done
+    //   - attempts: worst (highest) attempts count across the base practices,
+    //               capped at 2 to keep the framework's buckets aligned
+    //               (1 = no struggle, ≥2 = needed multiple tries)
+    //   - hintUsed: any base practice triggered the auto-reveal helper
+    onComplete(rows.map(r => {
+      const base = r.practices.slice(0, NUM_BASE);
+      const correct  = base.every(p => p.done);
+      const maxTries = base.reduce((m, p) => Math.max(m, Number(p.attempts) || 0), 0);
+      const hintUsed = base.some(p => !!p.revealHint);
+      // attempts counts how many tries it took: 1 means correct on the
+      // first submission; ≥2 means a wrong answer happened along the way.
+      const attempts = maxTries <= 1 ? 1 : 2;
+      return { word: r.word, correct, attempts, hintUsed };
+    }));
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────

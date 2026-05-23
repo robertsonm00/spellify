@@ -256,7 +256,20 @@ export default function MemorySpell({
 
   const handleComplete = () => {
     onSaveProgress?.(null); // wipe snapshot — activity is fully done
-    onComplete(results.map(r => ({ word: r.word, correct: r.correct })));
+    // Memory Spell is one-shot per word (no in-game retry), so every
+    // result is a 1st-attempt outcome. Hint usage covers letter-reveal
+    // affordances — "🔊 Hear it" is treated as core gameplay, not a
+    // hint, per spec.
+    onComplete(results.map(r => {
+      const h = r.hintsUsed || {};
+      const hintUsed = !!(h.firstLetter || h.letterCount || h.chunk);
+      return {
+        word:     r.word,
+        correct:  !!r.correct,
+        attempts: 1,
+        hintUsed,
+      };
+    }));
   };
 
   // Chunk hint hides once the user starts typing.

@@ -503,13 +503,26 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
               Try Again
             </button>
             <button className="cw-done-btn cw-done-btn--primary" onClick={() => {
-              // Hints — letter reveals or full-answer reveals — count as
-              // "did not master this word", so the mastery engine doesn't
-              // tick a word as learned just because the child peeked.
-              const results = layout.placedWords.map(pw => ({
-                word: pw.word,
-                correct: !revealedWords.has(pw.id) && !hints.has(pw.id),
-              }));
+              // Build the per-word result shape expected by the credit
+              // framework in gamificationEngine.
+              //   - correct: the child filled the word without hitting the
+              //     "Reveal Answer" button (peeking at the full answer
+              //     wipes out credit).
+              //   - hintUsed: any letter-reveal hint OR a full reveal
+              //     counts the word as hinted.
+              //   - attempts: crossword doesn't track per-word edit retries
+              //     in detail. Treat a "Reveal Answer" as a 2nd-attempt
+              //     outcome (struggling); everything else as 1st attempt.
+              const results = layout.placedWords.map(pw => {
+                const fullyRevealed = revealedWords.has(pw.id);
+                const anyHint       = hints.has(pw.id) || fullyRevealed;
+                return {
+                  word:     pw.word,
+                  correct:  !fullyRevealed,
+                  attempts: fullyRevealed ? 2 : 1,
+                  hintUsed: anyHint,
+                };
+              });
               onComplete(results);
             }}>
               Back to Hub ▶

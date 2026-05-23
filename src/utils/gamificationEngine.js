@@ -18,6 +18,47 @@ import { getListProgressState } from './wordSelectionEngine';
 
 const STATS_KEY = 'spellify_player_stats';
 
+/* ── Mastery credit framework ─────────────────────────────────────────────
+ *
+ * Every result from any game is converted to a credit using this table.
+ * The mastery engine sums credits per game and flips `mastered` once
+ * the total ≥ 2.0 *and* credits have come from ≥ 2 distinct game types.
+ *
+ *   correct + 1st attempt + no hint  →  +1.00
+ *   correct + 1st attempt + hint     →  +0.75
+ *   correct + 2nd attempt + no hint  →  +0.50
+ *   correct + 2nd attempt + hint     →  +0.25
+ *   incorrect after ≥ 2 attempts     →  −0.50  (struggling)
+ *   any other outcome                →   0     (1 wrong & moved on, 3+ attempts correct, …)
+ *
+ * Result entries should carry `{ word, correct, attempts, hintUsed }`.
+ * If `attempts` / `hintUsed` are missing we fall back to the legacy
+ * binary interpretation (correct → 1.0, incorrect → 0).
+ */
+
+const WORDSEARCH_RECOGNITION_FACTOR = 0.5;
+
+export function creditForResult(r) {
+  if (!r) return 0;
+  const correct  = !!r.correct;
+  const attempts = Number.isFinite(r.attempts) ? r.attempts : null;
+  const hintUsed = !!r.hintUsed;
+
+  // Legacy callers that only know about `correct` — preserve the old
+  // 1.0 / 0 behaviour so partially-updated game components keep working
+  // during the rollout.
+  if (attempts === null) return correct ? 1.0 : 0;
+
+  if (correct) {
+    if (attempts <= 1) return hintUsed ? 0.75 : 1.0;
+    if (attempts === 2) return hintUsed ? 0.25 : 0.5;
+    return 0; // 3+ attempts to get it right — no credit, but no penalty either
+  }
+  // Wrong outcomes: only penalise once they tried at least twice.
+  if (attempts >= 2) return -0.5;
+  return 0;
+}
+
 /* ── Placeholder economy — tune in one place ──────────────────────────── */
 
 export const POINTS_CONFIG = {
@@ -161,10 +202,20 @@ export function recordGameCompleted(
   const isTestAll = !!opts.isTestAll;
 
   // 1) Mastery — write per-word results
+  //
+  // Each result is converted to a *credit* score using the framework
+  // below and forwarded to the mastery engine. The engine accumulates
+  // credit per game type and flips `mastered` when the credit hits 2.0
+  // across at least 2 distinct game types.
+  //
+  // Word Search is recognition (find the word in a grid) rather than
+  // recall, so its contribution is dialled down to 50%.
   let wordsMastered = 0;
   for (const r of wordResults) {
     if (!r || !r.word) continue;
-    const { wordMastered } = recordWordResult(listId, r.word, gameName, !!r.correct);
+    let credit = creditForResult(r);
+    if (gameName === 'wordsearch') credit *= WORDSEARCH_RECOGNITION_FACTOR;
+    const { wordMastered } = recordWordResult(listId, r.word, gameName, credit);
     if (wordMastered) wordsMastered += 1;
   }
 
