@@ -619,42 +619,76 @@ export default function ExploreDashboard({
   }, [normalisedCustom]);
 
   // ── Practice Quest ───────────────────────────────────────────────────
-  // Aggregate struggling words across every Explore list visible to this
-  // user — curriculum lists for their year plus their custom lists.
-  // Hub-level launches set listName so PracticeWriteIt can show the
-  // "From: …" pill beneath each word.
+  // Three scopes per Layer 1 / 2 / 3 model:
+  //
+  //   Home    (Layer 3) → ALL lists: curriculum + custom + 'mywords'
+  //                       (the synthetic listId used by App.jsx's My Words
+  //                        session is included as { id: 'mywords',
+  //                        name: 'Your Words' })
+  //   MyLists (Layer 2) → custom lists only
+  //   Explore (Layer 2) → curriculum-for-year only
+  //
+  // All three are computed up-front; renderPracticeQuestBanner(scope)
+  // picks the right aggregate per page.
   const [practiceItems, setPracticeItems] = useState(null);
   const [practiceTick,  setPracticeTick]  = useState(0);
   const PRACTICE_QUEST_MAX = 5;
-  const explorableListRefs = useMemo(() => {
-    const refs = [];
-    curriculumLists.forEach(l => refs.push({ id: l.id, name: l.name || l.title || 'Curriculum list' }));
-    normalisedCustom.forEach(l => refs.push({ id: l.id, name: l.name || 'My list' }));
-    return refs;
-  }, [normalisedCustom]);
-  const strugglingAggregate = useMemo(
-    () => getStrugglingWordsAcrossLists(explorableListRefs),
-    // practiceTick refreshes after a session writes results
-    [explorableListRefs, practiceTick], // eslint-disable-line react-hooks/exhaustive-deps
+
+  const curriculumYearRefs = useMemo(
+    () => curriculumForYear.map(l => ({ id: l.id, name: l.name || l.title || 'Curriculum list' })),
+    [curriculumForYear],
   );
-  const totalListsWithStruggling = useMemo(() => {
-    return new Set(strugglingAggregate.map(e => e.listId)).size;
-  }, [strugglingAggregate]);
-  // Visibility gate: only surface Practice Quest once the child has
-  // some demonstrable progress (at least one mastered word across any
-  // visible list). Avoids surfacing it during the initial-learning
-  // phase right after one rough game.
-  const hasAnyMastered = useMemo(() => {
-    for (const ref of explorableListRefs) {
+  const customListRefs = useMemo(
+    () => normalisedCustom.map(l => ({ id: l.id, name: l.name || 'My list' })),
+    [normalisedCustom],
+  );
+  // Home scope — everything we know about. `mywords` is the synthetic
+  // list created by App.jsx for the post-onboarding session; it has no
+  // list-card UI today but its mastery state is real, so we include it
+  // here under a child-friendly label.
+  const allListRefs = useMemo(
+    () => [
+      { id: 'mywords', name: 'Your Words' },
+      ...curriculumYearRefs,
+      ...customListRefs,
+    ],
+    [curriculumYearRefs, customListRefs],
+  );
+
+  // Build the three aggregates. practiceTick forces recomputation after
+  // a session writes results back to localStorage.
+  const buildAggregate = (refs) => getStrugglingWordsAcrossLists(refs);
+  const homeAggregate = useMemo(
+    () => buildAggregate(allListRefs),
+    [allListRefs, practiceTick], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  const myListsAggregate = useMemo(
+    () => buildAggregate(customListRefs),
+    [customListRefs, practiceTick], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  const exploreAggregate = useMemo(
+    () => buildAggregate(curriculumYearRefs),
+    [curriculumYearRefs, practiceTick], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
+  // Mastered-word visibility gate. Computed per-scope so Home, My Lists,
+  // and Explore each only show their banner when their *own* scope has
+  // ≥1 mastered word.
+  const hasMasteredIn = (refs) => {
+    for (const ref of refs) {
       const state = getMasteryState(ref.id);
       for (const entry of Object.values(state.words || {})) {
         if (entry?.mastered) return true;
       }
     }
     return false;
-  }, [explorableListRefs, practiceTick]); // eslint-disable-line react-hooks/exhaustive-deps
-  const launchPracticeQuest = () => {
-    const items = strugglingAggregate.slice(0, PRACTICE_QUEST_MAX).map(e => ({
+  };
+  const homeHasMastered    = useMemo(() => hasMasteredIn(allListRefs),       [allListRefs,       practiceTick]); // eslint-disable-line react-hooks/exhaustive-deps
+  const myListsHasMastered = useMemo(() => hasMasteredIn(customListRefs),    [customListRefs,    practiceTick]); // eslint-disable-line react-hooks/exhaustive-deps
+  const exploreHasMastered = useMemo(() => hasMasteredIn(curriculumYearRefs),[curriculumYearRefs,practiceTick]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const launchPracticeQuestWith = (aggregate) => {
+    const items = aggregate.slice(0, PRACTICE_QUEST_MAX).map(e => ({
       word:     e.word,
       listId:   e.listId,
       listName: e.listName,
@@ -791,24 +825,24 @@ export default function ExploreDashboard({
     setProgressCache(prev => ({ ...prev, [listId]: p || {} }));
   };
 
-  // Render the hub-level Practice Quest banner. Pure presentation — pulls
-  // straight from the aggregated struggling-words state computed above.
-  // Hidden when no struggling words exist anywhere across visible lists.
-  const renderPracticeQuestBanner = () => {
-    if (strugglingAggregate.length === 0) return null;
-    // Visibility gate — see hasAnyMastered above.
-    if (!hasAnyMastered) return null;
-    const preview = strugglingAggregate.length <= 3
-      ? strugglingAggregate.map(e => e.word).join(', ')
-      : `including ${strugglingAggregate.slice(0, 2).map(e => e.word).join(', ')}…`;
+  // Render a Practice Quest banner for the given scope. Pure presentation;
+  // pass one of homeAggregate / myListsAggregate / exploreAggregate plus
+  // the matching has-mastered gate. Hidden when either condition fails.
+  const renderPracticeQuestBanner = ({ aggregate, hasMastered }) => {
+    if (!aggregate || aggregate.length === 0) return null;
+    if (!hasMastered) return null;
+    const distinctLists = new Set(aggregate.map(e => e.listId)).size;
+    const preview = aggregate.length <= 3
+      ? aggregate.map(e => e.word).join(', ')
+      : `including ${aggregate.slice(0, 2).map(e => e.word).join(', ')}…`;
     return (
       <section className="hub-practice-quest ed-practice-quest-banner">
         <div
           className="pq-card pq-card--compact"
           role="button"
           tabIndex={0}
-          onClick={launchPracticeQuest}
-          onKeyDown={(e) => { if (e.key === 'Enter') launchPracticeQuest(); }}
+          onClick={() => launchPracticeQuestWith(aggregate)}
+          onKeyDown={(e) => { if (e.key === 'Enter') launchPracticeQuestWith(aggregate); }}
         >
           <div className="pq-card-row pq-card-row--top">
             <div className="pq-card-headline">
@@ -818,9 +852,8 @@ export default function ExploreDashboard({
             <div className="pq-card-meta">
               <span className="pq-card-subtitle">Spells to Master</span>
               <span className="pq-card-count">
-                {strugglingAggregate.length} word
-                {strugglingAggregate.length === 1 ? '' : 's'} across {totalListsWithStruggling}{' '}
-                list{totalListsWithStruggling === 1 ? '' : 's'} need practice
+                {aggregate.length} word{aggregate.length === 1 ? '' : 's'}{' '}
+                across {distinctLists} list{distinctLists === 1 ? '' : 's'} need practice
               </span>
             </div>
           </div>
@@ -944,7 +977,7 @@ export default function ExploreDashboard({
     if (page === 'home') {
       return (
         <main className="ed-main ed-main--home">
-          {renderPracticeQuestBanner()}
+          {renderPracticeQuestBanner({ aggregate: homeAggregate, hasMastered: homeHasMastered })}
           <PaneSection headerClass="ep-home-phase" label="Home" hint="Coming soon">
             <div className="ed-list-frame">
               <p className="ep-phase-empty">
@@ -992,7 +1025,7 @@ export default function ExploreDashboard({
       const hasLists = filteredCustom.length > 0;
       return (
         <main className="ed-main ed-main--mylists">
-          {renderPracticeQuestBanner()}
+          {renderPracticeQuestBanner({ aggregate: myListsAggregate, hasMastered: myListsHasMastered })}
           <PaneSection headerClass="ep-your-lists-phase" label="My Lists" hint="Your custom word lists">
             <div className="ed-list-frame">
               <FilterRow
@@ -1050,7 +1083,7 @@ export default function ExploreDashboard({
 
       return (
         <main className="ed-main ed-main--explore">
-          {renderPracticeQuestBanner()}
+          {renderPracticeQuestBanner({ aggregate: exploreAggregate, hasMastered: exploreHasMastered })}
           <PaneSection
             headerClass="ep-curriculum-phase"
             label="Explore"
