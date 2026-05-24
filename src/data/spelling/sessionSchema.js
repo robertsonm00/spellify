@@ -36,6 +36,7 @@ export function createSession({
   ruleKey = null, ruleLabel = null,
   spellingConfidence = 'tricky',
   senProfile = [],
+  adaptiveLearning = true,
 }) {
   return {
     _version: 2,
@@ -45,6 +46,18 @@ export function createSession({
     dyslexiaMode,          // boolean — effective Support Mode
     spellingConfidence,    // 'easy' | 'tricky' | 'often-tricky'
     senProfile,            // string[] — e.g. ['dyslexia'], [] for none / prefer-not-to-say
+    // adaptiveLearning — when true (default), getActiveWindow applies the
+    // three-state model (active / consolidating / retained pools, mastered
+    // words cycling on a spaced-repetition schedule). When false, every
+    // word is treated as active regardless of mastery — useful for parents
+    // who'd rather see all the words every session. Struggling-word
+    // reinforcement still fires either way (it's a safety net, not an
+    // optional optimisation).
+    // TODO: show adaptive learning explanation screen during account
+    // creation child profile setup — this should be an explicit parent
+    // choice with the "When on, Spellify gently adjusts…" copy, not a
+    // hidden Settings flip.
+    adaptiveLearning,      // boolean — default true
     words,                 // string[]
     wordObjects,           // { word, year, difficulty }[]
     ruleKey,               // RULE_BUCKET_PICKER — null or e.g. 'splitDigraphs'
@@ -116,6 +129,7 @@ export function loadSession() {
         difficulty:         'medium',
         spellingConfidence: 'tricky',
         senProfile:         [],
+        adaptiveLearning:   true,
         ...s,
       };
     }
@@ -138,6 +152,9 @@ export function loadSession() {
         dyslexiaMode: old.dyslexiaMode  ?? false,
         spellingConfidence: old.spellingConfidence ?? 'tricky',
         senProfile:         Array.isArray(old.senProfile) ? old.senProfile : [],
+        // Default existing sessions to adaptiveLearning: true — matches the
+        // behaviour they've been running with up to now.
+        adaptiveLearning:   typeof old.adaptiveLearning === 'boolean' ? old.adaptiveLearning : true,
         words:        old.words         ?? [],
         wordObjects:  old.wordObjects   ?? [],
         activityStatuses: old.activityStatuses ?? { ...INITIAL_STATUSES },

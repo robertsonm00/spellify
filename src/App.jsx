@@ -390,6 +390,7 @@ function App() {
           year={session.year ?? null}
           dyslexiaMode={session.dyslexiaMode || false}
           spellingConfidence={session.spellingConfidence || 'tricky'}
+          adaptiveLearning={session.adaptiveLearning !== false}
           childName={session.childName || ''}
           childCharacter={session.childCharacter || null}
           onUpdate={handleSettingsUpdate}

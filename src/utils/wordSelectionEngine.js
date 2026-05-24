@@ -413,7 +413,7 @@ function readSenProfile() {
   }
 }
 
-export function getActiveWindow(listId, fullWordList, masteryState, windowSize = 15, senProfile = undefined) {
+export function getActiveWindow(listId, fullWordList, masteryState, windowSize = 15, senProfile = undefined, adaptiveLearning = true) {
   if (!Array.isArray(fullWordList) || fullWordList.length === 0) return [];
 
   // Resolve SEN profile: explicit param wins; otherwise read localStorage.
@@ -425,8 +425,39 @@ export function getActiveWindow(listId, fullWordList, masteryState, windowSize =
     : ACTIVE_WINDOW_DEFAULTS;
 
   // Advance the global session counter. Every call increments — see file
-  // header for the rationale.
+  // header for the rationale. (Still ticks when adaptive learning is off
+  // so any non-adaptive analytics that depend on a session ordinal stay
+  // consistent.)
   const currentSession = incrementSessionCount();
+
+  // ── Non-adaptive branch ────────────────────────────────────────────────
+  // When the parent has turned adaptive learning off, every word is
+  // surfaced every session — no three-state model, no consolidating /
+  // retained spacing, no postMasterySessions tick. Struggling words still
+  // get safety-net reinforcement: they're promoted to the head of the
+  // shuffled output so they're seen first, just like in the adaptive
+  // path. The SEN multiplier is intentionally still respected at the
+  // schedule level so struggling-prone children get extra reinforcement
+  // even with adaptive scheduling off (it never gets turned off — see
+  // adaptiveLearning field doc on the session).
+  if (adaptiveLearning === false) {
+    const struggling = [];
+    const rest       = [];
+    for (const w of fullWordList) {
+      const entry = masteryState?.words?.[String(w).toLowerCase()];
+      if (entry?.struggling) struggling.push(w);
+      else rest.push(w);
+    }
+    const shuffleArr = (arr) => {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    };
+    return [...struggling, ...shuffleArr(rest)].slice(0, windowSize);
+  }
 
   const shuffle = (arr) => {
     const a = [...arr];

@@ -140,9 +140,10 @@ export default function ListHub({
     () => effectiveSenProfile(session),
     [session],
   );
+  const adaptiveLearning = session?.adaptiveLearning !== false;
   const activeWindow = useMemo(
-    () => getActiveWindow(list.id, fullWords, masteryState, masteryState.windowSize || 15, senProfileForSelection),
-    [list.id, fullWords, masteryState, senProfileForSelection],
+    () => getActiveWindow(list.id, fullWords, masteryState, masteryState.windowSize || 15, senProfileForSelection, adaptiveLearning),
+    [list.id, fullWords, masteryState, senProfileForSelection, adaptiveLearning],
   );
   const listProgress = useMemo(
     () => getListProgressState(fullWords, masteryState),

@@ -366,9 +366,14 @@ function WordListHub({
   // ── Per-list mastery layer — same engine the explore hub uses ─────────
   // The My Words session uses a stable synthetic list id 'mywords'.
   const masteryState  = useMyWordsMastery(words);
+  // Honour session.adaptiveLearning when the parent has turned it off.
+  // SEN profile is derived in App.jsx and passed through senProfile via
+  // localStorage at the engine layer for now; only adaptiveLearning is
+  // forwarded explicitly here.
+  const adaptiveLearning = session?.adaptiveLearning !== false;
   const activeWindow  = useMemo(
-    () => getActiveWindow('mywords', words, masteryState, 15),
-    [words, masteryState],
+    () => getActiveWindow('mywords', words, masteryState, 15, undefined, adaptiveLearning),
+    [words, masteryState, adaptiveLearning],
   );
   const unmasteredWords = useMemo(
     () => getUnmasteredWords('mywords', words),

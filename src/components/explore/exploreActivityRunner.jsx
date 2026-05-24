@@ -37,6 +37,11 @@ function buildPseudoSession({ list, words, parentSession }) {
     childName:         '',
     spellingConfidence: parentSession?.spellingConfidence || 'tricky',
     senProfile:        Array.isArray(parentSession?.senProfile) ? parentSession.senProfile : [],
+    // Forward the adaptive-learning flag so any downstream caller that
+    // reads session.adaptiveLearning sees the same value as the real
+    // session. ListHub itself is what calls getActiveWindow; this is
+    // belt-and-braces for future activities that might want the flag.
+    adaptiveLearning:  parentSession?.adaptiveLearning !== false,
     activityStatuses:  {},   // Explore tracks progress per-list, not per-session
     mastery:           {},
     reviewQueue:       [],

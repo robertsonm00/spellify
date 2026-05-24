@@ -12,7 +12,7 @@ const CONFIDENCE_LABELS = {
   'often-tricky': { emoji: '😰', label: 'Often tricky' },
 };
 
-function Settings({ userAge, dyslexiaMode = false, childName, childCharacter, year: yearProp, spellingConfidence = 'tricky', onUpdate, onChangeWords, onClearProgress, onClose }) {
+function Settings({ userAge, dyslexiaMode = false, childName, childCharacter, year: yearProp, spellingConfidence = 'tricky', adaptiveLearning = true, onUpdate, onChangeWords, onClearProgress, onClose }) {
   const currentYear = yearProp ?? ageToYear(userAge);
 
   const [editName,       setEditName]       = useState(childName || '');
@@ -175,6 +175,32 @@ function Settings({ userAge, dyslexiaMode = false, childName, childCharacter, ye
               type="checkbox"
               checked={dyslexiaMode}
               onChange={(e) => onUpdate({ dyslexiaMode: e.target.checked })}
+            />
+            <span className="settings-support-slider" />
+          </div>
+        </label>
+
+        {/* ── Adaptive Learning ──
+            Surfaced here as a parent override until the account-creation
+            flow exists. When the account flow lands, this becomes an
+            explicit step in the child profile setup (see TODO in
+            sessionSchema.js). Default on; off means every word every
+            session, struggling-word reinforcement still applies. */}
+        <label className="settings-support-toggle">
+          <div className="settings-support-text">
+            <span className="settings-support-name">Adaptive Learning</span>
+            <span className="settings-support-hint">
+              When on, Spellify gently adjusts to how{' '}
+              <span style={{ whiteSpace: 'nowrap' }}>{childName || 'they'}</span>{' '}
+              is doing — making things a little easier or harder as they go.
+              You can change this any time.
+            </span>
+          </div>
+          <div className="settings-support-switch">
+            <input
+              type="checkbox"
+              checked={adaptiveLearning}
+              onChange={(e) => onUpdate({ adaptiveLearning: e.target.checked })}
             />
             <span className="settings-support-slider" />
           </div>
