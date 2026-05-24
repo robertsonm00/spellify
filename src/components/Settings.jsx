@@ -12,7 +12,7 @@ const CONFIDENCE_LABELS = {
   'often-tricky': { emoji: '😰', label: 'Often tricky' },
 };
 
-function Settings({ userAge, dyslexiaMode = false, childName, childCharacter, year: yearProp, spellingConfidence = 'tricky', adaptiveLearning = true, onUpdate, onChangeWords, onClearProgress, onClose }) {
+function Settings({ userAge, dyslexiaMode = false, childName, childCharacter, year: yearProp, spellingConfidence = 'tricky', adaptiveLearning = true, onUpdate, onChangeWords, onClearProgress, onClose, onExit }) {
   const currentYear = yearProp ?? ageToYear(userAge);
 
   const [editName,       setEditName]       = useState(childName || '');
@@ -219,6 +219,19 @@ function Settings({ userAge, dyslexiaMode = false, childName, childCharacter, ye
           >
             🔄 Reset Progress
           </button>
+          {/* Mobile-only: the top-left "Exit" that lives in TopNav on
+              desktop is hidden on mobile, so we surface the same action
+              here so a parent or child can always escape back to the
+              welcome screen. The button renders on desktop too so the
+              path is discoverable everywhere. */}
+          {onExit && (
+            <button
+              className="settings-action-btn"
+              onClick={() => { onClose(); onExit(); }}
+            >
+              ↩ Exit to home screen
+            </button>
+          )}
         </div>
 
         <div className="settings-divider" />

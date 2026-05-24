@@ -201,3 +201,49 @@
 body.game-active .topnav { display: none; }
 body.game-active { padding-top: 0; }
 body.game-active .app-game-main { min-height: 100vh; }
+
+/* ── Mobile: clean single-row header ─────────────────────────────────
+   Desktop stacks the SPELLIFY logo absolutely-centred with the game
+   title beside it; on a 390px viewport this overlaps the Exit and
+   Restart buttons. On mobile we hide the brand letters entirely and
+   collapse to: [Exit] · [title (centred)] · [right slot]. The Exit
+   button gets a guaranteed 44×44 tap target.
+   The fixed bottom MobileBottomNav is hidden inside games via the
+   existing body.game-active class hook — the rule lives in the
+   MobileBottomNav CSS so the game owns its full viewport. */
+@media (max-width: 768px) {
+  .game-header {
+    padding: 0.55rem 0.6rem;
+    gap: 0.45rem;
+    overflow: visible;
+  }
+  .game-header-stars { display: none; }
+  .game-header-brand { display: none; }
+  .game-header-center {
+    position: static;
+    transform: none;
+    flex: 1;
+    justify-content: center;
+    pointer-events: auto;
+  }
+  .game-header-title {
+    font-size: 0.95rem;
+    text-align: center;
+  }
+  .game-header-exit {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.7rem;
+  }
+  .game-header-right .game-header-btn {
+    min-height: 44px;
+    padding: 0.4rem 0.7rem;
+  }
+  /* Hide the MobileBottomNav inside any active game so the game owns
+     the full screen. body.game-active is set by GameHeader on mount. */
+  body.game-active .mbn { display: none; }
+  body.game-active { padding-bottom: 0; }
+}

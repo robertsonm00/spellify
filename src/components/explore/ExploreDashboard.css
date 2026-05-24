@@ -2853,3 +2853,49 @@
 
 
 
+
+/* ─────────────────────────────────────────────────────────────────────
+   Mobile layout (Round-2 audit fix)
+   ─────────────────────────────────────────────────────────────────────
+   My Lists / Assignments / Favourites filter row stacks vertically;
+   the truncating subtitle wraps to two lines; lesson cards take the
+   full viewport width with badges constrained inside. */
+@media (max-width: 768px) {
+  /* PaneSection hint (e.g. "Your custom word lists") — let it wrap. */
+  .hub-phase-hint,
+  .ps-hint,
+  .ed-pane-hint {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    max-width: 100%;
+    display: block;
+  }
+
+  /* Filter row: stack toggle + sort vertically, each full width. */
+  .ed-filters-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+  .ed-filters-vdivider { display: none; }
+  .ed-toggle { width: 100%; justify-content: space-between; }
+  .ed-sort   { width: 100%; }
+  .ed-sort-select { width: 100%; }
+
+  /* Lesson cards: full width, badges constrained inside the right edge.
+     The card already uses flex; just stop right-aligned badges from
+     pushing past the viewport. */
+  .ed-list-frame .hub-grid,
+  .ed-list-frame > .hub-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.6rem;
+  }
+  .ed-list-card,
+  .ep-phase-empty {
+    max-width: 100%;
+    overflow: hidden;
+  }
+  /* Empty-state CTA copy — allow wrapping. */
+  .ep-phase-empty p { white-space: normal; }
+}

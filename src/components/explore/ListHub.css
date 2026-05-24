@@ -19,3 +19,76 @@
   color: #94a3b8;
   margin: 0;
 }
+
+/* ─────────────────────────────────────────────────────────────────────
+   Mobile layout (Round-2 audit fix)
+   ─────────────────────────────────────────────────────────────────────
+   Desktop is a two-column split (word list left, game grid right). At
+   ≤768px the sidebar isn't useful for launching games — collapse it,
+   stack the mastery progress / practice quest / game grid into a
+   single column, and pin the floating Test All button to the bottom-
+   right where it won't overlap cards. */
+@media (max-width: 768px) {
+  .hub--split,
+  .hub-shell--split {
+    display: block !important;
+  }
+  /* Desktop selectors are `.hub--split .hub-split-left {…}` (specificity
+     0,2,0); these single-class overrides need !important to win inside
+     the media query without rewriting the descendant selectors. */
+  .hub-split-left,
+  .hub-sticky-block,
+  .hub-words {
+    display: none !important;
+  }
+  .hub--split .hub-split-right,
+  .hub-split-right {
+    width: 100% !important;
+    padding: 0.85rem;
+  }
+  /* The back-button row above the split already shows "← Back &nbsp;
+     <list name>", so we don't need to re-surface the title here. */
+
+  /* Game cards: two columns on mobile, wide enough to be tappable. */
+  .hub-activities .hub-grid,
+  .hub-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.6rem;
+  }
+  .hub-card {
+    min-height: 150px;
+  }
+  /* Card body on desktop uses CSS grid with the Play pill in column 2.
+     Inside a narrow card that overlaps the title — collapse to a flex
+     column so name, time and Play stack vertically. */
+  .hub--split .hub-card-body,
+  .hub-card-body {
+    display: flex !important;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding: 0.6rem 0.55rem 0.55rem;
+  }
+  .hub--split .hub-card-body > .hub-card-play,
+  .hub-card-play {
+    grid-column: auto !important;
+    grid-row: auto !important;
+    align-self: flex-start !important;
+    justify-self: flex-start !important;
+    margin-top: auto;
+    font-size: 0.6rem !important;
+    padding: 0.45rem 0.6rem !important;
+  }
+
+  /* Float Test All Words at the bottom-right of the viewport, clear of
+     the MobileBottomNav (96px tall). */
+  .hub-testall-btn {
+    position: fixed !important;
+    right: 12px !important;
+    bottom: calc(108px + env(safe-area-inset-bottom, 0px)) !important;
+    left: auto !important;
+    top: auto !important;
+    z-index: 40;
+    width: 78px !important;
+    height: 78px !important;
+  }
+}

@@ -1,0 +1,195 @@
+/* MobileBottomNav — only ever visible at max-width:768px. The whole
+   block is display:none on desktop so the existing ArcadeFooter +
+   TopNav remain untouched. */
+
+.mbn { display: none; }
+
+@media (max-width: 768px) {
+  .mbn {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 50;
+    /* Two-row × two-column grid: buddy spans both rows on the left;
+       status (score+xp) sits top-right; tabs sit bottom-right. */
+    display: grid;
+    grid-template-columns: 108px 1fr;
+    grid-template-rows: 44px 52px;
+    grid-template-areas:
+      "buddy status"
+      "buddy tabs";
+    height: 96px;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: #0f0820;            /* fallback (tab band) */
+    border-top: 2px solid #4a2d80;
+    box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.45);
+    font-family: 'Press Start 2P', 'Nunito', sans-serif;
+    overflow: visible;              /* buddy bleeds upward */
+  }
+
+  /* ── Buddy slot — spans both rows on the left ───────────────── */
+
+  .mbn__buddy-slot {
+    grid-area: buddy;
+    /* Sit the buddy on the bottom of its slot so it overlaps the
+       boundary between the two bands and reaches up past the bar. */
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    overflow: visible;
+    /* Match the two-band stripe used on the right side — lighter band
+       at the top, darker at the bottom, hard stop at the same height
+       as the status row (44px). The buddy sprite sits across that
+       boundary line so it visually anchors both bands. */
+    background: linear-gradient(
+      to bottom,
+      #261546 0,
+      #261546 44px,
+      #0f0820 44px
+    );
+    padding-bottom: 2px;
+  }
+  /* The raccoon body is the canonical buddy size — BuddyAvatar passes
+     size={110} which already sets maxWidth/maxHeight inline on the img.
+     We just need to clamp the wrapper button and add a small upward
+     bleed so the sprite reaches above the bar boundary. */
+  .mbn__buddy-slot .buddy-sprite-btn {
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    /* Slight upward shift on top of the natural overflow: the sprite is
+       110px tall and the slot is 96px, so the top ~14px already bleeds
+       above the bar; this nudges it a bit further for liveliness. */
+    transform: translateY(-6px);
+  }
+  .mbn__buddy-slot .buddy-sprite-btn img {
+    image-rendering: pixelated;
+  }
+  /* Emoji-fallback path (buddies like Tiger / Lion without a custom
+     SVG sprite). The raccoon SVG renders at ~110px; emoji glyphs only
+     fill ~70% of their font-size, so we bump font-size higher to land
+     at the same visual footprint and span both bands. */
+  .mbn__buddy-slot .buddy-sprite-btn:not(:has(img)) {
+    font-size: 5rem;
+    line-height: 0.9;
+  }
+
+  /* ── Status row (top band, lighter) — score + level block ──── */
+
+  .mbn__status {
+    grid-area: status;
+    /* Lighter band than the nav row so the bar reads as two strips. */
+    background: #261546;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    padding: 0 14px 0 12px;
+  }
+  .mbn__points-num {
+    font-size: 1.35rem;
+    color: #ffd93d;
+    text-shadow: 0 0 8px rgba(255, 217, 61, 0.45);
+    letter-spacing: 0.04em;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .mbn__level-block {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    min-width: 0;
+  }
+  .mbn__level-title {
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #f5ecff;
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .mbn__xp {
+    display: block;
+    /* Narrow — anchored under the level title only, not full row. */
+    width: 130px;
+    max-width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .mbn__xp-fill {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, #ffd93d, #ff9f43);
+    transition: width 0.3s ease;
+  }
+
+  /* ── Tabs row (bottom band, darker) — 4 icon-only buttons ──── */
+
+  .mbn__tabs {
+    grid-area: tabs;
+    background: #0f0820;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    align-items: stretch;
+  }
+  .mbn__tab {
+    appearance: none;
+    background: transparent;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #a99bd1;     /* inactive — muted */
+    opacity: 0.6;
+    cursor: pointer;
+    padding: 0;
+    height: 100%;
+    position: relative;
+    transition: color 0.15s, opacity 0.15s;
+  }
+  .mbn__tab:active { opacity: 0.85; }
+  .mbn__tab-icon {
+    width: 34px;
+    height: 34px;
+    display: block;
+    shape-rendering: crispEdges;
+  }
+  /* Active state — yellow underline only, no dark box. Icon brightens.
+     The underline stretches the full width of each tab column so the
+     four tabs visually share the underline distribution evenly, and
+     touches the very bottom of the bar (no gap) so it reads as the
+     "currently selected" floor marker. */
+  .mbn__tab--active {
+    color: #ffd93d;
+    opacity: 1;
+  }
+  .mbn__tab--active::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 7px;
+    background: #ffd93d;
+    border-radius: 0;
+    box-shadow: 0 0 10px rgba(255, 217, 61, 0.55);
+  }
+
+  /* Reserve space at the bottom of the document so content isn't
+     hidden behind the fixed nav. 96px bar + iOS safe-area. */
+  body {
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  }
+}

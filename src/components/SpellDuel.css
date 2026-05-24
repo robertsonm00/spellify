@@ -587,3 +587,35 @@
   background: #4a90e2;
   color: white;
 }
+
+/* ─────────────────────────────────────────────────────────────────────
+   Mobile layout (Round-2 audit fix)
+   ─────────────────────────────────────────────────────────────────────
+   At ≤768px the adaptive keyboard's right-most key was hugging the
+   viewport edge, and the ROUND ribbon was bleeding off the right.
+   Pad the keyboard area, shrink keys + their gaps, and constrain the
+   ROUND badge to viewport width. */
+@media (max-width: 768px) {
+  .hm-keyboard-area {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  .hm-key-row,
+  .hm-key-row--adaptive {
+    gap: 4px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 100%;
+  }
+  .hm-key {
+    width: clamp(36px, 9vw, 44px);
+    height: clamp(40px, 10vw, 50px);
+    min-width: 0;
+    font-size: 1.1rem;
+  }
+  .sd-round-badge {
+    max-width: calc(100vw - 24px);
+    transform: scale(0.85);
+    transform-origin: center;
+  }
+}

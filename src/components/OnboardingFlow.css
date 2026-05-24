@@ -745,3 +745,27 @@
   justify-content: center;
   margin-top: 0.35rem;
 }
+
+/* ── Mobile: keep the Back button out of the title's row ───────────────
+   On desktop .ob-back-btn is absolutely positioned in the top-left of
+   .ob-card; on a 390px viewport the title in .ob-step-header runs
+   under that absolute element and the two overlap. Lift the back
+   button out of the absolute layer on mobile, sit it in its own row
+   above the title, and the title flows underneath with breathing room. */
+@media (max-width: 768px) {
+  /* Switch the card to a column flex container so the back button can
+     order:-1 ahead of the step content even though it's rendered last
+     in the JSX. */
+  .ob-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem 1.25rem 1.5rem;
+  }
+  .ob-back-btn {
+    position: static;
+    align-self: flex-start;
+    order: -1;
+    margin: 0 0 0.85rem 0;
+  }
+}

@@ -296,3 +296,10 @@
   outline: 2px solid var(--gold);
   outline-offset: 2px;
 }
+
+/* ── Mobile: hide the desktop player strip ────────────────────────────
+   On mobile the MobileBottomNav (Row 1) carries the buddy + points +
+   level pill. Hiding the desktop footer here keeps mobile clean. */
+@media (max-width: 768px) {
+  .arcade-footer { display: none !important; }
+}

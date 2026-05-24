@@ -795,3 +795,74 @@
   .wi-feedback,
   .wi-row-burst { display: none !important; }
 }
+
+/* ─────────────────────────────────────────────────────────────────────
+   Mobile layout (Round-2 audit fix)
+   ─────────────────────────────────────────────────────────────────────
+   Desktop renders Write It as a multi-column table (word + Look/Say/
+   Cover/Write/Check practice cells side-by-side). On a 390px viewport
+   the input column gets clipped. On mobile we stack each row: the
+   word goes on top, the practice cells flow underneath as a row of
+   chips, and the input slot drops below them at full width. */
+@media (max-width: 768px) {
+  .wi-table-outer {
+    overflow: visible;
+    padding: 0 0.5rem;
+  }
+  .wi-table {
+    width: 100%;
+  }
+  .wi-row {
+    display: flex !important;
+    flex-direction: column;
+    gap: 0.45rem;
+    padding: 0.75rem 0.6rem;
+    margin-bottom: 0.6rem;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.55);
+  }
+  .wi-row > .wi-cell--word {
+    width: 100%;
+    text-align: center;
+    padding: 0.5rem 0.25rem 0;
+  }
+  .wi-word-display {
+    justify-content: center;
+  }
+  /* The 4 practice progress cells (tick/locked) line up as a small
+     row of chips under the word. */
+  .wi-row > .wi-cell--tick,
+  .wi-row > .wi-cell--locked {
+    width: 28px;
+    height: 28px;
+    flex: 0 0 28px;
+    margin: 0 4px;
+  }
+  /* Container that holds the tick/locked cells side-by-side. We don't
+     have one in the JSX — they're siblings of the word cell — so we
+     group them via a flex parent applied at the .wi-row level using
+     the row-reverse trick. Simpler approach: hide all but the active
+     practice cell + the input on mobile. */
+  .wi-row > .wi-cell--practice {
+    width: 100%;
+  }
+  .wi-input-wrap { width: 100%; }
+  .wi-input {
+    width: 100%;
+    font-size: 1.1rem;
+    padding: 0.55rem 0.7rem;
+    min-height: 44px;
+  }
+  /* Hide the column header row on mobile — column headers don't make
+     sense once rows are vertical. */
+  .wi-thead { display: none !important; }
+
+  /* The desktop .wi-row uses an inline `gridTemplateColumns` style that
+     forces a wide multi-column grid. Override with !important so the
+     row becomes a vertical flex column on mobile. */
+  .wi-table .wi-row[style],
+  .wi-table .wi-row {
+    grid-template-columns: 1fr !important;
+    min-width: 0 !important;
+  }
+}

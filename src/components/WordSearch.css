@@ -715,3 +715,70 @@
 
 /* ws-wrap--complete no longer exists — completion is an overlay (.ws-complete-overlay).
    Card and title are already styled with the magical palette in the base rules above. */
+
+/* ─────────────────────────────────────────────────────────────────────
+   Mobile layout (Round-2 audit fix)
+   ─────────────────────────────────────────────────────────────────────
+   Desktop puts a word-list sidebar next to the grid. On mobile the
+   sidebar is hidden, the grid fills the full viewport width, and the
+   word list collapses into a small chip strip above the grid. */
+@media (max-width: 768px) {
+  .ws-body {
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.5rem 0.5rem;
+  }
+  /* Convert the sidebar into a compact horizontally-scrolling chip
+     strip above the grid. Word chips wrap to one row, ws-side-btn
+     (the collapse arrow) hides on mobile because there's nothing to
+     collapse to. */
+  .ws-wordlist-panel {
+    width: 100%;
+    flex: 0 0 auto;
+    max-height: 64px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    background: transparent;
+    border: none;
+    padding: 0;
+  }
+  .ws-side-btn { display: none; }
+  .ws-word-list {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    gap: 0.4rem;
+    padding: 0.4rem 0.5rem;
+    margin: 0;
+  }
+  .ws-word-list .game-word {
+    flex: 0 0 auto;
+    font-size: 0.85rem;
+    padding: 0.25rem 0.55rem;
+    white-space: nowrap;
+  }
+  .ws-grid-wrap { width: 100%; flex: 1 1 auto; }
+  .ws-grid {
+    width: 100%;
+    max-width: 100vw;
+  }
+  /* Recompute cell size based on viewport width only (no sidebar). The
+     header + strip combined ≈ 110px on mobile; bottom-nav adds another
+     106px; remaining height is the lower bound. min() with viewport
+     width / grid-size gives a square cell that maxes out the smaller
+     dimension. Minimum 44px so cells always meet the iOS tappable
+     target. */
+  .ws-cell {
+    --by-h: calc((100vh - 220px) / var(--gs, 10));
+    --by-w: calc((100vw - 28px)  / var(--gs, 10));
+    --cell: max(44px, min(var(--by-h), var(--by-w)));
+    width:  var(--cell);
+    height: var(--cell);
+    font-size: clamp(0.9rem, 4vw, 1.4rem);
+  }
+  /* Compact found-words strip above the grid — uses the same chip
+     style the desktop sidebar uses, but inline-wrapped. */
+  .ws-grid-wrap::before {
+    content: none; /* placeholder hook in case we want to inject later */
+  }
+}

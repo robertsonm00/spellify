@@ -274,3 +274,43 @@
 .st-summary-row--ok  { background: #e8f6ec; color: #16a34a; }
 .st-summary-row--bad { background: #fdecec; color: #c0392b; }
 .st-summary-counts   { font-size: 0.85rem; opacity: 0.85; }
+
+/* ─────────────────────────────────────────────────────────────────────
+   Mobile layout (Round-2 audit fix)
+   ─────────────────────────────────────────────────────────────────────
+   The desktop row is `grid-template-columns: 130px auto 130px` with
+   `width: max-content` and a 240px TAP button — total ~540px, well
+   over a 390px viewport, so the button gets pushed off-screen right.
+   Shrink the button + side columns and centre the row inside the
+   viewport. */
+@media (max-width: 768px) {
+  .st-shell {
+    padding: 1rem 0.75rem 2rem;
+    max-width: 100%;
+    width: 100%;
+  }
+  .st-instructions {
+    font-size: 1.25rem;
+    margin: 0.75rem 0 1rem;
+    padding: 0 0.25rem;
+    max-width: 100%;
+  }
+  .st-tap-row {
+    grid-template-columns: minmax(64px, 1fr) auto minmax(64px, 1fr);
+    column-gap: 0.4rem;
+    width: 100%;
+    max-width: 100%;
+    padding: 0 0.5rem;
+    justify-items: center;
+  }
+  .st-tap-row-spacer { width: auto; }
+  .st-tap-btn {
+    width: min(190px, 60vw);
+    height: min(190px, 60vw);
+    font-size: 1.8rem;
+  }
+  .st-undo, .st-cta {
+    padding: 0.55rem 0.7rem;
+    font-size: 0.85rem;
+  }
+}

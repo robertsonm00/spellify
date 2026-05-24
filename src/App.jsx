@@ -11,6 +11,7 @@ import TopNav         from './components/TopNav';
 import { fireBuddyCheer } from './components/BuddyAvatar';
 import ExploreDashboard from './components/explore/ExploreDashboard';
 import ArcadeFooter from './components/ArcadeFooter';
+import MobileBottomNav from './components/MobileBottomNav';
 import SignInModal    from './components/explore/SignInModal';
 import Settings       from './components/Settings';
 import { GeneratedWords } from './components/OnboardingFlow';
@@ -342,6 +343,19 @@ function App() {
             levelTitle="Grand Wordmancer"
             xpCurrent={650}
             xpMax={1000}
+            buddyId={session?.childCharacter?.id || 'raccoon'}
+            buddyFallback={session?.childCharacter?.emoji || '🦝'}
+          />
+          <MobileBottomNav
+            section={section}
+            onSectionChange={(s) => { setSection(s); setNavTick(t => t + 1); }}
+            points={livePoints}
+            level={10}
+            levelTitle="Grand Wordmancer"
+            xpCurrent={650}
+            xpMax={1000}
+            buddyId={session?.childCharacter?.id || 'raccoon'}
+            buddyFallback={session?.childCharacter?.emoji || '🦝'}
           />
         </>
       );
@@ -396,6 +410,7 @@ function App() {
           onUpdate={handleSettingsUpdate}
           onChangeWords={() => { setSettingsOpen(false); setSection('mylists'); setChangeWordsOpen(true); }}
           onClearProgress={handleClearProgress}
+          onExit={handleBackToWelcome}
           onClose={() => setSettingsOpen(false)}
         />
       )}
@@ -434,6 +449,19 @@ function App() {
         levelTitle="Grand Wordmancer"
         xpCurrent={650}
         xpMax={1000}
+        buddyId={session?.childCharacter?.id || 'raccoon'}
+        buddyFallback={session?.childCharacter?.emoji || '🦝'}
+      />
+      <MobileBottomNav
+        section={section}
+        onSectionChange={(s) => { setSection(s); setNavTick(t => t + 1); }}
+        points={livePoints}
+        level={10}
+        levelTitle="Grand Wordmancer"
+        xpCurrent={650}
+        xpMax={1000}
+        buddyId={session?.childCharacter?.id || 'raccoon'}
+        buddyFallback={session?.childCharacter?.emoji || '🦝'}
       />
     </>
   );

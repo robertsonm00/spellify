@@ -662,3 +662,42 @@
   font-size: 0.55rem;
   letter-spacing: 0.05em;
 }
+
+/* ─────────────────────────────────────────────────────────────────────
+   Mobile layout (Round-2 audit fix)
+   ─────────────────────────────────────────────────────────────────────
+   The desktop calc on .cw-grid-area uses viewport-height in a way that
+   collapses cells to tall rectangles on narrow viewports. On mobile we
+   ignore the desktop sizing and let the grid fit the viewport width,
+   forcing each cell to aspect-ratio 1/1 so they stay square. Horizontal
+   scroll kicks in only if the grid is too wide to fit. */
+@media (max-width: 768px) {
+  .cw-grid-area {
+    /* Override the desktop width: calc() that breaks at narrow widths. */
+    width: 100% !important;
+    max-width: 100vw;
+    overflow-x: auto;
+    overflow-y: visible;
+    padding: 0 8px;
+    align-self: flex-start;
+  }
+  .cw-grid {
+    /* Cap each cell at a tappable, readable size; min cell ~36px so
+       a 9-col puzzle still fits a 390px screen with margin. */
+    grid-template-columns: repeat(var(--cols), minmax(36px, 44px));
+    grid-template-rows:    repeat(var(--rows), 44px);
+    /* Drop the desktop aspect-ratio rule — cell sizing handles squareness. */
+    aspect-ratio: auto;
+    height: auto;
+    max-width: none;
+    max-height: none;
+    gap: 2px;
+  }
+  .cw-cell {
+    aspect-ratio: 1 / 1;
+    font-size: 1rem;
+  }
+  /* Clue bar already sits below the grid on desktop — just make sure
+     it stays full-width and stacks neatly. */
+  .cw-clue-bar { width: 100%; }
+}

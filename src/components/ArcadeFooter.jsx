@@ -18,6 +18,12 @@ export default function ArcadeFooter({
   levelTitle = '',
   xpCurrent = 0,
   xpMax = 1,
+  // Buddy is whichever character the child picked at onboarding. Falls
+  // back to the raccoon when no session / no pick yet — raccoon is the
+  // single buddy with a full SVG sprite and cheer pose, so it stays the
+  // canonical default everywhere.
+  buddyId = 'raccoon',
+  buddyFallback = '🦝',
   onFavourites,
   onRecentlyViewed,
 }) {
@@ -43,7 +49,7 @@ export default function ArcadeFooter({
           a small overflow; click cheer + global buddy-cheer event are handled
           inside BuddyAvatar itself when `interactive` is set. */}
       <div className="arcade-footer__raccoon-slot">
-        <BuddyAvatar id="raccoon" size={114} interactive />
+        <BuddyAvatar id={buddyId} size={114} fallback={buddyFallback} interactive />
       </div>
 
       <div className="arcade-footer__vdiv" />

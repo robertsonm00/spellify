@@ -1125,6 +1125,23 @@ export default function ExploreDashboard({
       );
     }
 
+    if (page === 'alerts') {
+      // Placeholder for the future Alerts/Daily-challenges/Streak surface.
+      // Wired into the mobile bottom-nav today so the tab navigates without
+      // crashing; desktop reaches it via direct setSection if needed.
+      return (
+        <main className="ed-main ed-main--alerts">
+          <PaneSection headerClass="ep-assignments-phase" label="Alerts" hint="Daily challenges and streak">
+            <div className="ed-list-frame" style={{ padding: '2rem 1rem', textAlign: 'center', color: '#cdb4ff' }}>
+              <p style={{ fontSize: '1.1rem', margin: 0 }}>
+                Daily challenges and streak — coming soon.
+              </p>
+            </div>
+          </PaneSection>
+        </main>
+      );
+    }
+
     if (page === 'recent') {
       const filteredRecent = recentEntries
         .filter(({ list }) => !hideCompleted || !isListCompleted(list, progressCache[list.id]));

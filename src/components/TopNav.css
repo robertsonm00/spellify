@@ -642,3 +642,11 @@
     0 0 28px rgba(236, 72, 153, 0.35);
 }
 
+
+/* ── Mobile: hide entire TopNav ─────────────────────────────────────────
+   On mobile the new MobileBottomNav (bottom of viewport) replaces both
+   the TopNav and the ArcadeFooter. The Exit action that lived in the
+   top-left moves into the Settings panel as "Exit to home screen". */
+@media (max-width: 768px) {
+  .topnav { display: none !important; }
+}
