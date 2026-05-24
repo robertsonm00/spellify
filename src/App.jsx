@@ -12,6 +12,7 @@ import { fireBuddyCheer } from './components/BuddyAvatar';
 import ExploreDashboard from './components/explore/ExploreDashboard';
 import ArcadeFooter from './components/ArcadeFooter';
 import MobileBottomNav from './components/MobileBottomNav';
+import MobileTopBar from './components/MobileTopBar';
 import SignInModal    from './components/explore/SignInModal';
 import Settings       from './components/Settings';
 import { GeneratedWords } from './components/OnboardingFlow';
@@ -308,7 +309,7 @@ function App() {
   if (!session || !session.words || session.words.length === 0) {
     // No session: render the dashboard so guests can browse Home / Explore /
     // Favourites etc. Onboarding is launched from inside those flows.
-    const dashboardSections = ['home', 'assignments', 'mylists', 'exploreDashboard', 'favourites', 'recent'];
+    const dashboardSections = ['home', 'assignments', 'mylists', 'exploreDashboard', 'favourites', 'recent', 'alerts'];
     if (dashboardSections.includes(section)) {
       const dashboardPage = section === 'exploreDashboard' ? 'explore' : section;
       return (
@@ -323,6 +324,7 @@ function App() {
             onExit={() => setScreen('welcome')}
             onSettings={() => setSettingsOpen(true)}
           />
+          <MobileTopBar />
           <ExploreDashboard
             page={dashboardPage}
             navTick={navTick}
@@ -345,6 +347,9 @@ function App() {
             xpMax={1000}
             buddyId={session?.childCharacter?.id || 'raccoon'}
             buddyFallback={session?.childCharacter?.emoji || '🦝'}
+            onSignInClick={() => setShowSignIn(true)}
+            onSignUpClick={() => setShowSignIn(true)}
+            onSettingsClick={() => setSettingsOpen(true)}
           />
           <MobileBottomNav
             section={section}
@@ -356,6 +361,9 @@ function App() {
             xpMax={1000}
             buddyId={session?.childCharacter?.id || 'raccoon'}
             buddyFallback={session?.childCharacter?.emoji || '🦝'}
+            onSignInClick={() => setShowSignIn(true)}
+            onSignUpClick={() => setShowSignIn(true)}
+            onSettingsClick={() => setSettingsOpen(true)}
           />
         </>
       );
@@ -376,8 +384,17 @@ function App() {
         onExit={handleBackToWelcome}
         onSettings={() => setSettingsOpen(true)}
       />
+      <MobileTopBar
+        onSignInClick={() => setShowSignIn(true)}
+        onSignUpClick={() => setShowSignIn(true)}
+        onSettingsClick={() => setSettingsOpen(true)}
+        onNavigate={(key) => { setSection(key); setNavTick(t => t + 1); }}
+      />
 
-      {/* ── Dashboard pages (home / assignments / mylists / explore / favourites / recent) ── */}
+      {/* ── Dashboard pages (home / assignments / mylists / explore /
+            favourites / recent / alerts) ─ All routed through
+            ExploreDashboard so they share the same purple starfield
+            chrome + arcade-style headings on every viewport. */}
       <ExploreDashboard
         page={section === 'exploreDashboard' ? 'explore' : section}
         navTick={navTick}

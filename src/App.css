@@ -100,6 +100,17 @@ body {
   padding-top: 56px;
 }
 
+/* Mobile: the TopNav is hidden, so the 56px reservation creates an
+   unstyled white strip at the top of the viewport. Drop the offset
+   and paint the page background dark purple so any safe-area inset on
+   notched devices matches the rest of the app. */
+@media (max-width: 768px) {
+  html, body {
+    padding-top: env(safe-area-inset-top, 0px);
+    background: #1a0d33;
+  }
+}
+
 /* ── App shell ── */
 
 .app-shell {

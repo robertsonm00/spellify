@@ -1,0 +1,48 @@
+/* PageShell — desktop pass-through, mobile dark-purple shell. */
+
+.page-shell {
+  /* Desktop: behave like a transparent block container. The desktop
+     ExploreDashboard / WordListHub still own their own backgrounds and
+     layout, so we don't touch anything here. */
+}
+
+@media (max-width: 768px) {
+  .page-shell {
+    min-height: 100vh;
+    background: #1a0d33;
+    background-image:
+      radial-gradient(circle at 25% 30%, rgba(199, 125, 255, 0.08), transparent 50%),
+      radial-gradient(circle at 80% 70%, rgba(255, 217, 61, 0.05), transparent 50%);
+    color: #f5ecff;
+    font-family: 'Nunito', 'Segoe UI', Arial, sans-serif;
+    /* Top: clear the floating Spellify wordmark with breathing room
+       below (the wordmark sits at safe-area + 18px and is ~14px tall,
+       so 80px gives a comfortable gap before the page title).
+       Horizontal: canonical 16px on both sides — every page surface
+       aligns its left edge with the Spellify wordmark at 16px.
+       Bottom: clear the 96px MobileBottomNav + safe-area. */
+    padding:
+      calc(env(safe-area-inset-top, 0px) + 80px)
+      12px
+      calc(96px + env(safe-area-inset-bottom, 0px) + 1rem)
+      12px;
+    box-sizing: border-box;
+  }
+
+  .page-shell__title {
+    font-family: 'Press Start 2P', 'Nunito', monospace;
+    font-size: 1.2rem;
+    color: #ffd93d;
+    text-shadow: 0 0 12px rgba(255, 217, 61, 0.4);
+    letter-spacing: 0.04em;
+    /* Extra space below the title so the body copy gets room to breathe
+       between the floating wordmark above and the content below. */
+    margin: 0 0 1.5rem;
+  }
+
+  .page-shell__body {
+    color: #cdb4ff;
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+}

@@ -2871,17 +2871,111 @@
     max-width: 100%;
     display: block;
   }
+  /* Explore subtitle ("Year N curriculum") — hidden on mobile. The
+     "Explore" heading alone is sufficient, and removing the subtitle
+     gives the strand pills more breathing room. */
+  .ed-main--explore .hub-phase-hint {
+    display: none !important;
+  }
 
-  /* Filter row: stack toggle + sort vertically, each full width. */
+  /* Filter row: condensed single line.
+       My Lists / Assignments / Favourites / Recents → HideCompleted
+       toggle on the left + Sort dropdown on the right, both small.
+       Explore filters (strand pills + HideCompleted) → strand pills
+       become a horizontally-scrollable strip (~80% width) and
+       HideCompleted condenses to the right (~20%). */
   .ed-filters-row {
-    flex-direction: column;
-    align-items: stretch;
+    flex-direction: row;
+    align-items: center;
     gap: 0.5rem;
+    flex-wrap: nowrap;
+    overflow: visible;
+    width: 100%;
   }
   .ed-filters-vdivider { display: none; }
-  .ed-toggle { width: 100%; justify-content: space-between; }
-  .ed-sort   { width: 100%; }
-  .ed-sort-select { width: 100%; }
+  .ed-toggle {
+    flex: 0 1 auto;
+    min-width: 0;
+    font-size: 0.72rem;
+    gap: 0.3rem;
+    padding: 0.25rem 0.4rem;
+  }
+  .ed-toggle-label {
+    /* Override the desktop Press Start 2P pixel font (renders ~2× wide)
+       with Nunito so the label fits on one line alongside Sort by. */
+    font-family: 'Nunito', sans-serif !important;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    white-space: nowrap;
+  }
+  .ed-sort {
+    margin-left: auto;
+    font-size: 0.72rem;
+    flex: 0 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+  .ed-sort-label {
+    font-family: 'Nunito', sans-serif !important;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    white-space: nowrap;
+  }
+  .ed-sort-select {
+    font-family: 'Nunito', sans-serif !important;
+    letter-spacing: 0;
+  }
+  .ed-sort-select {
+    font-size: 0.72rem;
+    padding: 0.2rem 0.35rem;
+    max-width: 130px;
+  }
+
+  /* When the row contains strand pills (Explore filters) the layout
+     switches to scroll-strip mode: a flex strip that scrolls
+     horizontally, with HideCompleted pinned to the right outside the
+     scroll. Implemented by giving the strand pills `min-width: 0` and
+     turning the row into a non-wrapping flex with overflow on a
+     specific child wrapper. Since strand pills sit directly in
+     .ed-filters-row alongside the toggle, we let the row wrap
+     horizontally instead — the row itself overflows-x. */
+  .ed-filters-row:has(.ed-arcade-pill) {
+    overflow-x: auto;
+    overflow-y: visible;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .ed-filters-row:has(.ed-arcade-pill)::-webkit-scrollbar {
+    display: none;
+  }
+  /* Strand pills keep their natural width and don't shrink. */
+  .ed-filters-row .ed-arcade-pill {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    font-size: 0.85rem;
+    padding: 0.4rem 0.7rem;
+  }
+  /* HideCompleted in the strand row sticks to the right edge as a
+     condensed two-line label: "Hide" / "✓". The label text and the
+     wrapper switch behaviour are scoped via :has() so only the
+     Explore-filter row gets the condensed treatment. */
+  .ed-filters-row:has(.ed-arcade-pill) .ed-toggle {
+    margin-left: auto;
+    position: sticky;
+    right: 0;
+    background: linear-gradient(90deg, transparent, #1a0d33 25%);
+    padding-left: 0.8rem;
+    flex: 0 0 auto;
+  }
+  .ed-filters-row:has(.ed-arcade-pill) .ed-toggle-label {
+    font-size: 0.7rem;
+    line-height: 1;
+  }
 
   /* Lesson cards: full width, badges constrained inside the right edge.
      The card already uses flex; just stop right-aligned badges from
@@ -2898,4 +2992,122 @@
   }
   /* Empty-state CTA copy — allow wrapping. */
   .ep-phase-empty p { white-space: normal; }
+
+  /* ── List cards (ListCard) — restore title visibility ────────
+     Desktop layout is a single row: [icon] [body] [meta]. On a 318-
+     pixel-wide mobile card the meta block (badges + heart) takes 246
+     px, squeezing the body to 0 and hiding the title. Allow the meta
+     to wrap onto its own row beneath the body so the title gets full
+     width above. */
+  .ed-listcard {
+    flex-wrap: wrap;
+    padding: 14px;
+    gap: 10px 14px;
+  }
+  .ed-listcard__icon { order: 1; }
+  .ed-listcard__body {
+    order: 2;
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .ed-listcard__title {
+    font-size: 0.78rem;
+    /* Allow longer titles without immediately clamping. */
+    -webkit-line-clamp: 2;
+  }
+  .ed-listcard__preview {
+    font-size: 0.78rem;
+  }
+  .ed-listcard__meta {
+    order: 3;
+    flex: 0 0 100%;
+    justify-content: flex-start;
+    gap: 0.4rem;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   Mobile — top padding + 16px horizontal canon
+   ─────────────────────────────────────────────────────────────────────
+   The floating Spellify wordmark sits at safe-area + 18px and is
+   ~14px tall, so dashboard surfaces need at least 80px clearance
+   before their first heading. Left/right padding is 16px so every
+   page lines up under the wordmark. */
+@media (max-width: 768px) {
+  .ed-main,
+  .ed-shell {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+  .ed-main {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 80px) !important;
+  }
+  /* Stop nested frames from re-introducing wide padding. */
+  .ed-list-frame {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+}
+
+/* ── Alerts page inherits the same chrome as Assignments / Favourites
+      / Recents. The shared layout rules above use explicit class
+      selectors (`:is(.ed-main--home, .ed-main--assignments, …)` etc.)
+      so a new placeholder page like .ed-main--alerts has to be opted
+      in here rather than picked up automatically. Keep this block in
+      sync if more placeholder dashboard pages are added. */
+.ed-shell:has(.ed-main--alerts) {
+  height: calc(100vh - 56px - 68px);
+  min-height: 0;
+  overflow: hidden;
+}
+.ed-main--alerts {
+  height: calc(100vh - 56px - 68px);
+  overflow: hidden;
+  padding-bottom: 0;
+  margin-bottom: 0;
+  gap: 0.75rem;
+}
+.ed-main--alerts .hub-phase,
+.ed-main--alerts .ed-list-frame,
+.ed-main--alerts .hub-grid {
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+.ed-main--alerts .hub-phase {
+  flex: 1;
+  min-height: 0;
+}
+
+/* ── Alerts page background — mirror the home/assignments/etc.
+      magical-purple starfield + twinkles. The existing selector lists
+      use explicit class names (`.ed-shell:has(.ed-main--assignments)`
+      etc.), so a new dashboard page needs to opt in here. */
+.ed-shell:has(.ed-main--alerts) {
+  background-color: var(--app-bg-base-color);
+  background-image: var(--app-bg-stars), var(--app-bg-gradient);
+  background-size: var(--app-bg-stars-size);
+  background-attachment: fixed;
+  animation: ed-explore-stars-drift 60s linear infinite;
+  position: relative;
+}
+.ed-shell:has(.ed-main--alerts)::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0;
+  width: 2px; height: 2px;
+  border-radius: 50%;
+  background: transparent;
+  pointer-events: none;
+  z-index: 0;
+  box-shadow:
+    9vw  17vh 0 0.5px rgba(255, 255, 255, 0.95),
+    23vw 62vh 0 0.5px rgba(255, 255, 255, 0.9),
+    42vw 12vh 0 0.5px rgba(255, 215, 0,   0.95),
+    58vw 49vh 0 0.5px rgba(255, 255, 255, 0.95),
+    71vw 28vh 0 0.5px rgba(167, 139, 250, 0.95),
+    83vw 73vh 0 0.5px rgba(255, 255, 255, 0.9),
+    16vw 88vh 0 0.5px rgba(251, 191, 36,  0.95),
+    47vw 81vh 0 0.5px rgba(255, 255, 255, 0.9),
+    93vw 35vh 0 0.5px rgba(255, 255, 255, 0.95);
+  animation: ed-twinkle-pulse 4s ease-in-out infinite;
 }

@@ -172,6 +172,30 @@ export default function TopNav({
               <path d="M16 9.5v7l4.5 3" />
             </svg>
           </button>
+          {/* Alerts — pixel bell icon, mirrors the mobile bottom-nav tab so
+              the same surface is reachable on desktop. Sits next to the
+              clock so all icon-only tabs cluster at the right of the row. */}
+          <button
+            key="alerts"
+            type="button"
+            className={`topnav-tab topnav-tab--icon${section === 'alerts' ? ' topnav-tab--icon-active' : ''}`}
+            onClick={() => onSectionChange('alerts')}
+            role="tab"
+            aria-selected={section === 'alerts'}
+            aria-label="Alerts"
+            title="Alerts"
+          >
+            <svg
+              className="topnav-tab__icon"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <rect x="11" y="2" width="2" height="2" />
+              <path d="M6 16 V14 Q6 8 12 8 Q18 8 18 14 V16 H20 V18 H4 V16 Z" />
+              <rect x="10" y="19" width="4" height="2" />
+            </svg>
+          </button>
         </div>
       )}
 

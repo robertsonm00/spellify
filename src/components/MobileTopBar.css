@@ -1,0 +1,30 @@
+/* MobileTopBar — floating Spellify wordmark, mobile only. */
+
+.mtb__brand { display: none; }
+
+@media (max-width: 768px) {
+  .mtb__brand {
+    display: flex;
+    position: fixed;
+    /* More breathing room than the previous version — the brand sits
+       higher above the page title so headlines don't crash into it. */
+    top: calc(env(safe-area-inset-top, 0px) + 18px);
+    left: 12px;             /* matches the canonical 12px page padding */
+    z-index: 60;
+    gap: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+  .mtb__brand--hidden {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  .mtb__brand-letter {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.85rem;
+    line-height: 1;
+    text-shadow:
+      0 0 12px currentColor,
+      2px 2px 0 rgba(0, 0, 0, 0.5);
+  }
+}
