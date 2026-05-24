@@ -769,3 +769,104 @@
     margin: 0 0 0.85rem 0;
   }
 }
+
+/* ── Locked buddy state ─────────────────────────────────────────────────
+   Quick-start onboarding only unlocks the raccoon — every other buddy
+   in the picker shows a padlock overlay and renders at reduced opacity
+   so kids can see the roster they'll get with an account, but can't
+   pick one. Tapping a locked card shows the .ob-character-locktoast
+   below the grid for ~2s. */
+.ob-character-card--locked {
+  opacity: 0.6;
+  cursor: pointer;            /* still tappable — shows the toast */
+  position: relative;
+}
+.ob-character-card--locked:hover {
+  /* Suppress the desktop hover lift so locked cards feel inert. */
+  transform: none;
+  border-color: #e0e0e0;
+  background: #f9f9f9;
+}
+.ob-character-lock {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-size: 0.9rem;
+  line-height: 1;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.3));
+}
+
+.ob-character-locktoast {
+  margin: 0.65rem 0 0;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #6b21a8;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  pointer-events: none;
+  min-height: 1.2em;          /* reserve space so the toast doesn't shift layout */
+}
+.ob-character-locktoast--show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── Buddy picker hero layout ──────────────────────────────────────────
+   Raccoon is the spotlight card on his own centred row above a grid of
+   locked buddies. The hero card is bigger and more prominent; the
+   locked grid below feels like a preview of what an account unlocks. */
+.ob-character-hero {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin: 0.5rem 0 1.1rem;
+}
+.ob-character-card--hero {
+  /* Slightly wider + taller than the locked-grid cards so the
+     spotlight reads at a glance. Same border/picked treatment is
+     inherited from .ob-character-card / --picked. */
+  flex: 0 0 auto;
+  width: clamp(160px, 50%, 220px);
+  padding: 1.6rem 1rem 1.3rem;
+  gap: 0.85rem;
+  background: #fffaf0;
+  border-color: #ffd93d;
+  box-shadow: 0 6px 14px rgba(255, 217, 61, 0.18);
+}
+.ob-character-card--hero .ob-character-emoji {
+  font-size: 3.4rem;
+  height: 84px;
+  width: 84px;
+}
+.ob-character-card--hero .ob-character-name {
+  font-size: 0.95rem;
+  color: #1a1a2e;
+}
+/* When the hero is also the picked card (always, in quick-start) the
+   picked pulse still applies via .ob-character-card--picked; nothing
+   to override here. */
+
+/* Locked grid — slightly tighter than the original 4-col grid so it
+   reads as secondary to the hero above. */
+.ob-character-grid--locked {
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.65rem;
+  margin: 0;
+}
+@media (max-width: 500px) {
+  .ob-character-grid--locked {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .ob-character-card--hero {
+    width: clamp(140px, 60%, 200px);
+    padding: 1.3rem 0.8rem 1.1rem;
+  }
+  .ob-character-card--hero .ob-character-emoji {
+    font-size: 3rem;
+    height: 72px;
+    width: 72px;
+  }
+}

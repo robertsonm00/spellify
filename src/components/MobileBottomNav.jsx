@@ -19,46 +19,74 @@ import React, { useEffect, useState } from 'react';
 import BuddyAvatar from './BuddyAvatar';
 import './MobileBottomNav.css';
 
-// ── Pixel-style SVG icons (24×24 viewBox, blocky pixel-art look) ────
+// ── Outlined line icons (Lucide-style) ─────────────────────────────
+// All icons share a consistent stroke + cap style so they read as a
+// single family. 24×24 viewBox, 2px stroke, rounded line caps + joins.
+// `fill="none"` so they're pure outlines; the parent button drives
+// the colour via currentColor (active = gold, inactive = muted).
+
+const ICON_PROPS = {
+  viewBox:        '0 0 24 24',
+  fill:           'none',
+  stroke:         'currentColor',
+  strokeWidth:    2,
+  strokeLinecap:  'round',
+  strokeLinejoin: 'round',
+};
 
 const IconHome = (props) => (
-  <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
-    <path d="M12 3 L3 11 H6 V20 H10 V14 H14 V20 H18 V11 H21 Z" />
+  <svg {...ICON_PROPS} {...props}>
+    {/* Simple house — roof apex + walls + door */}
+    <path d="M3 11 L12 3 L21 11" />
+    <path d="M5 10 V20 H19 V10" />
+    <path d="M10 20 V14 H14 V20" />
   </svg>
 );
+
 const IconExplore = (props) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="square" {...props}>
-    <rect x="4" y="4" width="11" height="11" rx="0" />
-    <rect x="6" y="6" width="7" height="7" rx="0" fill="currentColor" opacity="0.15" stroke="none" />
-    <path d="M15 15 L20 20" />
+  <svg {...ICON_PROPS} {...props}>
+    {/* Magnifier — clean circle + diagonal handle */}
+    <circle cx="11" cy="11" r="6.5" />
+    <line x1="16.5" y1="16.5" x2="21" y2="21" />
   </svg>
 );
-const IconStar = (props) => (
-  <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
-    <path d="M12 2 L14 9 H21 L15 13 L17 20 L12 16 L7 20 L9 13 L3 9 H10 Z" />
+
+const IconNotebook = (props) => (
+  <svg {...ICON_PROPS} {...props}>
+    {/* Notebook — rectangle + spine line + 3 page lines.
+        Replaces the old star which read as Favourites. */}
+    <rect x="4" y="3" width="16" height="18" rx="2" />
+    <line x1="8" y1="3" x2="8" y2="21" />
+    <line x1="11.5" y1="8"  x2="17" y2="8"  />
+    <line x1="11.5" y1="12" x2="17" y2="12" />
+    <line x1="11.5" y1="16" x2="17" y2="16" />
   </svg>
 );
+
 const IconBell = (props) => (
-  <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
-    <rect x="11" y="2" width="2" height="2" />
-    <path d="M6 16 V14 Q6 8 12 8 Q18 8 18 14 V16 H20 V18 H4 V16 Z" />
-    <rect x="10" y="19" width="4" height="2" />
+  <svg {...ICON_PROPS} {...props}>
+    {/* Bell — dome + base bar + clapper, all rounded */}
+    <path d="M6 16 V12 a6 6 0 0 1 12 0 V16" />
+    <line x1="4" y1="17" x2="20" y2="17" />
+    <path d="M10.5 20 a1.5 1.5 0 0 0 3 0" />
   </svg>
 );
+
 const IconMenu = (props) => (
-  <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
-    <rect x="3"  y="5"  width="18" height="3" />
-    <rect x="3"  y="11" width="18" height="3" />
-    <rect x="3"  y="17" width="18" height="3" />
+  <svg {...ICON_PROPS} {...props}>
+    {/* 3 lines, slightly inset from the edges */}
+    <line x1="4" y1="7"  x2="20" y2="7"  />
+    <line x1="4" y1="12" x2="20" y2="12" />
+    <line x1="4" y1="17" x2="20" y2="17" />
   </svg>
 );
 
 const TABS = [
-  { key: 'home',             Icon: IconHome,    label: 'Home',           kind: 'nav' },
-  { key: 'exploreDashboard', Icon: IconExplore, label: 'Explore',        kind: 'nav' },
-  { key: 'mylists',          Icon: IconStar,    label: 'My Lists',       kind: 'nav' },
-  { key: 'alerts',           Icon: IconBell,    label: 'Alerts',         kind: 'nav' },
-  { key: '__menu__',         Icon: IconMenu,    label: 'Account menu',   kind: 'menu' },
+  { key: 'home',             Icon: IconHome,     label: 'Home',         kind: 'nav' },
+  { key: 'exploreDashboard', Icon: IconExplore,  label: 'Explore',      kind: 'nav' },
+  { key: 'mylists',          Icon: IconNotebook, label: 'My Lists',     kind: 'nav' },
+  { key: 'alerts',           Icon: IconBell,     label: 'Alerts',       kind: 'nav' },
+  { key: '__menu__',         Icon: IconMenu,     label: 'Account menu', kind: 'menu' },
 ];
 
 const DRAWER_ITEMS = [

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import './OnboardingFlow.css';
 import { YEAR_GROUPS, selectWords, getRuleGroups } from '../utils/wordSelectionEngine';
@@ -182,20 +182,42 @@ function NameInput({ onSubmit }) {
 // ── Step 2: Character picker ───────────────────────────────────────────────
 
 function CharacterPicker({ name, onSelect }) {
-  const [showMore, setShowMore] = useState(false);
-  const [pickedId, setPickedId] = useState(null);
+  // Quick-start buddy model:
+  //   • Raccoon is pre-selected by default — every guest gets the raccoon
+  //     (it's the canonical buddy with the full sprite + cheer pose).
+  //   • All other buddies render in the picker so kids can see the roster,
+  //     but they're padlocked. Tapping one shows a brief "create a free
+  //     account to unlock more buddies" toast — no selection occurs.
+  //   • Tapping the raccoon plays the celebratory fanfare and advances
+  //     to the next step. The Continue button advances immediately without
+  //     a tap, since raccoon is already selected.
+  const RACCOON = CHARACTERS.find((c) => c.id === 'raccoon') || CHARACTERS[0];
+
+  const [showMore, setShowMore]   = useState(false);
+  const [pickedId, setPickedId]   = useState(RACCOON.id);   // raccoon preselected
+  const [lockToast, setLockToast] = useState(false);
+  const lockToastTimer = useRef(null);
 
   const initialCharacters = CHARACTERS.slice(0, 7);
   const charactersToShow = showMore ? CHARACTERS : initialCharacters;
 
-  const handlePick = (char) => {
-    if (pickedId) return;            // ignore double-taps while celebrating
-    setPickedId(char.id);
+  const advance = () => {
+    if (pickedId !== RACCOON.id) return;
+    setPickedId(RACCOON.id);
     playBuddyFanfare();
     fireBuddyConfetti();
-    // Hold on the picked card for ~1s so the celebration is visible before
-    // advancing to the next onboarding step.
-    setTimeout(() => onSelect(char), 1000);
+    setTimeout(() => onSelect(RACCOON), 1000);
+  };
+
+  const handleCardTap = (char) => {
+    if (char.id === RACCOON.id) {
+      advance();
+      return;
+    }
+    // Locked buddy — flash the unlock-via-account hint.
+    setLockToast(true);
+    clearTimeout(lockToastTimer.current);
+    lockToastTimer.current = setTimeout(() => setLockToast(false), 2000);
   };
 
   return (
@@ -208,32 +230,68 @@ function CharacterPicker({ name, onSelect }) {
         </h2>
       </div>
 
-      <div className={`ob-character-grid${showMore ? ' ob-character-grid--expanded' : ''}`} style={showMore ? { maxHeight: '300px', overflowY: 'auto', paddingRight: '8px' } : {}}>
-        {charactersToShow.map((char) => (
-          <button
-            key={char.id}
-            className={`ob-character-card${pickedId === char.id ? ' ob-character-card--picked' : ''}`}
-            onClick={() => handlePick(char)}
-            disabled={!!pickedId && pickedId !== char.id}
-          >
-            <span className={`ob-character-emoji${hasBuddyAvatar(char.id) ? ' ob-character-emoji--svg' : ''}`}>
-              {hasBuddyAvatar(char.id)
-                ? <BuddyAvatar id={char.id} size={56} />
-                : char.emoji}
-            </span>
-            <span className="ob-character-name">{char.name}</span>
-          </button>
-        ))}
+      {/* Hero row — raccoon is the centred featured card. */}
+      <div className="ob-character-hero">
+        <button
+          type="button"
+          className={`ob-character-card ob-character-card--hero${pickedId === RACCOON.id ? ' ob-character-card--picked' : ''}`}
+          onClick={() => handleCardTap(RACCOON)}
+          aria-label={RACCOON.name}
+        >
+          <span className={`ob-character-emoji${hasBuddyAvatar(RACCOON.id) ? ' ob-character-emoji--svg' : ''}`}>
+            {hasBuddyAvatar(RACCOON.id)
+              ? <BuddyAvatar id={RACCOON.id} size={84} />
+              : RACCOON.emoji}
+          </span>
+          <span className="ob-character-name">{RACCOON.name}</span>
+        </button>
+      </div>
+
+      {/* Locked grid — every other buddy, displayed beneath the hero. */}
+      <div className={`ob-character-grid ob-character-grid--locked${showMore ? ' ob-character-grid--expanded' : ''}`} style={showMore ? { maxHeight: '320px', overflowY: 'auto', paddingRight: '8px' } : {}}>
+        {charactersToShow
+          .filter((char) => char.id !== RACCOON.id)
+          .map((char) => (
+            <button
+              key={char.id}
+              type="button"
+              className="ob-character-card ob-character-card--locked"
+              onClick={() => handleCardTap(char)}
+              aria-disabled="true"
+              aria-label={`${char.name} (locked)`}
+            >
+              <span className={`ob-character-emoji${hasBuddyAvatar(char.id) ? ' ob-character-emoji--svg' : ''}`}>
+                {hasBuddyAvatar(char.id)
+                  ? <BuddyAvatar id={char.id} size={56} />
+                  : char.emoji}
+              </span>
+              <span className="ob-character-name">{char.name}</span>
+              <span className="ob-character-lock" aria-hidden="true">🔒</span>
+            </button>
+          ))}
         {!showMore && (
           <button
+            type="button"
             className="ob-character-card ob-character-card--show-more"
             onClick={() => setShowMore(true)}
-            disabled={!!pickedId}
           >
             <span className="ob-character-emoji">➕</span>
             <span className="ob-character-name">Show more</span>
           </button>
         )}
+      </div>
+
+      {/* Locked-buddy toast — brief inline message, no dismiss UI. */}
+      <p className={`ob-character-locktoast${lockToast ? ' ob-character-locktoast--show' : ''}`}>
+        Create a free account to unlock more buddies
+      </p>
+
+      {/* Continue button — available immediately because raccoon is
+          pre-selected. Tapping it runs the same fanfare/advance flow. */}
+      <div className="ob-confidence-actions">
+        <button type="button" className="ob-play-btn" onClick={advance}>
+          Continue →
+        </button>
       </div>
     </div>
   );

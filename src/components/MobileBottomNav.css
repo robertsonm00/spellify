@@ -144,10 +144,11 @@
   }
   .mbn__tab:active { opacity: 0.85; }
   .mbn__tab-icon {
-    width: 34px;
-    height: 34px;
+    width: 30px;
+    height: 30px;
     display: block;
-    shape-rendering: crispEdges;
+    /* Anti-aliased line work — outlined icons are smoother without the
+       crispEdges hint we used for the previous pixel-art set. */
   }
   .mbn__tab--active {
     color: #ffd93d;

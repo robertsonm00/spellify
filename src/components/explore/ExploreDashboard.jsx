@@ -28,6 +28,7 @@ import ListHub            from './ListHub';
 import SignInModal        from './SignInModal';
 import { HubPlayerCard }  from '../WordListHub';
 import { GeneratedWords } from '../OnboardingFlow';
+import { getStreak, getWeekView } from '../../utils/streakEngine';
 import AddWordsManual     from '../AddWordsManual';
 import PracticeWriteIt    from '../PracticeWriteIt';
 import '../PracticeWriteIt.css';
@@ -57,6 +58,21 @@ const CATEGORY_DARK = {
 const FAV_KEY    = 'spellify_explore_favourites';
 const RECENT_KEY = 'spellify_explore_recent';
 const RECENT_MAX = 12;
+// LocalStorage key for the dismissible "extra support" banner shown on
+// the Explore page to children whose spelling confidence is 'tricky'
+// or 'often-tricky'. Once dismissed, it never returns.
+const EXPLORE_SUPPORT_BANNER_KEY = 'spellify_explore_banner_dismissed';
+
+// Confidence-aware sort weight for difficulty labels — lower comes first.
+// For 'often-tricky' / 'tricky' children we surface easier content first
+// (easy → medium → hard); for 'easy' or unset we leave the curriculum in
+// its natural order. Lists without an explicit difficulty fall in the
+// middle so they don't sink to the bottom of the page.
+const DIFFICULTY_WEIGHT = { easy: 0, medium: 1, hard: 2 };
+function diffWeight(list) {
+  const d = (list?.difficulty || '').toLowerCase();
+  return d in DIFFICULTY_WEIGHT ? DIFFICULTY_WEIGHT[d] : 1.5;
+}
 
 // Strand pills — colours mirror the existing CATEGORY_COLOURS map so an
 // active strand button visually echoes the ListCard it filters to.
@@ -581,6 +597,23 @@ export default function ExploreDashboard({
 
   const [favourites, setFavourites] = useState(() => safeParse(localStorage.getItem(FAV_KEY), []));
   const [recent,     setRecent]     = useState(() => safeParse(localStorage.getItem(RECENT_KEY), []));
+  // Dismissible "extra support" banner on the Explore page. Shown to
+  // children whose spelling confidence is 'tricky' or 'often-tricky'.
+  // Persists the dismissal so the banner doesn't return on next visit.
+  const [supportBannerDismissed, setSupportBannerDismissed] = useState(
+    () => localStorage.getItem(EXPLORE_SUPPORT_BANNER_KEY) === 'true'
+  );
+  const dismissSupportBanner = () => {
+    setSupportBannerDismissed(true);
+    try { localStorage.setItem(EXPLORE_SUPPORT_BANNER_KEY, 'true'); } catch {}
+  };
+
+  // Streak snapshot — read once per render of the Alerts page. The
+  // streakEngine writes a milestone event when crossed, so the App
+  // shell already handles celebration; here we just need the data
+  // for the Alerts surface itself.
+  const streakSnapshot = useMemo(() => getStreak(), [page]);
+  const streakWeek     = useMemo(() => getWeekView(), [page]);
   // Explore page filters — strand and difficulty pills, AND-combined.
   // 'all' means no filter on that axis.
   const [exploreStrand,     setExploreStrand]     = useState('all');
@@ -1055,10 +1088,21 @@ export default function ExploreDashboard({
     }
 
     if (page === 'explore') {
+      // Confidence-aware ordering — when the child finds spelling tricky,
+      // float easier difficulties to the top of the year's catalogue so
+      // they aren't met with a wall of "Hard" badges. No lists are
+      // hidden; the difficulty badges and content are unchanged.
+      const sc = session?.spellingConfidence;
+      const shouldSortByEasiestFirst = sc === 'often-tricky' || sc === 'tricky';
       const exploreResults = curriculumForYear
         .filter(l => exploreStrand     === 'all' || l.strand     === exploreStrand)
         .filter(l => exploreDifficulty === 'all' || l.difficulty === exploreDifficulty)
-        .filter(l => !hideCompleted || !isListCompleted(l, progressCache[l.id]));
+        .filter(l => !hideCompleted || !isListCompleted(l, progressCache[l.id]))
+        .slice()
+        .sort((a, b) => {
+          if (!shouldSortByEasiestFirst) return 0;       // stable, preserves curriculum order
+          return diffWeight(a) - diffWeight(b);
+        });
 
       // Sets of strand/difficulty values that actually appear in this year's
       // curriculum — used to hide filter chips that have no associated lists.
@@ -1069,9 +1113,30 @@ export default function ExploreDashboard({
         curriculumForYear.map(l => (l.difficulty || '').toString().toLowerCase()).filter(Boolean)
       );
 
+      // Supportive banner — only for children who find spelling tricky
+      // and only until they dismiss it (persisted in localStorage).
+      const showSupportBanner = shouldSortByEasiestFirst && !supportBannerDismissed;
+
       return (
         <main className="ed-main ed-main--explore">
           {renderPracticeQuestBanner({ aggregate: exploreAggregate })}
+          {showSupportBanner && (
+            <div className="ed-support-banner" role="note">
+              <span className="ed-support-banner__icon" aria-hidden="true">✨</span>
+              <p className="ed-support-banner__text">
+                Spellify gives you extra support on tricky words.
+                Start with any list — we'll help you along the way.
+              </p>
+              <button
+                type="button"
+                className="ed-support-banner__close"
+                onClick={dismissSupportBanner}
+                aria-label="Dismiss"
+              >
+                ✕
+              </button>
+            </div>
+          )}
           <PaneSection
             headerClass="ep-curriculum-phase"
             label="Explore"
@@ -1126,15 +1191,58 @@ export default function ExploreDashboard({
     }
 
     if (page === 'alerts') {
-      // Placeholder for Daily challenges and streak. Uses the same
-      // PaneSection chrome as every other dashboard page (Assignments,
-      // Favourites, Recents) so the page looks at home on every
-      // viewport — desktop and mobile.
+      // Real streak display, replaces the earlier "coming soon" placeholder.
+      const s = streakSnapshot;
+      const week = streakWeek;
+      const motiv =
+        s.currentStreak >= 7   ? 'Legendary streak! 🌟' :
+        s.currentStreak >= 3   ? "You're on a roll!" :
+        s.currentStreak >= 1   ? 'Great start!' :
+                                  'Start your streak today!';
       return (
         <main className="ed-main ed-main--alerts">
           <PaneSection headerClass="ep-assignments-phase" label="Alerts" hint="Daily challenges and streak">
-            <div className="ed-empty-soft" style={{ textAlign: 'center', padding: '2rem 1rem', color: '#f5b9d3', fontSize: '1.05rem', fontWeight: 700 }}>
-              <p style={{ margin: 0 }}>Daily challenges and streak — coming soon.</p>
+            <div className="ed-streak">
+              <div className="ed-streak__hero">
+                <span className="ed-streak__flame" aria-hidden="true">🔥</span>
+                <div className="ed-streak__hero-text">
+                  <div className="ed-streak__count">
+                    {s.currentStreak}{' '}
+                    <span className="ed-streak__count-unit">
+                      day{s.currentStreak === 1 ? '' : 's'}
+                    </span>
+                  </div>
+                  <div className="ed-streak__motiv">{motiv}</div>
+                </div>
+              </div>
+
+              <div className="ed-streak__week" role="list" aria-label="This week">
+                {week.map((d) => (
+                  <div
+                    key={d.iso}
+                    role="listitem"
+                    className={
+                      'ed-streak__day' +
+                      (d.isToday  ? ' ed-streak__day--today'  : '') +
+                      (d.isFuture ? ' ed-streak__day--future' : '') +
+                      (d.played   ? ' ed-streak__day--played' : '')
+                    }
+                  >
+                    <span className="ed-streak__dot" aria-hidden="true" />
+                    <span className="ed-streak__label">{d.dayLabel}</span>
+                  </div>
+                ))}
+              </div>
+
+              {s.graceUsed && (
+                <p className="ed-streak__grace">
+                  Grace day used — one missed day is forgiven 💜
+                </p>
+              )}
+
+              <div className="ed-streak__record">
+                Longest streak: <strong>{s.longestStreak} day{s.longestStreak === 1 ? '' : 's'}</strong>
+              </div>
             </div>
           </PaneSection>
         </main>

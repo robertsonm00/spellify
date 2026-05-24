@@ -3111,3 +3111,180 @@
     93vw 35vh 0 0.5px rgba(255, 255, 255, 0.95);
   animation: ed-twinkle-pulse 4s ease-in-out infinite;
 }
+
+/* ── Supportive banner (Explore page) ─────────────────────────────────
+   Shown on the Explore page when the child's spellingConfidence is
+   'tricky' or 'often-tricky'. Friendly, calm, not alarming. Dismissed
+   via the X button — dismissal persists in localStorage. */
+.ed-support-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0 0 0.85rem;
+  padding: 0.7rem 0.85rem 0.7rem 0.95rem;
+  background: linear-gradient(135deg, rgba(199, 125, 255, 0.18) 0%, rgba(167, 139, 250, 0.12) 100%);
+  border: 1.5px solid rgba(199, 125, 255, 0.4);
+  border-radius: 12px;
+  font-family: 'Nunito', sans-serif;
+  color: #f5ecff;
+  box-shadow:
+    0 0 0 1px rgba(199, 125, 255, 0.12),
+    0 4px 14px rgba(0, 0, 0, 0.18);
+  animation: ed-support-banner-in 0.3s ease-out;
+}
+@keyframes ed-support-banner-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+.ed-support-banner__icon {
+  font-size: 1.4rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.ed-support-banner__text {
+  margin: 0;
+  flex: 1;
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: #f5ecff;
+}
+.ed-support-banner__close {
+  appearance: none;
+  background: transparent;
+  border: none;
+  color: #cdb4ff;
+  font-size: 1rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, color 0.12s;
+}
+.ed-support-banner__close:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+.ed-support-banner__close:active { background: rgba(255, 255, 255, 0.14); }
+
+/* Mobile: tighten padding + slightly smaller copy. */
+@media (max-width: 768px) {
+  .ed-support-banner {
+    padding: 0.6rem 0.7rem 0.6rem 0.8rem;
+    gap: 0.55rem;
+    margin-bottom: 0.7rem;
+  }
+  .ed-support-banner__text { font-size: 0.85rem; }
+  .ed-support-banner__icon { font-size: 1.2rem; }
+}
+
+/* ── Streak display (Alerts page) ────────────────────────────────────
+   A simple, calm panel: flame + day count, motivational copy, 7-day
+   row, optional grace-day note, longest streak record. */
+.ed-streak {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem 1rem 1.5rem;
+  color: #f5ecff;
+}
+.ed-streak__hero {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  background: linear-gradient(135deg, rgba(255, 159, 67, 0.16) 0%, rgba(255, 217, 61, 0.12) 100%);
+  border: 1.5px solid rgba(255, 159, 67, 0.45);
+  border-radius: 14px;
+  padding: 0.85rem 1.1rem;
+}
+.ed-streak__flame {
+  font-size: 2.4rem;
+  line-height: 1;
+  filter: drop-shadow(0 0 12px rgba(255, 159, 67, 0.55));
+}
+.ed-streak__count {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 1.4rem;
+  color: #ffd93d;
+  text-shadow: 0 0 12px rgba(255, 217, 61, 0.4);
+  line-height: 1.1;
+}
+.ed-streak__count-unit {
+  font-size: 0.6rem;
+  letter-spacing: 0.05em;
+}
+.ed-streak__motiv {
+  margin-top: 4px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #f5ecff;
+}
+
+.ed-streak__week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.4rem;
+  width: 100%;
+  max-width: 360px;
+}
+.ed-streak__day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 0.4rem 0;
+  border-radius: 10px;
+  border: 1.5px solid transparent;
+}
+.ed-streak__dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  background: transparent;
+}
+.ed-streak__label {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #a99bd1;
+}
+.ed-streak__day--played .ed-streak__dot {
+  background: #ffd93d;
+  border-color: #ffd93d;
+  box-shadow: 0 0 10px rgba(255, 217, 61, 0.4);
+}
+.ed-streak__day--played .ed-streak__label { color: #f5ecff; }
+.ed-streak__day--today {
+  border-color: rgba(199, 125, 255, 0.55);
+  background: rgba(199, 125, 255, 0.10);
+}
+.ed-streak__day--future .ed-streak__dot { opacity: 0.4; }
+.ed-streak__day--future .ed-streak__label { opacity: 0.4; }
+
+.ed-streak__grace {
+  margin: 0;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #c77dff;
+  text-align: center;
+}
+.ed-streak__record {
+  margin-top: 0.25rem;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #cdb4ff;
+}
+.ed-streak__record strong {
+  color: #ffd93d;
+}
+
+@media (max-width: 768px) {
+  .ed-streak { padding: 1rem 0.75rem 1.25rem; gap: 0.85rem; }
+  .ed-streak__count { font-size: 1.2rem; }
+}

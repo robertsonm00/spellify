@@ -14,6 +14,7 @@ import {
   getStrugglingWordEntries,
 } from '../../utils/masteryEngine';
 import { recordGameCompleted } from '../../utils/gamificationEngine';
+import { recordPlayToday } from '../../utils/streakEngine';
 import { fireBuddyCheer } from '../BuddyAvatar';
 import confetti from 'canvas-confetti';
 import ActivityIcon from '../ActivityIcon';
@@ -227,6 +228,9 @@ export default function ListHub({
       // Engine is best-effort: a failure here must never block onComplete.
       console.error('[ListHub] gamification engine failed', err);
     }
+    // Daily-streak tracker — idempotent. Fires its own milestone event
+    // which App.jsx picks up to trigger the confetti celebration.
+    try { recordPlayToday(); } catch (err) { console.error('[ListHub] streak update failed', err); }
     setMasteryTick(t => t + 1);
     setTestAllStage('idle');
     setStartedActivities(prev => { const n = new Set(prev); n.delete(activityId); return n; });

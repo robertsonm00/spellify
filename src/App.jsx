@@ -7,6 +7,7 @@ import { loadSession, saveSession, createSession, INITIAL_STATUSES, updateMaster
 import { getActivity, getActivityTitle } from './data/activities';
 import { isActivityAvailable } from './utils/activityAvailability';
 import { recordGameCompleted, getPlayerStats } from './utils/gamificationEngine';
+import { recordPlayToday, getStreak, getStreakStatus } from './utils/streakEngine';
 import TopNav         from './components/TopNav';
 import { fireBuddyCheer } from './components/BuddyAvatar';
 import ExploreDashboard from './components/explore/ExploreDashboard';
@@ -49,7 +50,66 @@ function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const livePoints = React.useMemo(() => getPlayerStats().totalPoints, [pointsTick]);
 
+  // ── Streak popup (once per app open) + milestone confetti ──────────
+  // The popup state stores an absolute `dismissAt` (epoch ms) rather
+  // than a countdown — this means the StreakPopup effect re-targets
+  // the same deadline if its parent re-renders (so a fresh-on-every-
+  // render `onDismiss` callback can't bug-restart the timer in dev
+  // StrictMode). `dismissAt: null` means sticky (at_risk).
+  //
+  // milestoneShownRef ensures the same milestone doesn't re-fire
+  // confetti if the user games again on the same day. streakShownRef
+  // ensures the once-per-app-open popup fires exactly once.
+  const [streakPopup,     setStreakPopup]     = useState(null);
+  const streakShownRef    = useRef(false);
+  const milestoneShownRef = useRef(0);
+  // Stable dismiss ref — `onDismiss` passed to <StreakPopup> reads
+  // this so the effect's dep array never sees a new function ref.
+  const dismissPopupRef = useRef(() => setStreakPopup(null));
+
+  useEffect(() => {
+    const onMilestone = (e) => {
+      const m = e?.detail?.milestone;
+      if (!m || milestoneShownRef.current === m) return;
+      milestoneShownRef.current = m;
+      // Confetti burst — uses the same lib the rest of the app uses.
+      import('canvas-confetti').then(({ default: confetti }) => {
+        confetti({
+          particleCount: 160,
+          spread: 110,
+          origin: { y: 0.45 },
+          colors: ['#ffd93d', '#ff9f43', '#c77dff', '#6bcb77', '#4d96ff', '#ff6b6b'],
+        });
+      }).catch(() => {});
+      setStreakPopup({ kind: 'milestone', streak: m, dismissAt: Date.now() + 4500 });
+    };
+    window.addEventListener('spellify-streak-milestone', onMilestone);
+    return () => window.removeEventListener('spellify-streak-milestone', onMilestone);
+  }, []);
+
   const [session,        setSession]        = useState(() => loadSession());
+
+  // Once-per-app-open streak popup — runs in a useEffect (not in the
+  // render body) so render-time setState can't conflict with
+  // StrictMode's double-invoke. Depends only on `session` so it fires
+  // exactly when the session first becomes available.
+  useEffect(() => {
+    if (!session)                  return;
+    if (streakShownRef.current)    return;
+    streakShownRef.current = true;
+    const status = getStreakStatus();
+    const s = getStreak();
+    if (status === 'none')                                   return;
+    if (status === 'played' && s.currentStreak <= 1)         return;
+    const ttl =
+      status === 'at_risk' ? null  :
+      status === 'played'  ? 3000  : 4000;
+    setStreakPopup({
+      kind:      status,
+      streak:    s.currentStreak,
+      dismissAt: ttl == null ? null : Date.now() + ttl,
+    });
+  }, [session]);
   const [screen,         setScreen]         = useState(() => {
     const s = loadSession();
     return s && s.words && s.words.length > 0 ? 'hub' : 'welcome';
@@ -170,6 +230,10 @@ function App() {
       return next;
     });
     setActiveActivity(null);
+    // Record today's play on the daily-streak ledger (idempotent — safe
+    // to call multiple times in a day). Fires its own milestone event
+    // which the App-level effect picks up to trigger confetti.
+    try { recordPlayToday(); } catch (err) { console.error('[App] streak update failed', err); }
     // Trigger the buddy-cheer celebration once we're back on the hub. The
     // small delay gives React a frame to mount the hub + BuddyAvatar so the
     // event listener is attached when we dispatch.
@@ -456,6 +520,16 @@ function App() {
         />
       )}
 
+      {/* ── Streak popup — once per app open, plus milestones ── */}
+      {streakPopup && (
+        <StreakPopup
+          kind={streakPopup.kind}
+          streak={streakPopup.streak}
+          dismissAt={streakPopup.dismissAt}
+          onDismissRef={dismissPopupRef}
+        />
+      )}
+
       {/* ── Arcade footer (placeholder values for now) ── */}
       <ArcadeFooter
         playerName="ERNEST-WREN"
@@ -485,6 +559,59 @@ function App() {
 }
 
 // ── Exit confirmation modal ────────────────────────────────────────────────
+
+// ── Streak popup ───────────────────────────────────────────────────────────
+// Centred above the mobile bottom-nav. Tap anywhere on the card to dismiss.
+// If `autoDismiss` is a number it disappears after that many ms; otherwise
+// (`at_risk`) it stays until the user taps it or starts a game.
+
+function StreakPopup({ kind, streak, dismissAt, onDismissRef }) {
+  // Use an absolute deadline (epoch ms) — if the parent re-renders
+  // and this effect re-runs, it computes `remaining` from `dismissAt`
+  // and schedules a SHORTER timer, not a fresh full-length one. That
+  // means the popup can't be kept alive forever by parent churn, and
+  // also can't be dismissed early by StrictMode's mount-unmount-mount
+  // in dev. `dismissAt == null` → sticky (at_risk).
+  // onDismissRef is a stable ref; reading .current inside the timer
+  // avoids the dep-array thrash that the old `onDismiss` prop caused.
+  useEffect(() => {
+    if (!dismissAt) return;
+    const remaining = dismissAt - Date.now();
+    if (remaining <= 0) {
+      onDismissRef?.current?.();
+      return;
+    }
+    const t = setTimeout(() => onDismissRef?.current?.(), remaining);
+    return () => clearTimeout(t);
+  }, [dismissAt, onDismissRef]);
+
+  const handleTap = () => { onDismissRef?.current?.(); };
+
+  let icon = '🔥';
+  let msg  = '';
+  if (kind === 'milestone') {
+    icon = '🎉';
+    msg  = `${streak}-day streak! You're incredible!`;
+  } else if (kind === 'played') {
+    msg = `${streak}-day streak! You've already played today — amazing!`;
+  } else if (kind === 'at_risk') {
+    icon = '⚠️';
+    msg  = `Your streak is at risk! Play today to save your ${streak}-day streak.`;
+  } else if (kind === 'active') {
+    msg = `${streak}-day streak! Play today to keep it going.`;
+  }
+
+  return (
+    <div
+      className={`streak-popup streak-popup--${kind}`}
+      role="status"
+      onClick={handleTap}
+    >
+      <span className="streak-popup__icon" aria-hidden="true">{icon}</span>
+      <span className="streak-popup__msg">{msg}</span>
+    </div>
+  );
+}
 
 function ExitConfirmModal({ onConfirm, onCancel }) {
   return (
