@@ -76,6 +76,24 @@ const OPEN = { available: true, locked: false, reason: null, message: null };
  * @returns {ActivityAvailability}
  */
 export function getActivityAvailability(activity, ctx = {}) {
+  // ── 0. Year-group gating ──────────────────────────────────────
+  // Activities declare a [minYear, maxYear] range in src/data/activities.js.
+  // Games outside the child's year are hidden entirely (reason:
+  // 'unsupported') — ListHub's phaseActivities filter drops these from the
+  // grid before rendering. This is how Reception sees only Word Search &
+  // Memory Spell, and how Syllable Tap disappears for Y4+.
+  const year = ctx.session?.year;
+  if (typeof year === 'number') {
+    if (typeof activity.minYear === 'number' && year < activity.minYear) {
+      return { available: false, locked: true, reason: 'unsupported',
+               message: 'Available in older year groups' };
+    }
+    if (typeof activity.maxYear === 'number' && year > activity.maxYear) {
+      return { available: false, locked: true, reason: 'unsupported',
+               message: 'Made for younger year groups' };
+    }
+  }
+
   // ── 1. Paid plan gating ───────────────────────────────────────
   // Example for the future:
   //   const FREE_GAMES = ['wordsearch', 'memoryspell', 'hangman'];

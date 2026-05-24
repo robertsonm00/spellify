@@ -93,7 +93,7 @@ function isWordComplete(pw, filled) {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onExit, savedProgress = null, onSaveProgress }) {
+function Crossword({ words, userAge = 8, difficulty = 'medium', year = null, onComplete, onExit, savedProgress = null, onSaveProgress }) {
   const maxWords = getMaxWords(userAge, difficulty);
   const maxHints = getMaxHints(userAge);
 
@@ -184,6 +184,13 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
 
   useEffect(() => { containerRef.current?.focus(); }, [layout]);
 
+  // Y1 reading-accommodation: auto-read the clue aloud when a new word is
+  // selected. Y1 children can often spell a word but not yet decode a
+  // written clue independently — TTS bridges that gap. The manual "Hear
+  // the word" button below the clue stays available for all year groups.
+  // Triggered by selectedCell change (cheaper than diffing selectedWord)
+  // and guarded by wordDone so we don't re-read a completed word.
+
   // ── Derived ────────────────────────────────────────────────────────────────
 
   const selectedWord = layout
@@ -194,6 +201,27 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
   const selectedWordCells = selectedWord
     ? wordCells(selectedWord.word, selectedWord.row, selectedWord.col, selectedWord.direction)
     : [];
+
+  // Y1 auto-read: when a Y1 child selects a word, read the clue aloud
+  // automatically. selectedWord.id is the stable per-puzzle key so this
+  // fires once per selection change.
+  const selectedWordId = selectedWord?.id ?? null;
+  useEffect(() => {
+    if (year !== 1) return;
+    if (!selectedWord) return;
+    if (isWordComplete(selectedWord, filled)) return;
+    const clue = definitions.get(selectedWord.word);
+    if (!clue) return;
+    if (!('speechSynthesis' in window)) return;
+    try {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(clue);
+      u.lang = 'en-GB';
+      u.rate = 0.9;
+      window.speechSynthesis.speak(u);
+    } catch { /* TTS unavailable — silent */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedWordId, year]);
 
   const completedWords = layout
     ? layout.placedWords.filter(pw => isWordComplete(pw, filled)).length

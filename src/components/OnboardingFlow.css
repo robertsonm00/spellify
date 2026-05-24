@@ -112,6 +112,18 @@
 .ob-year-card:hover { transform: translateY(-3px); }
 .ob-year-card--selected { transform: translateY(-3px) scale(1.04); }
 
+/* Friendly footnote shown beneath the year grid — specifically calls
+   out Reception so a parent picking it sees the "grown-up nearby" hint
+   without it feeling alarming for older children. */
+.ob-year-note {
+  margin: 0.85rem 0 0;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.85rem;
+  font-style: italic;
+  color: #5a6378;
+  text-align: center;
+}
+
 /* Reception card spans the full grid width */
 .ob-year-card--reception {
   grid-column: 1 / -1;
@@ -628,28 +640,38 @@
   margin: 1.25rem 0 1rem;
 }
 
+/* Reuses the same neutral palette as .ob-character-card so the confidence
+   step matches the rest of the onboarding flow visually. Layout is a
+   horizontal row instead of a grid tile, but the colours, borders and
+   "picked" treatment are intentionally the same as the character picker. */
 .ob-confidence-card {
   display: flex;
   align-items: center;
   gap: 0.85rem;
   padding: 0.9rem 1rem;
-  border-radius: 14px;
-  border: 2px solid #e8e1d3;
-  background: #fffaf0;
+  border-radius: 12px;
+  border: 3px solid #e0e0e0;
+  background: #f9f9f9;
   font-family: 'Nunito', sans-serif;
   font-size: 1.05rem;
   font-weight: 700;
   color: #2a2a2a;
   cursor: pointer;
-  transition: transform 0.08s, box-shadow 0.12s, border-color 0.12s, background 0.12s;
+  transition: transform 0.1s, border-color 0.1s, background 0.1s;
   text-align: left;
   width: 100%;
 }
-.ob-confidence-card:hover { transform: translateY(-1px); }
+.ob-confidence-card:hover {
+  transform: translateY(-4px);
+  border-color: #667eea;
+  background: #fff;
+}
 .ob-confidence-card--picked {
-  border-color: #c77dff;
-  background: #f5ecff;
-  box-shadow: 0 0 0 3px rgba(199, 125, 255, 0.25);
+  border-color: #667eea;
+  background: #667eea;
+  color: #fff;
+  box-shadow: 0 6px 12px rgba(102, 126, 234, 0.3);
+  transform: scale(1.03);
 }
 .ob-confidence-emoji { font-size: 1.7rem; }
 .ob-confidence-label { flex: 1; }

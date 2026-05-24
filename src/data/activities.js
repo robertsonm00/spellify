@@ -10,6 +10,10 @@
 //   color, dark   hub-card colours (header bg, border)
 //   timeEstimate  shown on the card
 //   phase         'warmup' | 'explore' | 'consolidate' — drives section order
+//   minYear,maxYear  inclusive year-group bounds (Reception = 0, Y1 = 1, …).
+//                 Read by activityAvailability — a game whose minYear is
+//                 above or maxYear is below the session's year is silently
+//                 hidden from the hub grid (reason: 'unsupported').
 //   component     the React component to render
 //   buildProps    (session) → extra props to pass to the component
 //                 (the canonical {words, dyslexiaMode,
@@ -33,12 +37,14 @@ export const ACTIVITIES = [
     id: 'wordsearch', name: 'Word Search', icon: '🔍',
     timeEstimate: '5 mins', color: '#b3d4f5', dark: '#4d80c8',
     phase: 'warmup', component: WordSearch,
+    minYear: 0, maxYear: 6,
     buildProps: (s) => ({ year: s.year ?? null }),
   },
   {
     id: 'memoryspell', name: 'Memory Spell', icon: '🧠',
     timeEstimate: '5 mins', color: '#b8e4be', dark: '#5fa269',
     phase: 'warmup', component: MemorySpell,
+    minYear: 0, maxYear: 6,
     buildProps: (s) => ({
       wordObjects: s.wordObjects || [],
       childCharacter: s.childCharacter || null,
@@ -48,6 +54,7 @@ export const ACTIVITIES = [
     id: 'hangman', name: 'Spell Duel', icon: '⚔️',
     timeEstimate: '5 mins', color: '#d4b8f5', dark: '#7c3aed',
     phase: 'warmup', component: SpellDuel,
+    minYear: 1, maxYear: 6,
     buildProps: (s) => ({ difficulty: s.difficulty || 'medium', yearGroup: s.year ?? null }),
   },
   {
@@ -56,6 +63,7 @@ export const ACTIVITIES = [
        don't read as the same colour. */
     timeEstimate: '5 mins', color: '#a8e0e0', dark: '#4a9da8',
     phase: 'warmup', component: SyllableTap,
+    minYear: 1, maxYear: 3,
     buildProps: () => ({}),
   },
 
@@ -66,12 +74,14 @@ export const ACTIVITIES = [
      "Explore" phase its own warm anchor. */
     timeEstimate: '10 mins', color: '#f5c2b8', dark: '#c95d4d',
     phase: 'explore', component: WriteIt,
+    minYear: 1, maxYear: 6,
     buildProps: (s) => ({ childName: s.childName || '' }),
   },
   {
     id: 'weakspot', name: 'Weak Spot', icon: '🎯',
     timeEstimate: '5 mins', color: '#fbe1a4', dark: '#b88828',
     phase: 'explore', component: WeakSpot,
+    minYear: 2, maxYear: 6,
     buildProps: (s) => ({ childCharacter: s.childCharacter || null }),
   },
   {
@@ -80,7 +90,10 @@ export const ACTIVITIES = [
      Syllable Tap so the trio of green-family tiles each read differently. */
     timeEstimate: '10 mins', color: '#d4ea9c', dark: '#7a9a3d',
     phase: 'explore', component: Crossword,
-    buildProps: (s) => ({ userAge: s.age || 8, difficulty: s.difficulty || 'medium' }),
+    minYear: 1, maxYear: 6,
+    // year is forwarded so Crossword can auto-read clues for Y1 children
+    // (reading help — they may spell well but not yet decode the clue).
+    buildProps: (s) => ({ userAge: s.age || 8, difficulty: s.difficulty || 'medium', year: s.year ?? null }),
   },
 
   // ── Consolidate: generative / creative recall ───────────────────
@@ -88,12 +101,14 @@ export const ACTIVITIES = [
     id: 'quizquest', name: 'Quiz Quest', icon: '🏆',
     timeEstimate: '5 mins', color: '#f5b9d3', dark: '#c95d8a',
     phase: 'consolidate', component: QuizQuest,
+    minYear: 1, maxYear: 6,
     buildProps: (s) => ({ wordObjects: s.wordObjects || [], year: s.year ?? null }),
   },
   {
     id: 'wordforge', name: 'Word Forge', icon: '🔨',
     timeEstimate: '5 mins', color: '#fbc4a3', dark: '#c25e30',
     phase: 'consolidate', component: WordForge,
+    minYear: 2, maxYear: 6,
     buildProps: () => ({}),
   },
 ];
