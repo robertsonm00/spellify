@@ -159,7 +159,7 @@ export default function AuthModal({ initialView = 'signin', onClose, onSignedIn 
           <p className="auth-modal__subtitle">
             {view === 'signin'
               ? 'Sign in to sync your child’s progress across devices.'
-              : 'Adults only — your child’s profile comes next.'}
+              : 'Grown-ups only — your child’s profile comes next.'}
           </p>
         </header>
 

@@ -116,14 +116,14 @@ export default function ProfileSelector({
             />
           ))}
 
-          {/* Adult card — Prompt 2 swaps the onClick for a PIN
+          {/* Grown-up card — Prompt 2 swaps the onClick for a PIN
               entry modal. For now it falls back to sign-out so a
               tester can still get out of the account. The kind is
               still "parent" internally — that's the CSS hook and
-              prop name; user-facing copy is "Adult". */}
+              prop name; user-facing copy is "Grown-up". */}
           <ProfileCard
             kind="parent"
-            label="Adult"
+            label="Grown-up"
             sub="Settings & reports"
             emoji="👤"
             onClick={onParentEnter || onSignOut}

@@ -19,6 +19,10 @@ import AuthModal      from './components/auth/AuthModal';
 import CreateChildProfile from './components/auth/CreateChildProfile';
 import MigratePrompt, { hasLocalMastery } from './components/auth/MigratePrompt';
 import ProfileSelector from './components/ProfileSelector/ProfileSelector';
+import PINEntry from './components/auth/PINEntry';
+import PINSetup from './components/auth/PINSetup';
+import ParentDashboard from './components/ParentDashboard/ParentDashboard';
+import { hashPin, verifyPin } from './lib/pin';
 import { getSession, onAuthStateChange } from './lib/auth';
 import { supabase, isSupabaseEnabled } from './lib/supabase';
 import Settings       from './components/Settings';
@@ -78,6 +82,17 @@ function App() {
   const [childrenRows,    setChildrenRows]    = useState([]);
   const [childrenLoading, setChildrenLoading] = useState(false);
 
+  // Grown-up area PIN gate state (Prompt 2):
+  //   parentProfile  : profiles row for the signed-in parent (has the
+  //                    parent_pin_hash column).
+  //   pinGateMode    : 'closed' | 'entry' | 'setup' | 'change'
+  //   pinBusy        : disable inputs while we hash/write
+  //   pinError       : surfaced under the PIN inputs
+  const [parentProfile, setParentProfile] = useState(null);
+  const [pinGateMode,   setPinGateMode]   = useState('closed');
+  const [pinBusy,       setPinBusy]       = useState(false);
+  const [pinError,      setPinError]      = useState(null);
+
   // Tracks the user.id we last handled SIGNED_IN for. Supabase fires
   // SIGNED_IN more than once in some flows (initial subscription +
   // tab focus + token refresh in some SDK versions, and React 18
@@ -129,6 +144,9 @@ function App() {
     setChildrenRows([]);
     setChildrenLoading(false);
     lastSignedInUserIdRef.current = null;
+    setParentProfile(null);
+    setPinGateMode('closed');
+    setPinError(null);
     try {
       localStorage.removeItem('spellify_session_v2');
       localStorage.removeItem('spellify_session');
@@ -414,12 +432,135 @@ function App() {
     setCreateChildOpen(true);
   }, []);
 
-  // ProfileSelector → Adult card. Prompt 2 wires this to a PIN
-  // entry modal; until then we fall straight through to sign-out so
-  // there's still a way to leave the account during dev/testing.
-  // Defined inline in the JSX further down (signOut comes from
-  // useUser which is declared after this block — referencing it here
-  // would TDZ).
+  // ── Grown-up PIN gate (Prompt 2) ────────────────────────────────
+  //
+  // Adult / parent card on the selector now routes through here.
+  // Flow:
+  //   1. Tap card → handleParentCardTap
+  //   2. If profile.parent_pin_hash is null → render <PINSetup>
+  //                                            (parent can also Skip)
+  //   3. If a hash exists → render <PINEntry>; verifyPin() compares
+  //   4. On pass / setup-save → setScreen('parentDashboard')
+  //
+  // Hashing is client-side PBKDF2 (see src/lib/pin.js). Salt is the
+  // parent's profiles.id (== auth.uid).
+
+  // Fetch the parent's profile row whenever the auth user changes so
+  // we know whether a PIN is set. Done lazily — gracefully no-ops if
+  // the row doesn't exist yet (returning user before profile insert
+  // landed, or RLS hiccup).
+  useEffect(() => {
+    if (!authUser?.id || !isSupabaseEnabled) { setParentProfile(null); return; }
+    let cancelled = false;
+    (async () => {
+      const { data, error: err } = await supabase
+        .from('profiles')
+        .select('id, display_name, parent_pin_hash')
+        .eq('id', authUser.id)
+        .maybeSingle();
+      if (cancelled) return;
+      if (err) {
+        console.warn('[pin] profile fetch failed', err);
+        setParentProfile(null);
+        return;
+      }
+      setParentProfile(data || { id: authUser.id, parent_pin_hash: null });
+    })();
+    return () => { cancelled = true; };
+  }, [authUser?.id]);
+
+  const handleParentCardTap = React.useCallback(() => {
+    setPinError(null);
+    if (!parentProfile) {
+      // Profile row missing — open setup so the parent can set a PIN
+      // from scratch. The first save will upsert the row.
+      setPinGateMode('setup');
+      return;
+    }
+    setPinGateMode(parentProfile.parent_pin_hash ? 'entry' : 'setup');
+  }, [parentProfile]);
+
+  const handlePinSubmit = React.useCallback(async (pin) => {
+    if (!parentProfile?.parent_pin_hash || !authUser?.id) return false;
+    setPinBusy(true); setPinError(null);
+    const ok = await verifyPin(pin, authUser.id, parentProfile.parent_pin_hash);
+    setPinBusy(false);
+    if (!ok) {
+      setPinError('That PIN didn\'t match. Try again or tap "Forgot PIN?"');
+      return false;
+    }
+    setPinGateMode('closed');
+    setScreen('parentDashboard');
+    return true;
+  }, [authUser?.id, parentProfile?.parent_pin_hash]);
+
+  const handlePinSave = React.useCallback(async (pin) => {
+    if (!authUser?.id) return;
+    setPinBusy(true); setPinError(null);
+    try {
+      const hash = await hashPin(pin, authUser.id);
+      // upsert so a brand-new account with no profiles row still
+      // gets one written here.
+      const { error: err } = await supabase
+        .from('profiles')
+        .upsert({ id: authUser.id, parent_pin_hash: hash }, { onConflict: 'id' });
+      if (err) {
+        console.error('[pin] save failed', err);
+        setPinError(err.message || 'Could not save PIN. Please try again.');
+        return;
+      }
+      setParentProfile((prev) => ({ ...(prev || {}), id: authUser.id, parent_pin_hash: hash }));
+      setPinGateMode('closed');
+      setScreen('parentDashboard');
+    } catch (e) {
+      console.error('[pin] hash failed', e);
+      setPinError(e.message || 'Could not save PIN.');
+    } finally {
+      setPinBusy(false);
+    }
+  }, [authUser?.id]);
+
+  const handlePinSkip = React.useCallback(() => {
+    setPinGateMode('closed');
+    // Spec: PIN setup is skippable; if they skip, grown-up area is
+    // open-access. Route them straight into the dashboard.
+    setScreen('parentDashboard');
+  }, []);
+
+  const handlePinForgot = React.useCallback(async () => {
+    if (!authUser?.email || !supabase) return;
+    try {
+      // Re-use Supabase's password-reset email — the spec ties PIN
+      // reset to email confirmation (the parent owns the email so
+      // that's the right out-of-band channel).
+      await supabase.auth.resetPasswordForEmail(authUser.email);
+      setPinError('Reset email sent. Open it on this device to clear your PIN.');
+    } catch (e) {
+      console.warn('[pin] reset email failed', e);
+      setPinError('Could not send reset email — try again later.');
+    }
+  }, [authUser?.email]);
+
+  // ParentDashboard → Remove PIN. Wipes the hash so the gate is open
+  // again. No re-verify required because the parent is already
+  // inside the gate.
+  const handleRemovePin = React.useCallback(async () => {
+    if (!authUser?.id) return;
+    if (!window.confirm('Remove the grown-up area PIN? Anyone on this device will be able to open this area.')) return;
+    const { error: err } = await supabase
+      .from('profiles')
+      .update({ parent_pin_hash: null })
+      .eq('id', authUser.id);
+    if (err) { console.warn('[pin] remove failed', err); return; }
+    setParentProfile((prev) => prev ? { ...prev, parent_pin_hash: null } : prev);
+  }, [authUser?.id]);
+
+  // ParentDashboard → Change PIN. Already inside the gate, so jump
+  // straight to PINSetup (re-confirm flow inside the component).
+  const handleChangePin = React.useCallback(() => {
+    setPinError(null);
+    setPinGateMode('setup');
+  }, []);
 
   // Centralised "guest data has been migrated (or there was nothing to
   // migrate) — drop the local keys we've now replaced" step. Called at
@@ -835,6 +976,30 @@ function App() {
           onCancel={() => setCreateChildOpen(false)}
         />
       )}
+      {/* ── Grown-up PIN gate (Prompt 2) ───────────────────────────
+          Single source of truth for both "entry" (verify) and "setup"
+          (create / change). Mounted globally so the gate can be
+          triggered from ProfileSelector AND from inside the parent
+          dashboard (Change PIN action). */}
+      {pinGateMode === 'entry' && (
+        <PINEntry
+          title="Enter your PIN"
+          subtitle="Tap in the 4-digit PIN to open the grown-up area."
+          onSubmit={handlePinSubmit}
+          onCancel={() => { setPinGateMode('closed'); setPinError(null); }}
+          onForgot={handlePinForgot}
+          busy={pinBusy}
+          errorMessage={pinError}
+        />
+      )}
+      {pinGateMode === 'setup' && (
+        <PINSetup
+          onSave={handlePinSave}
+          onSkip={handlePinSkip}
+          busy={pinBusy}
+        />
+      )}
+
       {migrateChild && (
         <MigratePrompt
           child={migrateChild}
@@ -985,9 +1150,9 @@ function App() {
           onOpenAuth={openAuth}
           onAddProfile={handleAddProfile}
           onParentEnter={() => {
-            // TODO (Prompt 2): open PIN entry → ParentDashboard.
-            console.info('[nav] adult card tapped — PIN gate (Prompt 2) TBD; signing out for now');
-            signOut?.();
+            // Wired below in Prompt 2 — calls handleParentCardTap
+            // which routes through the PIN gate.
+            handleParentCardTap();
           }}
           onSignOut={signOut}
         />
@@ -999,6 +1164,28 @@ function App() {
     return (
       <>
         <OnboardingFlow onComplete={handleOnboardingComplete} />
+        {globalAuthModals}
+      </>
+    );
+  }
+
+  // ── Grown-up area (Prompt 2) ─────────────────────────────────────
+  // Reached only after the PIN gate clears. The dashboard exposes
+  // sign-out (the nuclear control that lives only here) plus PIN
+  // management. Future progress reports / parent-teacher exports
+  // will land in this same screen.
+  if (screen === 'parentDashboard') {
+    return (
+      <>
+        <ParentDashboard
+          authUser={authUser}
+          hasPin={!!parentProfile?.parent_pin_hash}
+          childrenCount={childrenRows.length}
+          onChangePin={handleChangePin}
+          onRemovePin={handleRemovePin}
+          onSignOut={signOut}
+          onBackToSelector={handleExitToSelector}
+        />
         {globalAuthModals}
       </>
     );
