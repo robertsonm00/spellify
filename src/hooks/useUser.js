@@ -92,9 +92,21 @@ export function useUser() {
   // ── Sign out ───────────────────────────────────────────────────────────────
   const signOut = useCallback(async () => {
     if (!isSupabaseEnabled) return;
-    await supabase.auth.signOut();
+    // scope: 'local' so the on-device session clears even when the
+    // server-side revoke fails (offline / slow network / expired
+    // token). Without this the sb-* localStorage keys survive and
+    // getSession() restores the email on the next render.
+    try { await supabase.auth.signOut({ scope: 'local' }); }
+    catch { /* network failed — local clear below covers it */ }
     setUser(null);
     setProfile(null);
+    // Belt-and-braces: nuke any leftover Supabase auth keys directly
+    // in case the SDK didn't get to them (older versions, quota, etc).
+    try {
+      Object.keys(localStorage)
+        .filter((k) => k.startsWith('sb-'))
+        .forEach((k) => localStorage.removeItem(k));
+    } catch { /* ignore */ }
   }, []);
 
   return { user, profile, signIn, signUp, signInWithGoogle, signOut, loading, error };

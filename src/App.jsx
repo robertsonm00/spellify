@@ -8,7 +8,7 @@ import { getActivity, getActivityTitle } from './data/activities';
 import { isActivityAvailable } from './utils/activityAvailability';
 import { recordGameCompleted, getPlayerStats, getLevelFromPoints } from './utils/gamificationEngine';
 import { recordPlayToday, getStreak, getStreakStatus } from './utils/streakEngine';
-import TopNav         from './components/TopNav';
+import SpellifyLogo   from './components/SpellifyLogo';
 import { fireBuddyCheer } from './components/BuddyAvatar';
 import ExploreDashboard from './components/explore/ExploreDashboard';
 import AdventureMap from './components/AdventureMap';
@@ -56,6 +56,8 @@ function App() {
   // internal selectedList even when the user clicks the tab they're already on.
   const [navTick,        setNavTick]        = useState(0);
   const [showSignIn,     setShowSignIn]     = useState(false);
+  const [signInView,     setSignInView]     = useState('signin'); // 'signin' | 'signup'
+  const openAuth = (view = 'signin') => { setSignInView(view); setShowSignIn(true); };
 
   // ── New auth state — independent of the legacy useUser hook ──────
   // `authUser` is the Supabase auth.users record (null when not signed
@@ -73,11 +75,40 @@ function App() {
   if (cancelled) return;
   setAuthUser(session?.user ?? null);
   if (event === 'SIGNED_IN' && session?.user) {
-    setShowSignIn(false); // fix the variable name first
+    // Close the modal AND advance past the welcome screen. Otherwise
+    // the user lands back on the same welcome view and nothing
+    // visible changes after a successful sign-in.
+    setShowSignIn(false);
+    setScreen((prev) => (prev === 'welcome' ? 'hub' : prev));
+    setSection('home');
   }
   if (event === 'SIGNED_OUT') {
+    // Sign-out → return to a clean welcome screen and wipe the
+    // in-memory + persisted session/stats so the next user (guest or
+    // another parent) doesn't see the previous account's data.
     setCreateChildOpen(false);
-    setMigrateChild(null); // whatever your child state setter is called
+    setMigrateChild(null);
+    setActiveActivity(null);
+    setSection('home');
+    setScreen('welcome');
+    setSession(null);
+    try {
+      localStorage.removeItem('spellify_session_v2');
+      localStorage.removeItem('spellify_session');
+      localStorage.removeItem('spellify_player_stats');
+      localStorage.removeItem('spellify_streak');
+      localStorage.removeItem('spellify_explore_recent');
+      localStorage.removeItem('spellify_explore_favourites');
+      // Also clear any leftover Supabase auth keys so a stale cached
+      // session can't restore the previous user's email on next render.
+      Object.keys(localStorage)
+        .filter((k) => k.startsWith('sb-'))
+        .forEach((k) => localStorage.removeItem(k));
+    } catch { /* ignore */ }
+    setPointsTick((t) => t + 1);
+    // Force the legacy useUser hook (and any cached getSession()) to
+    // re-read — null after the wipe above.
+    setAuthUser(null);
   }
 });
   
@@ -85,6 +116,12 @@ function App() {
 }, []);
 
   // When the signed-in parent has no children, prompt for child setup.
+  //
+  // Bug fix: if this is the parent's first sign-in (no child rows yet),
+  // wipe the guest-mode localStorage so an old guest session can't
+  // bleed into the freshly-authenticated account. Mastery records are
+  // intentionally LEFT in place so MigratePrompt (after child setup)
+  // can offer to import them.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -99,10 +136,28 @@ function App() {
           .eq('parent_id', authUser.id)
           .limit(1);
         if (cancelled) return;
-        if (!err && Array.isArray(data) && data.length === 0) setCreateChildOpen(true);
+        if (!err && Array.isArray(data) && data.length === 0) {
+          // Wipe guest state before showing the child-creation modal so
+          // the dashboard / footer behind it doesn't render the previous
+          // guest's points, lumens, session, or streak.
+          try {
+            localStorage.removeItem('spellify_session_v2');
+            localStorage.removeItem('spellify_session');         // legacy key
+            localStorage.removeItem('spellify_player_stats');    // points + lumens
+            localStorage.removeItem('spellify_streak');
+            localStorage.removeItem('spellify_explore_recent');
+            localStorage.removeItem('spellify_explore_favourites');
+          } catch { /* storage full / disabled — ignore */ }
+          setSession(null);
+          setPointsTick((t) => t + 1);   // force getPlayerStats() re-read → 0/0
+          setCreateChildOpen(true);
+        }
       } catch { /* offline — skip silently */ }
     })();
     return () => { cancelled = true; };
+    // setSession / setPointsTick are stable React setters; including
+    // them in deps would TDZ since they're declared further down.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authUser?.id]);
 
   // After child profile creation, offer to migrate local mastery rows
@@ -217,7 +272,21 @@ function App() {
     document.body.classList.toggle('extra-support', !!(session?.dyslexiaMode));
   }, [session?.dyslexiaMode]);
 
-  const handleWelcomeStart = () => setScreen('onboarding');
+  const handleWelcomeStart = () => {
+    // Brand-new profile via Quick Start → wipe ALL leftover guest data
+    // so old custom lists, mastery, points etc. from a previous local
+    // session don't bleed into the new one. We don't touch sb-* (Supabase
+    // auth) keys — a signed-in parent choosing Quick Start would already
+    // have been signed out via the welcome flow.
+    try {
+      Object.keys(localStorage)
+        .filter((k) => k.startsWith('spellify_'))
+        .forEach((k) => localStorage.removeItem(k));
+    } catch { /* ignore */ }
+    setSession(null);
+    setPointsTick((t) => t + 1);   // force getPlayerStats() re-read → 0
+    setScreen('onboarding');
+  };
 
   const handleOnboardingComplete = ({ name, character, year, age, words, wordObjects = [], dyslexiaMode = false, sourceMode = 'generated', ruleKey = null, ruleLabel = null, difficulty, spellingConfidence = 'tricky', senProfile = [] }) => {
     setSession({
@@ -400,6 +469,48 @@ function App() {
     setScreen('welcome');
   };
 
+  // ── Footer identity (real values, not hardcoded placeholders) ────
+  // Priority for the name: child profile nickname → parent display
+  // name → email local-part → 'GUEST'. Uppercased for arcade type.
+  const footerName = (
+    session?.childName ||
+    profile?.display_name ||
+    authUser?.email?.split('@')[0] ||
+    'GUEST'
+  );
+  const footerPlayerName = String(footerName).toUpperCase();
+  const footerYear       = session?.year ?? null;
+  const footerIsGuest    = !authUser;
+
+  // ── Global auth modals (rendered in every branch that needs them) ──
+  // Previously these were nested inside the main return only — meaning
+  // the no-session dashboard branch couldn't show CreateChildProfile
+  // post-signin. Hoisting them into a shared fragment fixes bug 1.
+  const globalAuthModals = (
+    <>
+      {showSignIn && (
+        <AuthModal
+          initialView={signInView}
+          onClose={() => setShowSignIn(false)}
+          onSignedIn={() => setShowSignIn(false)}
+        />
+      )}
+      {createChildOpen && authUser && (
+        <CreateChildProfile
+          authUser={authUser}
+          onCreated={handleChildCreated}
+          onCancel={() => setCreateChildOpen(false)}
+        />
+      )}
+      {migrateChild && (
+        <MigratePrompt
+          child={migrateChild}
+          onDone={() => setMigrateChild(null)}
+        />
+      )}
+    </>
+  );
+
   // ── Activity screen ──────────────────────────────────────────────────────
 
   if (activeActivity && session) {
@@ -457,8 +568,26 @@ function App() {
 
   // ── Screen routing ───────────────────────────────────────────────────────
 
-  if (screen === 'welcome')    return <Welcome onStart={handleWelcomeStart} />;
-  if (screen === 'onboarding') return <OnboardingFlow onComplete={handleOnboardingComplete} />;
+  if (screen === 'welcome') {
+    return (
+      <>
+        <Welcome
+          onStart={handleWelcomeStart}
+          onSignIn={() => openAuth('signin')}
+          onCreateAccount={() => openAuth('signup')}
+        />
+        {globalAuthModals}
+      </>
+    );
+  }
+  if (screen === 'onboarding') {
+    return (
+      <>
+        <OnboardingFlow onComplete={handleOnboardingComplete} />
+        {globalAuthModals}
+      </>
+    );
+  }
 
   if (!session || !session.words || session.words.length === 0) {
     // No session: render the dashboard so guests can browse Home / Explore /
@@ -468,15 +597,8 @@ function App() {
       const dashboardPage = section === 'exploreDashboard' ? 'explore' : section;
       return (
         <>
-          <TopNav
-            section={section}
-            onSectionChange={(s) => { setSection(s); setNavTick(t => t + 1); }}
-            user={user}
-            profile={profile}
-            onSignInClick={() => setShowSignIn(true)}
-            onSignOut={signOut}
-            onExit={() => setScreen('welcome')}
-            onSettings={() => setSettingsOpen(true)}
+          <SpellifyLogo
+            onHomeClick={() => { setSection('home'); setNavTick(t => t + 1); }}
           />
           <MobileTopBar />
           {section === 'home' ? (
@@ -502,9 +624,9 @@ function App() {
             />
           )}
           <ArcadeFooter
-            playerName="ERNEST-WREN"
-            year={5}
-            isGuest={true}
+            playerName={footerPlayerName}
+            year={footerYear}
+            isGuest={footerIsGuest}
             points={livePoints}
             lumens={liveLumens}
             level={liveLevel}
@@ -513,9 +635,9 @@ function App() {
             xpMax={1000}
             buddyId={session?.childCharacter?.id || 'raccoon'}
             buddyFallback={session?.childCharacter?.emoji || '🦝'}
-            onSignInClick={() => setShowSignIn(true)}
-            onSignUpClick={() => setShowSignIn(true)}
-            onSettingsClick={() => setSettingsOpen(true)}
+            section={section}
+            onSectionChange={(s) => { setSection(s); setNavTick(t => t + 1); }}
+            onSettings={() => setSettingsOpen(true)}
           />
           <MobileBottomNav
             section={section}
@@ -532,24 +654,23 @@ function App() {
             onSignUpClick={() => setShowSignIn(true)}
             onSettingsClick={() => setSettingsOpen(true)}
           />
+          {globalAuthModals}
         </>
       );
     }
-    return <OnboardingFlow onComplete={handleOnboardingComplete} />;
+    return (
+      <>
+        <OnboardingFlow onComplete={handleOnboardingComplete} />
+        {globalAuthModals}
+      </>
+    );
   }
 
   return (
     <>
-      {/* ── Top navigation ── */}
-      <TopNav
-        section={section}
-        onSectionChange={(s) => { setSection(s); setNavTick(t => t + 1); }}
-        user={user}
-        profile={profile}
-        onSignInClick={() => setShowSignIn(true)}
-        onSignOut={signOut}
-        onExit={handleBackToWelcome}
-        onSettings={() => setSettingsOpen(true)}
+      {/* ── Top navigation (minimal — logo only, clicks → Home) ── */}
+      <SpellifyLogo
+        onHomeClick={() => { setSection('home'); setNavTick(t => t + 1); }}
       />
       <MobileTopBar
         onSignInClick={() => setShowSignIn(true)}
@@ -592,21 +713,26 @@ function App() {
         />
       )}
 
-      {/* ── Settings modal (triggered from TopNav settings button) ── */}
-      {settingsOpen && session && (
+      {/* ── Settings modal (triggered from footer profile icon) ──
+          Available whether or not there's a session — guests need it
+          to access Sign In / Sign Up, which now lives here. */}
+      {settingsOpen && (
         <Settings
-          userAge={session.age || 8}
-          year={session.year ?? null}
-          dyslexiaMode={session.dyslexiaMode || false}
-          spellingConfidence={session.spellingConfidence || 'tricky'}
-          adaptiveLearning={session.adaptiveLearning !== false}
-          childName={session.childName || ''}
-          childCharacter={session.childCharacter || null}
+          userAge={session?.age || 8}
+          year={session?.year ?? null}
+          dyslexiaMode={session?.dyslexiaMode || false}
+          spellingConfidence={session?.spellingConfidence || 'tricky'}
+          adaptiveLearning={session?.adaptiveLearning !== false}
+          childName={session?.childName || ''}
+          childCharacter={session?.childCharacter || null}
           onUpdate={handleSettingsUpdate}
           onChangeWords={() => { setSettingsOpen(false); setSection('mylists'); setChangeWordsOpen(true); }}
           onClearProgress={handleClearProgress}
           onExit={handleBackToWelcome}
           onClose={() => setSettingsOpen(false)}
+          authUser={authUser}
+          onSignInClick={() => { setSettingsOpen(false); openAuth('signin'); }}
+          onSignOut={signOut}
         />
       )}
 
@@ -624,30 +750,9 @@ function App() {
         </div>
       )}
 
-      {/* ── Global auth modal (parent sign in / sign up) ── */}
-      {showSignIn && (
-        <AuthModal
-          onClose={() => setShowSignIn(false)}
-          onSignedIn={() => setShowSignIn(false)}
-        />
-      )}
-
-      {/* ── First-time child profile creation (after sign-in) ── */}
-      {createChildOpen && authUser && (
-        <CreateChildProfile
-          authUser={authUser}
-          onCreated={handleChildCreated}
-          onCancel={() => setCreateChildOpen(false)}
-        />
-      )}
-
-      {/* ── localStorage → mastery_records migration prompt ── */}
-      {migrateChild && (
-        <MigratePrompt
-          child={migrateChild}
-          onDone={() => setMigrateChild(null)}
-        />
-      )}
+      {/* Auth + child-profile + migration modals (shared via
+          `globalAuthModals` so every render branch mounts them) */}
+      {globalAuthModals}
 
       {/* ── Streak popup — once per app open, plus milestones ── */}
       {streakPopup && (
@@ -659,11 +764,11 @@ function App() {
         />
       )}
 
-      {/* ── Arcade footer (placeholder values for now) ── */}
+      {/* ── Arcade footer (nav + stats) ── */}
       <ArcadeFooter
-        playerName="ERNEST-WREN"
-        year={5}
-        isGuest={true}
+        playerName={footerPlayerName}
+        year={footerYear}
+        isGuest={footerIsGuest}
         points={livePoints}
         lumens={liveLumens}
         level={liveLevel}
@@ -672,6 +777,9 @@ function App() {
         xpMax={1000}
         buddyId={session?.childCharacter?.id || 'raccoon'}
         buddyFallback={session?.childCharacter?.emoji || '🦝'}
+        section={section}
+        onSectionChange={(s) => { setSection(s); setNavTick(t => t + 1); }}
+        onSettings={() => setSettingsOpen(true)}
       />
       <MobileBottomNav
         section={section}

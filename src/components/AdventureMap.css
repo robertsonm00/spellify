@@ -5,7 +5,9 @@
 
 .am-root {
   position: fixed;
-  top: calc(env(safe-area-inset-top, 0px) + 50px);
+  /* No header any more — the floating SpellifyLogo overlays the map.
+     Mobile still leaves room for the bottom nav (96px) + safe area. */
+  top: env(safe-area-inset-top, 0px);
   bottom: calc(env(safe-area-inset-bottom, 0px) + 96px);
   left: 0;
   right: 0;
@@ -17,8 +19,8 @@
 
 @media (min-width: 769px) {
   .am-root {
-    top: 60px;
-    bottom: 80px;
+    top: 0;
+    bottom: 80px;     /* desktop arcade footer height */
   }
 }
 
@@ -26,7 +28,9 @@
 .am-topbar {
   position: absolute;
   top: 12px;
-  left: 12px;
+  /* Leave room top-left for the floating Spellify wordmark.
+     ~150px on desktop, less on mobile. */
+  left: 175px;
   right: 12px;
   z-index: 10;
   display: flex;
@@ -34,6 +38,9 @@
   justify-content: space-between;
   gap: 12px;
   pointer-events: none;
+}
+@media (max-width: 540px) {
+  .am-topbar { left: 140px; top: 14px; }
 }
 .am-topbar > *, .am-topbar__right > * { pointer-events: auto; }
 .am-topbar__right {
@@ -122,16 +129,11 @@
 .am-viewport--dragging         { cursor: grabbing; }
 .am-viewport--dragging * { cursor: grabbing !important; }
 
-.am-scene {
-  position: relative;
-  /* Fit image to viewport height; horizontal scroll picks up the rest.
-     On taller-than-wide viewports the image will scale up vertically. */
-  height: 100%;
-  display: inline-block;
-}
-.am-scene--calibrating { cursor: crosshair; }
-
-.am-bg-img {
+/* (Legacy .am-scene / .am-bg-img / .am-scene--calibrating rules removed
+   — View 1 was deleted; their `height: 100%` was squashing the
+   panoramic scene so it couldn't scroll. The panoramic scene now uses
+   `.am-v2-scene` with `aspect-ratio` to grow tall enough to scroll.) */
+.am-bg-img--legacy-unused {
   display: block;
   height: 100%;
   width: auto;
@@ -490,14 +492,24 @@
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
 }
+/* Outer violet/pink aura — widest, softest, lays a magical haze
+   around the entire trail so the path glows not just amber but
+   touches of magenta and lavender as it descends. */
+.am-v2-magic-path__aura {
+  stroke: url(#am-v2-violetGrad);
+  stroke-width: 56;
+  opacity: 0.18;
+  filter: blur(12px);
+}
+/* Warm amber halo — slightly tighter, layered on top of the aura */
 .am-v2-magic-path__halo {
   stroke: #ffae3d;
-  stroke-width: 44;
-  opacity: 0.18;
-  filter: blur(8px);
+  stroke-width: 38;
+  opacity: 0.24;
+  filter: blur(7px);
 }
-/* Dark ground shadow under the path — pulls focus to the embers and
-   makes the trail feel grounded into the painted dirt. */
+/* Dark ground shadow under the path — grounds the trail into the
+   painted dirt and pulls focus to the moving dashes on top. */
 .am-v2-magic-path__shadow {
   stroke: #1a0810;
   stroke-width: 14;
@@ -505,13 +517,12 @@
   transform: translateY(4px);
   filter: blur(2px);
 }
-/* (rope + core layers removed — the path is now ALL ember dashes) */
 .am-v2-magic-path__rope,
 .am-v2-magic-path__core { display: none; }
 
-/* Layer 1: large soft embers, slower */
+/* Layer 1: warm amber-to-pink-to-violet embers, slow */
 .am-v2-magic-path__embers {
-  stroke: #ffd93d;
+  stroke: url(#am-v2-magicGrad);
   stroke-width: 9;
   stroke-linecap: round;
   stroke-dasharray: 2 18;
@@ -519,22 +530,41 @@
   filter:
     drop-shadow(0 0 6px #fff5b8)
     drop-shadow(0 0 14px #ffae3d)
-    drop-shadow(0 0 24px rgba(255, 174, 61, 0.5));
+    drop-shadow(0 0 22px rgba(255, 140, 184, 0.55))
+    drop-shadow(0 0 30px rgba(199, 125, 255, 0.4));
   animation: am-v2-flow-a 2.4s linear infinite;
 }
-/* Layer 2: tiny hot sparks, faster — added as a duplicated path
-   automatically by repeating the embers class with a different selector */
-.am-v2-magic-path__embers + .am-v2-magic-path__embers,
+/* Layer 2: violet/pink shimmer — medium speed, offset rhythm so it
+   weaves through the amber layer rather than tracking it */
+.am-v2-magic-path__shimmer {
+  stroke: url(#am-v2-violetGrad);
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-dasharray: 1.4 26;
+  stroke-dashoffset: -8;            /* phase-offset from embers */
+  opacity: 0.95;
+  filter:
+    drop-shadow(0 0 4px #ffb8d8)
+    drop-shadow(0 0 10px #c77dff)
+    drop-shadow(0 0 18px rgba(199, 125, 255, 0.6));
+  animation: am-v2-flow-c 3.2s linear infinite;
+}
+/* Layer 3: tiny hot white sparks, fastest — gives the trail its
+   "fairy dust" feel on top of the warm + violet currents */
 .am-v2-magic-path__sparks {
   stroke: #fff;
-  stroke-width: 3;
-  stroke-dasharray: 1 22;
-  opacity: 0.9;
-  filter: drop-shadow(0 0 4px #fff8c8) drop-shadow(0 0 8px #ffd93d);
+  stroke-width: 2.5;
+  stroke-dasharray: 0.8 22;
+  opacity: 0.95;
+  filter:
+    drop-shadow(0 0 3px #fff8c8)
+    drop-shadow(0 0 7px #ffd93d)
+    drop-shadow(0 0 12px #ffb8d8);
   animation: am-v2-flow-b 1.2s linear infinite;
 }
 @keyframes am-v2-flow-a { to { stroke-dashoffset: -20; } }
 @keyframes am-v2-flow-b { to { stroke-dashoffset: -23; } }
+@keyframes am-v2-flow-c { to { stroke-dashoffset: -35.4; } }   /* keep -8 offset */
 
 /* ── Nodes (positioned on painted path) ──────────────────────────────
    Modelled on the painted ember-discs in the original Ember Isle
@@ -890,3 +920,105 @@
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
 }
 .am-v2-hfw__emoji { font-size: 1.2rem; }
+
+/* ── Chapter advance CTA (bottom of the panoramic) ──────────────── */
+/* Positioned at ~94% down the scene, near where the magic trail
+   exits the bottom. Locked state shows the padlock; ready state
+   glows gold and is clickable. */
+.am-v2-next-chapter {
+  position: absolute;
+  top: 94%;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border-radius: 999px;
+  border: 2px solid rgba(199, 125, 255, 0.4);
+  background: rgba(20, 8, 32, 0.92);
+  color: rgba(255, 230, 250, 0.6);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  cursor: not-allowed;
+  z-index: 6;
+  transition: transform 0.18s, border-color 0.18s, color 0.18s, box-shadow 0.18s;
+}
+.am-v2-next-chapter__icon { font-size: 0.95rem; }
+.am-v2-next-chapter--ready {
+  cursor: pointer;
+  border-color: #ffd93d;
+  color: #ffd93d;
+  background: linear-gradient(180deg, rgba(60, 30, 5, 0.95), rgba(40, 12, 50, 0.95));
+  box-shadow:
+    0 0 18px rgba(255, 217, 61, 0.55),
+    0 0 32px rgba(255, 174, 61, 0.35),
+    0 4px 14px rgba(0, 0, 0, 0.45);
+  animation: am-v2-cta-pulse 1.8s ease-in-out infinite;
+}
+.am-v2-next-chapter--ready:hover {
+  transform: translate(-50%, calc(-50% - 2px));
+  box-shadow:
+    0 0 26px rgba(255, 217, 61, 0.7),
+    0 0 44px rgba(255, 174, 61, 0.5),
+    0 6px 18px rgba(0, 0, 0, 0.5);
+}
+@keyframes am-v2-cta-pulse {
+  0%, 100% { filter: brightness(1);    }
+  50%      { filter: brightness(1.15); }
+}
+
+/* ── Previous chapter pill (top-right corner of the scene) ──────── */
+.am-v2-prev-chapter {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(199, 125, 255, 0.5);
+  background: rgba(20, 8, 32, 0.88);
+  color: #cdb4ff;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  z-index: 7;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+.am-v2-prev-chapter:hover {
+  border-color: #ffd93d;
+  color: #ffd93d;
+}
+
+/* ── Chapter badge (next to the isle pill in the topbar) ────────── */
+.am-v2-chapter-badge {
+  position: absolute;
+  top: 16px;
+  left: calc(50% + 60px);   /* sits beside the floating isle pill */
+  transform: translateX(-50%);
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(199, 125, 255, 0.4);
+  background: rgba(20, 8, 32, 0.78);
+  color: #cdb4ff;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.05em;
+  z-index: 6;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+.am-v2-chapter-badge__div { opacity: 0.5; margin: 0 3px; }
+@media (max-width: 640px) {
+  .am-v2-chapter-badge {
+    left: 50%;
+    top: auto;
+    bottom: 12px;       /* on mobile, float above the footer */
+    transform: translateX(-50%);
+  }
+}

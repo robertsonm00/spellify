@@ -36,7 +36,13 @@ export async function signIn(email, password) {
 
 export async function signOut() {
   if (!isSupabaseEnabled) return { error: null };
-  const { error } = await supabase.auth.signOut();
+  // scope: 'local' clears the on-device session immediately even if
+  // the server-side revoke request fails (offline, slow network, or
+  // the access token is already expired). Without this, the cached
+  // sb-* keys survive and getSession() restores the user on the next
+  // tick — which presented as "I signed out but my email is still
+  // there when I click Quick Start."
+  const { error } = await supabase.auth.signOut({ scope: 'local' });
   return { error };
 }
 

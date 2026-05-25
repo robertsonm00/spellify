@@ -90,8 +90,7 @@ const TABS = [
 ];
 
 const DRAWER_ITEMS = [
-  { key: 'signin',         label: 'Sign In',           type: 'action' },
-  { key: 'signup',         label: 'Sign Up',           type: 'action' },
+  { key: 'signin',         label: 'Sign In / Sign Up', type: 'action' },
   { key: 'settings',       label: '⚙️ Settings',       type: 'action' },
   { key: 'profile',        label: 'Profile',           type: 'soon'   },
   { key: 'favourites',     label: '❤ Favourites',      type: 'nav'    },

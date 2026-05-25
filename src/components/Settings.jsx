@@ -12,7 +12,7 @@ const CONFIDENCE_LABELS = {
   'often-tricky': { emoji: '😰', label: 'Often tricky' },
 };
 
-function Settings({ userAge, dyslexiaMode = false, childName, childCharacter, year: yearProp, spellingConfidence = 'tricky', adaptiveLearning = true, onUpdate, onChangeWords, onClearProgress, onClose, onExit }) {
+function Settings({ userAge, dyslexiaMode = false, childName, childCharacter, year: yearProp, spellingConfidence = 'tricky', adaptiveLearning = true, onUpdate, onChangeWords, onClearProgress, onClose, onExit, authUser = null, onSignInClick, onSignOut }) {
   const currentYear = yearProp ?? ageToYear(userAge);
 
   const [editName,       setEditName]       = useState(childName || '');
@@ -67,6 +67,37 @@ function Settings({ userAge, dyslexiaMode = false, childName, childCharacter, ye
         <button className="settings-close" onClick={onClose} aria-label="Close settings">✕</button>
 
         <h2 className="settings-title">⚙️ Settings</h2>
+
+        {/* ── Account (Sign In / Sign Out) ── */}
+        <div className="settings-account">
+          {authUser ? (
+            <>
+              <div className="settings-account__email" title={authUser.email}>
+                {authUser.email}
+              </div>
+              <button
+                type="button"
+                className="settings-account__btn settings-account__btn--secondary"
+                onClick={() => { onClose?.(); onSignOut?.(); }}
+              >
+                Sign Out
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="settings-account__hint">
+                Sign in to save progress across devices.
+              </div>
+              <button
+                type="button"
+                className="settings-account__btn"
+                onClick={() => { onClose?.(); onSignInClick?.(); }}
+              >
+                Sign In / Sign Up
+              </button>
+            </>
+          )}
+        </div>
 
         {/* ── Name ── */}
         <div className="settings-field-row">

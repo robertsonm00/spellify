@@ -341,3 +341,85 @@
 @media (max-width: 768px) {
   .arcade-footer { display: none !important; }
 }
+
+/* ── Profile icon (opens Settings) ──────────────────────────────── */
+.arcade-footer__profile-btn {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  margin: 0 8px 0 4px;
+  border-radius: 50%;
+  border: 2px solid rgba(199, 125, 255, 0.55);
+  background: rgba(40, 22, 70, 0.7);
+  color: #cdb4ff;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: transform 0.12s, border-color 0.12s, color 0.12s, background 0.12s;
+}
+.arcade-footer__profile-btn:hover {
+  transform: translateY(-1px);
+  border-color: #ffd93d;
+  color: #ffd93d;
+  background: rgba(60, 30, 80, 0.85);
+}
+.arcade-footer__profile-btn svg { width: 22px; height: 22px; }
+
+/* ── Footer nav (HOME / ASSIGN / MY LISTS / EXPLORE + icon tabs) ── */
+.arcade-footer__nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 12px 0 0;
+  flex-shrink: 0;
+}
+
+.af-nav-tab {
+  background: transparent;
+  border: 1.5px solid transparent;
+  color: #cdb4ff;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  padding: 8px 11px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
+}
+.af-nav-tab:hover {
+  color: #ffd93d;
+  background: rgba(255, 217, 61, 0.08);
+}
+.af-nav-tab--active {
+  color: #ffd93d;
+  border-color: rgba(255, 217, 61, 0.55);
+  background: rgba(255, 217, 61, 0.12);
+  text-shadow: 0 0 8px rgba(255, 217, 61, 0.45);
+}
+
+.af-nav-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1.5px solid transparent;
+  background: transparent;
+  color: #cdb4ff;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
+}
+.af-nav-icon:hover {
+  color: #ffd93d;
+  background: rgba(255, 217, 61, 0.08);
+}
+.af-nav-icon--active {
+  color: #ffd93d;
+  border-color: rgba(255, 217, 61, 0.55);
+  background: rgba(255, 217, 61, 0.12);
+}
+.af-nav-icon svg { width: 20px; height: 20px; }

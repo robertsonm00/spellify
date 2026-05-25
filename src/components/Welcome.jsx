@@ -21,7 +21,7 @@ const TITLE = [
   { letter: 'Y', color: '#ffd93d' },
 ];
 
-function Welcome({ onStart }) {
+function Welcome({ onStart, onSignIn, onCreateAccount }) {
   return (
     <div className="welcome">
       <div className="welcome-stars" aria-hidden="true">
@@ -58,15 +58,21 @@ function Welcome({ onStart }) {
         <div className="welcome-character" aria-hidden="true">🧙</div>
 
         <div className="welcome-btns">
-          <button className="welcome-btn welcome-btn--primary" onClick={onStart}>
+          <button
+            className="welcome-btn welcome-btn--primary"
+            onClick={onStart}
+          >
             ▶ Quick Start
           </button>
-          <button className="welcome-btn welcome-btn--secondary" onClick={onStart}>
-            Sign In
+          <button
+            className="welcome-btn welcome-btn--secondary"
+            onClick={onSignIn || onStart}
+          >
+            Sign In / Sign Up
           </button>
         </div>
 
-        <p className="welcome-hint">No sign-in needed · Just pick your age and play!</p>
+        <p className="welcome-hint">No sign-in needed in guest mode — pick your age and play.</p>
       </div>
     </div>
   );

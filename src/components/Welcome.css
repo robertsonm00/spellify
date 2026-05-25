@@ -110,7 +110,7 @@
 .welcome-btns {
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
+  gap: 1.5rem;            /* visual separation between the two CTAs */
   width: 100%;
   max-width: 280px;
 }
@@ -170,3 +170,18 @@
   margin: 0;
   letter-spacing: 0.02em;
 }
+
+.welcome-guest {
+  margin-top: 4px;
+  margin-bottom: 4px;
+  padding: 6px 14px;
+  background: none;
+  border: none;
+  color: #c8b6ff;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.95rem;
+  text-decoration: underline;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+}
+.welcome-guest:hover { color: #ffd93d; }
