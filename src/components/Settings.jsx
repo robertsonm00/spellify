@@ -1,25 +1,30 @@
 import React, { useState } from 'react';
 import './Settings.css';
-import { YEAR_LABELS, ageToYear } from '../data/ukCurriculum';
 import { YEAR_GROUPS } from '../utils/wordSelectionEngine';
 import { CHARACTERS } from './OnboardingFlow';
-import { confidenceToDefaults } from '../data/spelling/sessionSchema';
+import { ageToYear } from '../data/ukCurriculum';
 import BuddyAvatar, { DEFAULT_BUDDY, hasBuddyAvatar } from './BuddyAvatar';
 
-const CONFIDENCE_LABELS = {
-  'easy':         { emoji: '😊', label: 'Pretty easy' },
-  'tricky':       { emoji: '🤔', label: 'Sometimes tricky' },
-  'often-tricky': { emoji: '😰', label: 'Often tricky' },
-};
-
-function Settings({ userAge, dyslexiaMode = false, childName, childCharacter, year: yearProp, spellingConfidence = 'tricky', adaptiveLearning = true, onUpdate, onChangeWords, onClearProgress, onClose, onExit, authUser = null, onSignInClick, onSignOut }) {
+function Settings({
+  userAge,
+  dyslexiaMode = false,
+  childName,
+  childCharacter,
+  year: yearProp,
+  adaptiveLearning = true,
+  onUpdate,
+  onClose,
+  onExit,
+  authUser = null,
+  onSignInClick,
+  onSignOut,
+}) {
   const currentYear = yearProp ?? ageToYear(userAge);
 
-  const [editName,       setEditName]       = useState(childName || '');
-  const [editCharacter,  setEditCharacter]  = useState(childCharacter || null);
-  const [editYear,       setEditYear]       = useState(currentYear);
-  const [buddyOpen,      setBuddyOpen]      = useState(false);
-  const [comingSoon,     setComingSoon]     = useState(false);
+  const [editName,      setEditName]      = useState(childName || '');
+  const [editCharacter, setEditCharacter] = useState(childCharacter || null);
+  const [editYear,      setEditYear]      = useState(currentYear);
+  const [buddyOpen,     setBuddyOpen]     = useState(false);
 
   const save = (patch) => onUpdate(patch);
 
@@ -42,62 +47,12 @@ function Settings({ userAge, dyslexiaMode = false, childName, childCharacter, ye
     save({ year: yr, age });
   };
 
-  // Changing the confidence answer re-applies the dyslexiaMode/difficulty
-  // defaults from confidenceToDefaults. Matches the onboarding mapping.
-  // If the parent has manually toggled Support Mode independently (or
-  // SEN profile contains 'dyslexia') the Support Mode toggle keeps its
-  // own state — both fields are saved together so they're consistent.
-  const handleConfidenceChange = (next) => {
-    const { dyslexiaMode: dm, difficulty } = confidenceToDefaults(next);
-    save({
-      spellingConfidence: next,
-      dyslexiaMode:       dm,
-      difficulty,
-    });
-  };
-
-  const handleSaveProfile = () => {
-    setComingSoon(true);
-    setTimeout(() => setComingSoon(false), 3000);
-  };
-
   return (
     <div className="settings-overlay" onClick={onClose}>
       <div className="settings-modal" onClick={(e) => e.stopPropagation()}>
         <button className="settings-close" onClick={onClose} aria-label="Close settings">✕</button>
 
         <h2 className="settings-title">⚙️ Settings</h2>
-
-        {/* ── Account (Sign In / Sign Out) ── */}
-        <div className="settings-account">
-          {authUser ? (
-            <>
-              <div className="settings-account__email" title={authUser.email}>
-                {authUser.email}
-              </div>
-              <button
-                type="button"
-                className="settings-account__btn settings-account__btn--secondary"
-                onClick={() => { onClose?.(); onSignOut?.(); }}
-              >
-                Sign Out
-              </button>
-            </>
-          ) : (
-            <>
-              <div className="settings-account__hint">
-                Sign in to save progress across devices.
-              </div>
-              <button
-                type="button"
-                className="settings-account__btn"
-                onClick={() => { onClose?.(); onSignInClick?.(); }}
-              >
-                Sign In / Sign Up
-              </button>
-            </>
-          )}
-        </div>
 
         {/* ── Name ── */}
         <div className="settings-field-row">
@@ -114,9 +69,6 @@ function Settings({ userAge, dyslexiaMode = false, childName, childCharacter, ye
         </div>
 
         {/* ── Buddy ── */}
-        {/* Display uses the same BuddyAvatar component as onboarding/games
-            so buddies with custom sprites (e.g. raccoon) render the SVG
-            rather than the bare emoji — single source of truth. */}
         {(() => {
           const displayChar = editCharacter || DEFAULT_BUDDY;
           return (
@@ -171,30 +123,6 @@ function Settings({ userAge, dyslexiaMode = false, childName, childCharacter, ye
 
         <div className="settings-divider" />
 
-        {/* ── Spelling confidence ── */}
-        <div className="settings-confidence">
-          <span className="settings-label settings-confidence-label">
-            How does <span style={{ whiteSpace: 'nowrap' }}>{childName || 'they'}</span> find spelling?
-          </span>
-          <div className="settings-confidence-options">
-            {(['easy', 'tricky', 'often-tricky']).map((id) => {
-              const meta = CONFIDENCE_LABELS[id];
-              const active = spellingConfidence === id;
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  className={`settings-confidence-opt${active ? ' settings-confidence-opt--active' : ''}`}
-                  onClick={() => handleConfidenceChange(id)}
-                >
-                  <span className="settings-confidence-emoji" aria-hidden="true">{meta.emoji}</span>
-                  <span className="settings-confidence-text">{meta.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
         {/* ── Extra Support Mode ── */}
         <label className="settings-support-toggle">
           <div className="settings-support-text">
@@ -211,75 +139,72 @@ function Settings({ userAge, dyslexiaMode = false, childName, childCharacter, ye
           </div>
         </label>
 
-        {/* ── Adaptive Learning ──
-            Surfaced here as a parent override until the account-creation
-            flow exists. When the account flow lands, this becomes an
-            explicit step in the child profile setup (see TODO in
-            sessionSchema.js). Default on; off means every word every
-            session, struggling-word reinforcement still applies. */}
-        <label className="settings-support-toggle">
-          <div className="settings-support-text">
-            <span className="settings-support-name">Adaptive Learning</span>
-            <span className="settings-support-hint">
-              When on, Spellify gently adjusts to how{' '}
-              <span style={{ whiteSpace: 'nowrap' }}>{childName || 'they'}</span>{' '}
-              is doing — making things a little easier or harder as they go.
-              You can change this any time.
-            </span>
-          </div>
-          <div className="settings-support-switch">
-            <input
-              type="checkbox"
-              checked={adaptiveLearning}
-              onChange={(e) => onUpdate({ adaptiveLearning: e.target.checked })}
-            />
-            <span className="settings-support-slider" />
-          </div>
-        </label>
+        {/* ── Adaptive Learning — accounts only ── */}
+        {authUser && (
+          <label className="settings-support-toggle">
+            <div className="settings-support-text">
+              <span className="settings-support-name">Adaptive Learning</span>
+              <span className="settings-support-hint">
+                When on, Spellify gently adjusts to how{' '}
+                <span style={{ whiteSpace: 'nowrap' }}>{childName || 'they'}</span>{' '}
+                is doing — making things a little easier or harder as they go.
+                You can change this any time.
+              </span>
+            </div>
+            <div className="settings-support-switch">
+              <input
+                type="checkbox"
+                checked={adaptiveLearning}
+                onChange={(e) => onUpdate({ adaptiveLearning: e.target.checked })}
+              />
+              <span className="settings-support-slider" />
+            </div>
+          </label>
+        )}
 
         <div className="settings-divider" />
 
-        {/* ── Actions ── */}
-        <div className="settings-actions">
-          <button className="settings-action-btn" onClick={onChangeWords}>
-            📝 Change Words
-          </button>
+        {/* ── Exit — triggers the existing "Are you sure?" modal in App.jsx ── */}
+        {onExit && (
           <button
-            className="settings-action-btn settings-action-btn--danger"
-            onClick={() => { onClearProgress(); onClose(); }}
+            type="button"
+            className="settings-exit-btn"
+            onClick={() => { onClose?.(); onExit?.(); }}
           >
-            🔄 Reset Progress
+            ↩ Exit to Welcome screen
           </button>
-          {/* Mobile-only: the top-left "Exit" that lives in TopNav on
-              desktop is hidden on mobile, so we surface the same action
-              here so a parent or child can always escape back to the
-              welcome screen. The button renders on desktop too so the
-              path is discoverable everywhere. */}
-          {onExit && (
-            <button
-              className="settings-action-btn"
-              onClick={() => { onClose(); onExit(); }}
-            >
-              ↩ Exit to home screen
-            </button>
+        )}
+
+        {/* ── Account row — bottom, small and clean ──
+            Guests see a subtle "save progress" prompt; signed-in users
+            see their email + Sign Out. */}
+        <div className="settings-account-row">
+          {authUser ? (
+            <>
+              <span className="settings-account-row__email" title={authUser.email}>
+                {authUser.email}
+              </span>
+              <button
+                type="button"
+                className="settings-account-row__link"
+                onClick={() => { onClose?.(); onSignOut?.(); }}
+              >
+                Sign Out
+              </button>
+            </>
+          ) : (
+            <span className="settings-account-row__guest">
+              Want to save your progress?{' '}
+              <button
+                type="button"
+                className="settings-account-row__link"
+                onClick={() => { onClose?.(); onSignInClick?.(); }}
+              >
+                Sign in
+              </button>
+            </span>
           )}
         </div>
-
-        <div className="settings-divider" />
-
-        {/* ── Save Profile ── */}
-        <button
-          className="settings-action-btn settings-action-btn--primary"
-          onClick={handleSaveProfile}
-        >
-          💾 Save Profile
-        </button>
-
-        {comingSoon && (
-          <p className="settings-coming-soon">
-            Coming soon — profiles will let you save your progress across devices.
-          </p>
-        )}
       </div>
     </div>
   );
