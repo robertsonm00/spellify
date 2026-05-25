@@ -1,0 +1,331 @@
+/* ProfileSelector — "Who's playing?" landing screen.
+   Netflix-style circular avatars on a centred dark canvas, with the
+   arcade Press-Start-2P heading the rest of the app uses for big
+   moments. */
+
+.ps-root {
+  min-height: 100vh;
+  padding: 64px 24px 80px;
+  background:
+    radial-gradient(ellipse at top, rgba(199, 125, 255, 0.18) 0%, transparent 55%),
+    radial-gradient(ellipse at bottom, rgba(246, 163, 26, 0.12) 0%, transparent 60%),
+    linear-gradient(180deg, #0f0820 0%, #050210 100%);
+  color: #f5ecff;
+  font-family: 'Nunito', 'Segoe UI', Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Subtle twinkling star field — matches the rest of the arcade chrome
+   without pulling in the full Starfield component. */
+.ps-root::before,
+.ps-root::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(1px 1px at 18% 22%, rgba(255, 255, 255, 0.6) 0, transparent 50%),
+    radial-gradient(1px 1px at 62% 14%, rgba(255, 255, 255, 0.4) 0, transparent 50%),
+    radial-gradient(1px 1px at 84% 38%, rgba(255, 217, 61, 0.55) 0, transparent 50%),
+    radial-gradient(1px 1px at 30% 70%, rgba(199, 125, 255, 0.6) 0, transparent 50%),
+    radial-gradient(1px 1px at 76% 82%, rgba(255, 255, 255, 0.5) 0, transparent 50%),
+    radial-gradient(1px 1px at 50% 52%, rgba(255, 255, 255, 0.4) 0, transparent 50%);
+  background-size: 100% 100%;
+  opacity: 0.7;
+}
+.ps-root::after {
+  background-image:
+    radial-gradient(1px 1px at 8% 60%, rgba(255, 255, 255, 0.4) 0, transparent 50%),
+    radial-gradient(1px 1px at 40% 18%, rgba(199, 125, 255, 0.45) 0, transparent 50%),
+    radial-gradient(1px 1px at 90% 64%, rgba(255, 255, 255, 0.4) 0, transparent 50%);
+  opacity: 0.45;
+}
+
+/* Top utility bar (guests only). Signed-in equivalents live as cards. */
+.ps-topbar {
+  position: absolute;
+  top: 18px;
+  right: 22px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+}
+.ps-topbar__link {
+  background: transparent;
+  border: 0;
+  color: #cdb4ff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 8px;
+  transition: color 0.12s, background 0.12s;
+}
+.ps-topbar__link:hover { color: #fff; background: rgba(199, 125, 255, 0.12); }
+.ps-topbar__link--accent { color: #ffd93d; }
+.ps-topbar__divider { color: rgba(255,255,255,0.25); }
+
+/* ── Title block ─────────────────────────────────────────────────── */
+.ps-title {
+  position: relative;
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(1.2rem, 3vw, 2rem);
+  color: #ffd93d;
+  letter-spacing: 0.06em;
+  text-align: center;
+  margin: 0;
+  text-shadow: 0 0 18px rgba(255, 217, 61, 0.35);
+}
+.ps-subtitle {
+  position: relative;
+  color: #cdb4ff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: -16px 0 0;
+  text-align: center;
+}
+.ps-status {
+  position: relative;
+  color: #cdb4ff;
+  font-size: 0.95rem;
+}
+.ps-status--empty { color: #f5ecff; font-weight: 600; }
+
+/* ── Grid of cards ───────────────────────────────────────────────── */
+.ps-grid {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 28px 36px;
+  width: 100%;
+  max-width: 1080px;
+  margin-top: 12px;
+}
+
+/* ── Card ────────────────────────────────────────────────────────── */
+.ps-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  color: #f5ecff;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: center;
+  width: 160px;
+  transition: transform 0.16s ease;
+}
+.ps-card:hover  { transform: translateY(-4px); }
+.ps-card:focus-visible { outline: none; }
+.ps-card:focus-visible .ps-card__avatar-ring {
+  box-shadow:
+    0 0 0 3px rgba(255, 217, 61, 0.9),
+    0 0 30px rgba(255, 217, 61, 0.5);
+}
+
+/* Avatar wrapper: position context for the ring + badge. */
+.ps-card__avatar {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* The painted ring — sits BEHIND the inner avatar plate. */
+.ps-card__avatar-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 30%, rgba(255, 217, 61, 0.35), transparent 70%),
+    linear-gradient(140deg, #5a2d80 0%, #2a0e3a 100%);
+  border: 3px solid rgba(199, 125, 255, 0.5);
+  box-shadow:
+    inset 0 6px 12px rgba(255, 255, 255, 0.12),
+    inset 0 -12px 22px rgba(0, 0, 0, 0.45),
+    0 12px 32px rgba(0, 0, 0, 0.45);
+  transition: border-color 0.16s, box-shadow 0.16s, transform 0.16s;
+}
+.ps-card:hover .ps-card__avatar-ring {
+  border-color: #ffd93d;
+  box-shadow:
+    inset 0 6px 12px rgba(255, 255, 255, 0.15),
+    inset 0 -12px 22px rgba(0, 0, 0, 0.45),
+    0 16px 38px rgba(255, 217, 61, 0.3),
+    0 0 0 2px rgba(255, 217, 61, 0.25);
+}
+
+/* The avatar art itself — sits inside the ring. */
+.ps-card__avatar-inner {
+  position: relative;
+  z-index: 2;
+  width: 108px;
+  height: 108px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.4));
+}
+.ps-card__emoji {
+  font-size: 3.6rem;
+  line-height: 1;
+}
+
+/* Parent variant — different ring tint + padlock badge. */
+.ps-card--parent .ps-card__avatar-ring {
+  background:
+    radial-gradient(circle at 50% 30%, rgba(199, 125, 255, 0.45), transparent 70%),
+    linear-gradient(140deg, #7c3aed 0%, #3a1e4a 100%);
+  border-color: rgba(255, 217, 61, 0.55);
+}
+.ps-card__badge {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  z-index: 3;
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #ffd93d;
+  color: #1a0828;
+  border: 2px solid #1a0828;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+}
+
+/* Add Profile variant — dashed ring, + icon. */
+.ps-card--add .ps-card__avatar-ring {
+  background: rgba(40, 22, 70, 0.5);
+  border: 3px dashed rgba(199, 125, 255, 0.55);
+  box-shadow:
+    inset 0 4px 10px rgba(255, 255, 255, 0.06),
+    0 8px 22px rgba(0, 0, 0, 0.35);
+}
+.ps-card--add .ps-card__emoji {
+  font-size: 3.2rem;
+  font-weight: 700;
+  color: #cdb4ff;
+}
+.ps-card--add:hover .ps-card__avatar-ring {
+  border-color: #ffd93d;
+  background: rgba(60, 30, 80, 0.65);
+}
+
+/* Locked add card — visually depressed, premium upsell on tap. */
+.ps-card--locked .ps-card__avatar-ring {
+  opacity: 0.55;
+}
+.ps-card--locked .ps-card__emoji { opacity: 0.55; }
+.ps-card--locked .ps-card__name  { color: #a99bd1; }
+.ps-card--locked .ps-card__sub   { color: #ffd93d; opacity: 0.8; }
+
+/* Quick Start (guest) variant — green play arrow. */
+.ps-card--quick .ps-card__avatar-ring {
+  background:
+    radial-gradient(circle at 50% 30%, rgba(107, 203, 119, 0.45), transparent 70%),
+    linear-gradient(140deg, #2d8e44 0%, #134d20 100%);
+  border-color: rgba(255, 217, 61, 0.55);
+}
+.ps-card--quick .ps-card__emoji { font-size: 4rem; color: #ffd93d; }
+
+/* Labels */
+.ps-card__name {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: #ffd93d;
+  line-height: 1.3;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ps-card__sub {
+  font-size: 0.85rem;
+  color: #cdb4ff;
+  font-weight: 600;
+}
+
+/* ── Mobile tuning ───────────────────────────────────────────────── */
+@media (max-width: 540px) {
+  .ps-root { padding: 56px 18px 64px; gap: 22px; }
+  .ps-grid { gap: 18px 22px; }
+  .ps-card { width: 128px; }
+  .ps-card__avatar { width: 116px; height: 116px; }
+  .ps-card__avatar-inner { width: 88px; height: 88px; }
+  .ps-card__emoji { font-size: 3rem; }
+  .ps-card--quick .ps-card__emoji,
+  .ps-card--add   .ps-card__emoji { font-size: 2.7rem; }
+}
+
+/* ── Upsell modal ────────────────────────────────────────────────── */
+.ps-upsell-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 4, 18, 0.78);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 16px;
+}
+.ps-upsell-card {
+  max-width: 420px;
+  width: 100%;
+  background: linear-gradient(180deg, #2a0e3a 0%, #1a0828 100%);
+  border: 2px solid rgba(255, 217, 61, 0.5);
+  border-radius: 18px;
+  padding: 24px 22px 20px;
+  color: #f5ecff;
+  text-align: center;
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.6),
+    0 0 30px rgba(199, 125, 255, 0.2);
+}
+.ps-upsell-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.9rem;
+  color: #ffd93d;
+  letter-spacing: 0.04em;
+  margin: 0 0 10px;
+}
+.ps-upsell-body {
+  color: #f5ecff;
+  font-size: 0.95rem;
+  margin: 0 0 8px;
+  line-height: 1.45;
+}
+.ps-upsell-soon {
+  color: #cdb4ff;
+  font-size: 0.85rem;
+  margin: 0 0 16px;
+  font-style: italic;
+}
+.ps-upsell-btn {
+  padding: 12px 22px;
+  border-radius: 10px;
+  border: 0;
+  background: linear-gradient(180deg, #ffd93d 0%, #f6a31a 100%);
+  color: #1a0828;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(246, 163, 26, 0.35);
+}
+.ps-upsell-btn:hover { filter: brightness(1.08); }

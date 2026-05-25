@@ -58,11 +58,19 @@
     linear-gradient(180deg, #14082a 0%, #1a0a2e 50%, #14082a 100%);
 }
 
+html, body, #root {
+  /* Dark default so the browser's white background never leaks
+     between screens (showed as a "white bar" above ProfileSelector
+     when no full-bleed chrome was painted to cover it). Each screen
+     still paints its own background on top. */
+  background: #050210;
+}
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
+  color: #f5ecff;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

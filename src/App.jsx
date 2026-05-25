@@ -18,6 +18,7 @@ import MobileTopBar from './components/MobileTopBar';
 import AuthModal      from './components/auth/AuthModal';
 import CreateChildProfile from './components/auth/CreateChildProfile';
 import MigratePrompt, { hasLocalMastery } from './components/auth/MigratePrompt';
+import ProfileSelector from './components/ProfileSelector/ProfileSelector';
 import { getSession, onAuthStateChange } from './lib/auth';
 import { supabase, isSupabaseEnabled } from './lib/supabase';
 import Settings       from './components/Settings';
@@ -71,21 +72,49 @@ function App() {
   // doesn't have to retype what Quick Start already collected
   // (nickname, year, confidence, character, SEN profile, adaptive).
   const [guestPrefill,    setGuestPrefill]    = useState(null);
+  // Full list of children rows for the signed-in parent (Prompt 3):
+  // ProfileSelector renders one card per row. Refreshed on sign-in and
+  // after CreateChildProfile / MigratePrompt land new data.
+  const [childrenRows,    setChildrenRows]    = useState([]);
+  const [childrenLoading, setChildrenLoading] = useState(false);
+
+  // Tracks the user.id we last handled SIGNED_IN for. Supabase fires
+  // SIGNED_IN more than once in some flows (initial subscription +
+  // tab focus + token refresh in some SDK versions, and React 18
+  // StrictMode in dev double-invokes the subscribe effect), which
+  // would otherwise re-route + re-query children + re-clear state on
+  // every fire. We only act on the first SIGNED_IN for a given user.
+  const lastSignedInUserIdRef = useRef(null);
 
   useEffect(() => {
   let cancelled = false;
   getSession().then((s) => { if (!cancelled) setAuthUser(s?.user ?? null); });
-  
+
   const unsub = onAuthStateChange((session, event) => {
   if (cancelled) return;
   setAuthUser(session?.user ?? null);
   if (event === 'SIGNED_IN' && session?.user) {
-    // Close the modal AND advance past the welcome screen. Otherwise
-    // the user lands back on the same welcome view and nothing
-    // visible changes after a successful sign-in.
+    if (lastSignedInUserIdRef.current === session.user.id) {
+      console.info('[auth] SIGNED_IN duplicate for', session.user.id, '— ignored');
+      return;
+    }
+    lastSignedInUserIdRef.current = session.user.id;
+    // Per Prompt 3 spec: every signed-in user lands on the
+    // ProfileSelector ("Who's playing?"), no matter what was in
+    // localStorage. Previously this respected the initial 'hub' state
+    // when a stale session was cached locally, which let returning
+    // users bypass the selector and drop straight into the game.
     setShowSignIn(false);
-    setScreen((prev) => (prev === 'welcome' ? 'hub' : prev));
+    setScreen('profileSelector');
     setSection('home');
+    setActiveActivity(null);
+    // NB: do NOT setSession(null) here — the guest-upgrade flow
+    // depends on the localStorage session being intact so
+    // openChildSetup can snapshot it for CreateChildProfile prefill
+    // (see `guestPrefill`). The profileSelector route renders based
+    // on `screen` state alone, so an in-memory session can't bleed
+    // through.
+    console.info('[auth] SIGNED_IN → routing to ProfileSelector');
   }
   if (event === 'SIGNED_OUT') {
     // Sign-out → return to a clean welcome screen and wipe the
@@ -97,6 +126,9 @@ function App() {
     setSection('home');
     setScreen('welcome');
     setSession(null);
+    setChildrenRows([]);
+    setChildrenLoading(false);
+    lastSignedInUserIdRef.current = null;
     try {
       localStorage.removeItem('spellify_session_v2');
       localStorage.removeItem('spellify_session');
@@ -186,37 +218,11 @@ function App() {
         setCreateChildOpen(true);
       };
 
-      // Adopt an existing child row into the running session — runs
-      // both for returning parents AND for the just-after-sign-up case
-      // where the child row exists but the session is still null.
-      // Re-seeds the gamification + streak engines from the child row
-      // so the footer shows the migrated points/lumens immediately.
-      const adoptChild = (child) => {
-        if (cancelled || !child) return;
-        console.info('[auth] adopting child row', { id: child.id, nickname: child.nickname });
-        setSession(sessionFromChild(child));
-        try {
-          // Re-seed local engine keys so the footer reads from
-          // Supabase totals rather than zero. Mirrors the post-migrate
-          // seeding in MigratePrompt.
-          localStorage.setItem('spellify_player_stats', JSON.stringify({
-            totalPoints:    child.points ?? 0,
-            totalLumens:    child.lumens ?? 0,
-            lastPlayedDate: child.last_played_date ?? null,
-            // Other fields default; the engine fills them on next save.
-          }));
-          localStorage.setItem('spellify_streak', JSON.stringify({
-            currentStreak:  child.current_streak ?? 0,
-            longestStreak:  child.longest_streak ?? 0,
-            lastPlayedDate: child.last_played_date ?? null,
-            graceUsed:      false,
-          }));
-        } catch { /* storage disabled — engine will just show 0s */ }
-        // Force every points/lumens reader (footer, level pill, etc.)
-        // to re-read from the freshly-seeded localStorage.
-        setPointsTick((t) => t + 1);
-        window.dispatchEvent(new CustomEvent('spellify-points-update'));
-      };
+      // (Prompt 3) The auto-adopt path used to live here — we now
+      // route to ProfileSelector instead and let the user explicitly
+      // pick "who's playing?". Adoption logic moved to the top-level
+      // `handleSelectChild` callback so the selector card-tap can
+      // re-use it.
 
       // Returning-parent race: Supabase sometimes resolves SIGNED_IN
       // a hair before RLS sees the row, so a single SELECT can return
@@ -229,13 +235,13 @@ function App() {
           .select('*')
           .eq('parent_id', authUser.id)
           .is('deleted_at', null)
-          .order('updated_at', { ascending: false })
-          .limit(1);
+          .order('updated_at', { ascending: false });
         return { data, err };
       };
 
       const RETRY_DELAYS_MS = [0, 300, 700, 1500];
       let lastErr = null;
+      setChildrenLoading(true);
       for (let attempt = 0; attempt < RETRY_DELAYS_MS.length; attempt++) {
         if (cancelled) return;
         if (RETRY_DELAYS_MS[attempt] > 0) {
@@ -257,11 +263,19 @@ function App() {
           // Hard error from PostgREST (RLS, schema, etc.) — stop
           // retrying since further attempts will fail the same way.
           console.warn('[auth] children query failed — opening setup as fallback', err);
+          setChildrenLoading(false);
           openChildSetup('children query error: ' + (err.message || err.code));
           return;
         }
         if (Array.isArray(data) && data.length > 0) {
-          adoptChild(data[0]);
+          console.info(`[auth] found ${data.length} child profile(s) — landing on ProfileSelector`);
+          setChildrenRows(data);
+          setChildrenLoading(false);
+          // Per spec (Prompt 3): App opens → ProfileSelector. We do
+          // NOT auto-adopt the first child; the parent (or older
+          // child) explicitly picks who's playing. Adoption happens
+          // when a card is tapped via handleSelectChild.
+          setScreen('profileSelector');
           return;
         }
         // Zero rows — could be (a) genuinely a brand-new parent or
@@ -273,6 +287,7 @@ function App() {
 
       if (cancelled) return;
       console.info('[auth] no children after retries — opening CreateChildProfile', lastErr || '');
+      setChildrenLoading(false);
       openChildSetup('zero children after retries');
     })();
     return () => { cancelled = true; };
@@ -327,6 +342,12 @@ function App() {
   const handleChildCreated = (child) => {
     setCreateChildOpen(false);
     if (!child) return;
+    // Optimistic add to the in-memory list so the ProfileSelector
+    // shows the new card without a round-trip.
+    setChildrenRows((prev) => {
+      if (prev.some((c) => c.id === child.id)) return prev;
+      return [child, ...prev];
+    });
     const stats  = guestPrefill?._stats;
     const streak = guestPrefill?._streak;
     setSession(sessionFromChild(child, { stats, streak }));
@@ -337,6 +358,68 @@ function App() {
       finaliseGuestWipe();
     }
   };
+
+  // ── ProfileSelector → Game (Prompt 3) ───────────────────────────
+  // Tapping a child card in ProfileSelector hydrates the session from
+  // that row and routes into the game. Re-seeds local engine keys so
+  // the footer reads the correct points/lumens/streak immediately.
+  const handleSelectChild = React.useCallback((child) => {
+    if (!child) return;
+    console.info('[nav] selecting child', { id: child.id, nickname: child.nickname });
+    setSession(sessionFromChild(child));
+    try {
+      localStorage.setItem('spellify_player_stats', JSON.stringify({
+        totalPoints:    child.points ?? 0,
+        totalLumens:    child.lumens ?? 0,
+        lastPlayedDate: child.last_played_date ?? null,
+      }));
+      localStorage.setItem('spellify_streak', JSON.stringify({
+        currentStreak:  child.current_streak ?? 0,
+        longestStreak:  child.longest_streak ?? 0,
+        lastPlayedDate: child.last_played_date ?? null,
+        graceUsed:      false,
+      }));
+    } catch { /* storage disabled — engine falls back to defaults */ }
+    setPointsTick((t) => t + 1);
+    window.dispatchEvent(new CustomEvent('spellify-points-update'));
+    setSection('home');
+    setScreen('hub');
+    setActiveActivity(null);
+  }, [sessionFromChild]);
+
+  // Exit button (in-game) → returns to ProfileSelector. Does NOT sign
+  // out: the parent stays authenticated, we just clear the active
+  // child so the selector can show "who's playing?" again.
+  const handleExitToSelector = React.useCallback(() => {
+    console.info('[nav] exit to ProfileSelector');
+    setSession(null);
+    setActiveActivity(null);
+    setShowExitModal(false);
+    setSection('home');
+    setScreen('profileSelector');
+  }, []);
+
+  // Quick Start from the selector (guest path) → onboarding.
+  const handleQuickStart = React.useCallback(() => {
+    setScreen('onboarding');
+  }, []);
+
+  // ProfileSelector → "Add profile" (Prompt 1). Opens the existing
+  // CreateChildProfile flow without any guest-prefill — this is a
+  // signed-in parent adding a *new* child, so the form starts blank.
+  // Tier ceiling (free = 1) is enforced inside ProfileSelector before
+  // this callback fires; here we just open the modal.
+  const handleAddProfile = React.useCallback(() => {
+    setGuestPrefill(null);
+    setCreateChildOpen(true);
+  }, []);
+
+  // ProfileSelector → Adult card. Prompt 2 wires this to a PIN
+  // entry modal; until then we fall straight through to sign-out so
+  // there's still a way to leave the account during dev/testing.
+  // Defined inline in the JSX further down (signOut comes from
+  // useUser which is declared after this block — referencing it here
+  // would TDZ).
 
   // Centralised "guest data has been migrated (or there was nothing to
   // migrate) — drop the local keys we've now replaced" step. Called at
@@ -462,6 +545,13 @@ function App() {
   useEffect(() => {
     saveSession(session);
   }, [session]);
+
+  // Diagnostic: every screen transition is logged. Helps debug routing
+  // bugs (Exit not landing on ProfileSelector, etc.). Safe to remove
+  // once Prompts 1+2 are settled.
+  useEffect(() => {
+    console.info('[nav] screen →', screen);
+  }, [screen]);
 
   // Apply/remove extra-support body class whenever dyslexiaMode changes
   useEffect(() => {
@@ -653,7 +743,21 @@ function App() {
       return next;
     });
 
+  // Consolidated exit (Prompt 3 / pre-Prompt 1):
+  //   • For a signed-in child session → always routes to ProfileSelector
+  //     (single exit path; spec requirement).
+  //   • For a guest session → still drops back to the Welcome screen
+  //     so guests have somewhere coherent to land.
+  // The "Are you sure?" confirmation modal only fires when there's
+  // unsaved local progress AND we're heading to Welcome (where the
+  // session would be discarded). Heading to ProfileSelector keeps the
+  // session intact in localStorage so no confirmation is needed.
   const handleBackToWelcome = () => {
+    if (authUser) {
+      // Signed-in child session → same destination as the Exit pill.
+      handleExitToSelector();
+      return;
+    }
     if (session && hasProgress(session.activityStatuses)) {
       setShowExitModal(true);
     } else {
@@ -680,6 +784,35 @@ function App() {
   const footerPlayerName = String(footerName).toUpperCase();
   const footerYear       = session?.year ?? null;
   const footerIsGuest    = !authUser;
+
+  // ── Exit-to-Selector button (Prompt 3) ──────────────────────────
+  // Always-available control on in-game surfaces. Returns to the
+  // ProfileSelector ("Who's playing?") screen — does NOT sign out;
+  // the parent stays authenticated. Hidden on welcome, onboarding,
+  // and the selector itself. Hidden for guests (no selector to land
+  // on yet — Prompt 1 changes that).
+  const showExitBtn = !!authUser
+    && screen !== 'welcome'
+    && screen !== 'onboarding'
+    && screen !== 'profileSelector';
+
+  const exitToSelectorBtn = showExitBtn ? (
+    <button
+      type="button"
+      className="exit-to-selector-btn"
+      onClick={handleExitToSelector}
+      aria-label="Exit to profile selector"
+      title="Who's playing?"
+    >
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        {/* Door + arrow — the universal "exit" glyph */}
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+        <polyline points="16 17 21 12 16 7" />
+        <line x1="21" y1="12" x2="9" y2="12" />
+      </svg>
+      <span>Exit</span>
+    </button>
+  ) : null;
 
   // ── Global auth modals (rendered in every branch that needs them) ──
   // Previously these were nested inside the main return only — meaning
@@ -739,12 +872,22 @@ function App() {
           onUpdate={handleSettingsUpdate}
           onChangeWords={() => { setSettingsOpen(false); setSection('mylists'); setChangeWordsOpen(true); }}
           onClearProgress={handleClearProgress}
-          onExit={session ? handleBackToWelcome : undefined}
+          /* Prompt 3 spec: ONE exit path from a signed-in child
+             session — the Exit pill (top-right). So Settings only
+             surfaces "Back to welcome" for GUEST sessions where the
+             pill isn't rendered. Signed-in children get no
+             alternate exit affordance. */
+          onExit={(session && !authUser) ? handleBackToWelcome : undefined}
           onClose={() => setSettingsOpen(false)}
           authUser={authUser}
           onSignInClick={() => { setSettingsOpen(false); openAuth('signin'); }}
           onSignUpClick={() => { setSettingsOpen(false); openAuth('signup'); }}
-          onSignOut={signOut}
+          /* Prompt 3 (May 2026): sign-out is intentionally NOT passed
+             when there's an active child session. The nuclear sign-out
+             lives only in the Parent Dashboard (Prompt 2 area). For
+             guest sessions (no authUser, no session.id) it's still
+             accessible from the Welcome / AuthModal flows. */
+          onSignOut={(!authUser || !session) ? signOut : undefined}
         />
       )}
     </>
@@ -801,7 +944,12 @@ function App() {
 
     if (Activity) {
       // Activities own their own header via <GameHeader>. Don't wrap in TopNav.
-      return <main className="app-game-main">{Activity}</main>;
+      return (
+        <main className="app-game-main">
+          {Activity}
+          {exitToSelectorBtn}
+        </main>
+      );
     }
   }
 
@@ -814,6 +962,34 @@ function App() {
           onStart={handleWelcomeStart}
           onSignIn={() => openAuth('signin')}
           onCreateAccount={() => openAuth('signup')}
+        />
+        {globalAuthModals}
+      </>
+    );
+  }
+
+  // ── Profile Selector (Prompt 3) ──────────────────────────────────
+  // Landing screen for signed-in users (and an entry point for guests
+  // when Prompt 1 fleshes it out). Tapping a child card adopts the
+  // row and routes into the game; the parent card is the placeholder
+  // for the PIN-gated parent dashboard (Prompt 2 wires that in).
+  if (screen === 'profileSelector') {
+    return (
+      <>
+        <ProfileSelector
+          authUser={authUser}
+          children={childrenRows}
+          loading={childrenLoading}
+          onSelectChild={handleSelectChild}
+          onQuickStart={handleQuickStart}
+          onOpenAuth={openAuth}
+          onAddProfile={handleAddProfile}
+          onParentEnter={() => {
+            // TODO (Prompt 2): open PIN entry → ParentDashboard.
+            console.info('[nav] adult card tapped — PIN gate (Prompt 2) TBD; signing out for now');
+            signOut?.();
+          }}
+          onSignOut={signOut}
         />
         {globalAuthModals}
       </>
@@ -893,6 +1069,7 @@ function App() {
             onSignUpClick={() => setShowSignIn(true)}
             onSettingsClick={() => setSettingsOpen(true)}
           />
+          {exitToSelectorBtn}
           {globalAuthModals}
         </>
       );
@@ -1009,6 +1186,7 @@ function App() {
         buddyId={session?.childCharacter?.id || 'raccoon'}
         buddyFallback={session?.childCharacter?.emoji || '🦝'}
       />
+      {exitToSelectorBtn}
     </>
   );
 }

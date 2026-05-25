@@ -295,3 +295,43 @@ body {
     bottom: 84px;             /* clear of the ArcadeFooter (~68px) */
   }
 }
+
+/* ── Exit-to-Selector floating button (Prompt 3) ──────────────────
+   Always-on, unobtrusive control in the top-right. Clicking returns
+   the user to ProfileSelector ("Who's playing?") without signing
+   out. Designed to read as a soft exit, not a destructive control. */
+.exit-to-selector-btn {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px 8px 10px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(199, 125, 255, 0.55);
+  background: rgba(20, 8, 32, 0.7);
+  color: #f5ecff;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  transition: transform 0.14s, border-color 0.14s, background 0.14s;
+}
+.exit-to-selector-btn:hover {
+  transform: translateY(-1px);
+  border-color: #ffd93d;
+  background: rgba(40, 22, 70, 0.8);
+}
+.exit-to-selector-btn:active { transform: translateY(0); }
+.exit-to-selector-btn svg { flex-shrink: 0; }
+@media (max-width: 540px) {
+  /* On mobile show just the icon — the word "Exit" eats too much
+     header space and kids recognise the door glyph fine. */
+  .exit-to-selector-btn span { display: none; }
+  .exit-to-selector-btn { padding: 8px; }
+}

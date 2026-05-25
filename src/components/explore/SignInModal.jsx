@@ -157,11 +157,11 @@ export default function SignInModal({ onClose, signIn, signUp, signInWithGoogle 
               ))}
             </div>
 
-            <label className="sim-label">Parent or guardian's email</label>
+            <label className="sim-label">Adult's email</label>
             <input
               className="sim-input"
               type="email"
-              placeholder="parent@email.com"
+              placeholder="adult@email.com"
               value={email}
               onChange={e => setEmail(e.target.value)}
               autoComplete="email"
