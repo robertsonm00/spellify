@@ -131,6 +131,123 @@
 .ccp-confidence-card__emoji { font-size: 1.6rem; }
 .ccp-confidence-card__label { font-size: 0.9rem; line-height: 1.3; }
 
+/* Buddy picker — raccoon unlocked, others padlocked */
+.ccp-buddy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
+  gap: 8px;
+}
+.ccp-buddy-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 6px 6px;
+  border-radius: 12px;
+  border: 2px solid rgba(199, 125, 255, 0.3);
+  background: rgba(40, 22, 70, 0.6);
+  color: #f5ecff;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.12s, border-color 0.12s, background 0.12s;
+}
+.ccp-buddy-card:hover:not(.ccp-buddy-card--locked) { transform: translateY(-1px); }
+.ccp-buddy-card--picked {
+  border-color: #ffd93d;
+  background: rgba(255, 217, 61, 0.14);
+  box-shadow: 0 0 14px rgba(255, 217, 61, 0.35);
+}
+.ccp-buddy-card--locked {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.ccp-buddy-card__face {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+}
+.ccp-buddy-card__emoji { font-size: 1.9rem; line-height: 1; }
+.ccp-buddy-card__name  { font-size: 0.75rem; font-weight: 700; text-align: center; }
+.ccp-buddy-card__lock {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  font-size: 0.85rem;
+}
+
+/* SEN multi-select chips */
+.ccp-field__optional {
+  text-transform: none;
+  letter-spacing: 0;
+  color: #a99bd1;
+  font-weight: 600;
+}
+.ccp-sen-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+.ccp-sen-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(199, 125, 255, 0.4);
+  background: rgba(40, 22, 70, 0.55);
+  color: #f5ecff;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  user-select: none;
+  transition: border-color 0.12s, background 0.12s, color 0.12s;
+}
+.ccp-sen-chip input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: #ffd93d;
+  cursor: pointer;
+}
+.ccp-sen-chip--on {
+  border-color: #ffd93d;
+  background: rgba(255, 217, 61, 0.18);
+  color: #fff;
+}
+
+/* Adaptive-learning toggle (single checkbox row) */
+.ccp-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(199, 125, 255, 0.3);
+  background: rgba(40, 22, 70, 0.55);
+  cursor: pointer;
+}
+.ccp-toggle input {
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  accent-color: #ffd93d;
+  cursor: pointer;
+}
+.ccp-toggle__label {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #f5ecff;
+  line-height: 1.35;
+}
+.ccp-toggle__hint {
+  font-weight: 500;
+  color: #cdb4ff;
+}
+
 .ccp-error {
   margin: 0;
   padding: 8px 12px;

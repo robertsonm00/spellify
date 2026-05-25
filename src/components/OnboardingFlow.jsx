@@ -547,27 +547,84 @@ export function GeneratedWords({
   );
 }
 
+// ── Step 5: Own lists? ─────────────────────────────────────────────────────
+//
+// Final onboarding step. Asks the parent whether they have their own
+// word lists (school spellings, homework, etc.) they want to add.
+// "Yes" → after onComplete, App.jsx routes to My Lists with the
+// add-list flow opened. "Maybe later" → straight to Home.
+
+function OwnListsStep({ name, character, onChoose }) {
+  const buddyId = character?.id || 'raccoon';
+  return (
+    <div className="ob-step ob-own-lists">
+      <div className="ob-step-header">
+        {hasBuddyAvatar(buddyId) ? (
+          <div className="ob-own-lists-buddy" aria-hidden="true">
+            <BuddyAvatar id={buddyId} size={88} />
+          </div>
+        ) : (
+          <div className="ob-step-icon">📝</div>
+        )}
+        <h2 className="ob-step-title">
+          Do you have a spelling list to add?
+        </h2>
+        <p className="ob-step-sub">
+          You can add school spellings, weekly words, or anything you like.
+          Spellify will use them alongside the curriculum lists.
+        </p>
+      </div>
+
+      <div className="ob-own-lists-grid">
+        <button
+          type="button"
+          className="ob-own-lists-card ob-own-lists-card--primary"
+          onClick={() => onChoose(true)}
+        >
+          <span className="ob-own-lists-emoji" aria-hidden="true">✨</span>
+          <span className="ob-own-lists-label">Yes — add my own list</span>
+          <span className="ob-own-lists-sub">Take me to add words now</span>
+        </button>
+        <button
+          type="button"
+          className="ob-own-lists-card"
+          onClick={() => onChoose(false)}
+        >
+          <span className="ob-own-lists-emoji" aria-hidden="true">🏝️</span>
+          <span className="ob-own-lists-label">Maybe later</span>
+          <span className="ob-own-lists-sub">Just take me to the map</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── Main orchestrator ──────────────────────────────────────────────────────
 
 function OnboardingFlow({ onComplete, initialName = '', initialCharacter = null, initialYear = null, startStep = 'name' }) {
-  // 4-step quick start: name → character → year → confidence.
-  // Picking a confidence card generates words automatically and submits;
-  // there's no word-source picker or preview step in the quick start.
-  // Manual word entry / list editing happens later, in the Settings flow.
-  const [step,      setStep]      = useState(startStep);
-  const [name,      setName]      = useState(initialName);
-  const [character, setCharacter] = useState(initialCharacter);
-  const [year,      setYear]      = useState(initialYear);
+  // 5-step quick start: name → character → year → confidence → ownLists.
+  // The final "ownLists" step asks whether the parent has their own
+  // word lists to add. If yes, App.jsx routes straight to the My Lists
+  // add-flow after the session is created; if no, lands on Home.
+  const [step,       setStep]       = useState(startStep);
+  const [name,       setName]       = useState(initialName);
+  const [character,  setCharacter]  = useState(initialCharacter);
+  const [year,       setYear]       = useState(initialYear);
+  const [confidence, setConfidence] = useState(null);
 
   const handleName      = (n) => { setName(n);      setStep('character');  };
   const handleCharacter = (c) => { setCharacter(c); setStep('year');       };
   const handleYear      = (y) => { setYear(y);      setStep('confidence'); };
-
-  // Final step: generate words inline from year + confidence mapping and
-  // call onComplete. No preview, no toggles — quick start commits straight
-  // to play. senProfile defaults to [] (parent can set it later in Settings).
   const handleConfidence = ({ spellingConfidence }) => {
-    const { dyslexiaMode, difficulty } = confidenceToDefaults(spellingConfidence);
+    setConfidence(spellingConfidence);
+    setStep('ownLists');
+  };
+
+  // Finalise — generate words inline from year + confidence mapping
+  // and hand the session + the parent's lists choice back to App.jsx.
+  const finishOnboarding = (wantAddList) => {
+    const sc = confidence || 'tricky';
+    const { dyslexiaMode, difficulty } = confidenceToDefaults(sc);
     const group = YEAR_GROUPS.find((g) => g.yearGroup === year);
     const age   = group?.ageRange[0] ?? 8;
     const result = selectWords({
@@ -586,8 +643,9 @@ function OnboardingFlow({ onComplete, initialName = '', initialCharacter = null,
       ruleKey:     null,
       ruleLabel:   null,
       difficulty,
-      spellingConfidence,
+      spellingConfidence: sc,
       senProfile:  [],
+      wantAddList,                // ← App.jsx routes off this flag
     });
   };
 
@@ -595,6 +653,7 @@ function OnboardingFlow({ onComplete, initialName = '', initialCharacter = null,
     if      (step === 'character')  setStep('name');
     else if (step === 'year')       setStep('character');
     else if (step === 'confidence') setStep('year');
+    else if (step === 'ownLists')   setStep('confidence');
   };
 
   return (
@@ -618,6 +677,7 @@ function OnboardingFlow({ onComplete, initialName = '', initialCharacter = null,
         {step === 'character'  && <CharacterPicker name={name} onSelect={handleCharacter} />}
         {step === 'year'       && <YearPicker     name={name} onSelect={handleYear} />}
         {step === 'confidence' && <ConfidencePicker name={name} onSubmit={handleConfidence} />}
+        {step === 'ownLists'   && <OwnListsStep    name={name} character={character} onChoose={finishOnboarding} />}
 
         {step !== 'name' && (
           <button className="ob-back-btn" onClick={back}>← Back</button>

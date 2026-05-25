@@ -66,6 +66,11 @@ function App() {
   const [authUser,        setAuthUser]        = useState(null);
   const [createChildOpen, setCreateChildOpen] = useState(false);
   const [migrateChild,    setMigrateChild]    = useState(null);  // child row after creation
+  // Snapshot of the guest session captured BEFORE we wipe localStorage
+  // on first sign-in — handed to CreateChildProfile so the parent
+  // doesn't have to retype what Quick Start already collected
+  // (nickname, year, confidence, character, SEN profile, adaptive).
+  const [guestPrefill,    setGuestPrefill]    = useState(null);
 
   useEffect(() => {
   let cancelled = false;
@@ -129,30 +134,146 @@ function App() {
         setCreateChildOpen(false);
         return;
       }
-      try {
+      // Helper — actually open the child-creation modal + wipe guest
+      // state. Pulled out so error paths can call it too: if we can't
+      // tell whether the user has children (RLS blocks SELECT, query
+      // errors out, network drops), we treat that as "no children yet"
+      // for first-run UX — better to show the setup screen than to
+      // silently leave the user on a blank dashboard.
+      const openChildSetup = (why) => {
+        console.info('[auth] opening CreateChildProfile —', why);
+        // Snapshot the guest session BEFORE we wipe it — so the
+        // CreateChildProfile form can prefill from it and the
+        // MigratePrompt that follows can write the captured points /
+        // lumens / streak to the new child row. Without this snapshot
+        // we'd lose everything the guest entered during onboarding.
+        let snap = null;
+        try {
+          const sessionRaw = localStorage.getItem('spellify_session_v2')
+            || localStorage.getItem('spellify_session');
+          const statsRaw   = localStorage.getItem('spellify_player_stats');
+          const streakRaw  = localStorage.getItem('spellify_streak');
+          snap = {
+            session: sessionRaw ? JSON.parse(sessionRaw) : null,
+            stats:   statsRaw   ? JSON.parse(statsRaw)   : null,
+            streak:  streakRaw  ? JSON.parse(streakRaw)  : null,
+          };
+        } catch (e) {
+          console.warn('[auth] could not snapshot guest session', e);
+        }
+        // Flatten the session fields the form actually needs.
+        setGuestPrefill(snap?.session ? {
+          childName:          snap.session.childName,
+          year:               snap.session.year,
+          spellingConfidence: snap.session.spellingConfidence,
+          childCharacter:     snap.session.childCharacter,
+          senProfile:         snap.session.senProfile,
+          adaptiveLearning:   snap.session.adaptiveLearning,
+          // Gameplay state — handed through verbatim so the migration
+          // step has everything it needs in one object.
+          _stats:             snap?.stats,
+          _streak:            snap?.streak,
+          _rawSession:        snap.session,
+        } : null);
+
+        // NOTE: we deliberately do NOT wipe localStorage here any more.
+        // The wipe happens after a successful CreateChildProfile + (yes
+        // or no) MigratePrompt resolution — see handleChildCreated /
+        // MigratePrompt's onDone path. That way a failed sign-up flow
+        // can't lose the guest's progress mid-stream.
+        setSession(null);
+        setPointsTick((t) => t + 1);
+        setCreateChildOpen(true);
+      };
+
+      // Adopt an existing child row into the running session — runs
+      // both for returning parents AND for the just-after-sign-up case
+      // where the child row exists but the session is still null.
+      // Re-seeds the gamification + streak engines from the child row
+      // so the footer shows the migrated points/lumens immediately.
+      const adoptChild = (child) => {
+        if (cancelled || !child) return;
+        console.info('[auth] adopting child row', { id: child.id, nickname: child.nickname });
+        setSession(sessionFromChild(child));
+        try {
+          // Re-seed local engine keys so the footer reads from
+          // Supabase totals rather than zero. Mirrors the post-migrate
+          // seeding in MigratePrompt.
+          localStorage.setItem('spellify_player_stats', JSON.stringify({
+            totalPoints:    child.points ?? 0,
+            totalLumens:    child.lumens ?? 0,
+            lastPlayedDate: child.last_played_date ?? null,
+            // Other fields default; the engine fills them on next save.
+          }));
+          localStorage.setItem('spellify_streak', JSON.stringify({
+            currentStreak:  child.current_streak ?? 0,
+            longestStreak:  child.longest_streak ?? 0,
+            lastPlayedDate: child.last_played_date ?? null,
+            graceUsed:      false,
+          }));
+        } catch { /* storage disabled — engine will just show 0s */ }
+        // Force every points/lumens reader (footer, level pill, etc.)
+        // to re-read from the freshly-seeded localStorage.
+        setPointsTick((t) => t + 1);
+        window.dispatchEvent(new CustomEvent('spellify-points-update'));
+      };
+
+      // Returning-parent race: Supabase sometimes resolves SIGNED_IN
+      // a hair before RLS sees the row, so a single SELECT can return
+      // zero rows for a parent who definitely has a child. Retry up
+      // to 3 times with backoff before deciding it's a genuine
+      // first-sign-up and opening the setup modal.
+      const queryChildren = async () => {
         const { data, error: err } = await supabase
           .from('children')
-          .select('id')
+          .select('*')
           .eq('parent_id', authUser.id)
+          .is('deleted_at', null)
+          .order('updated_at', { ascending: false })
           .limit(1);
+        return { data, err };
+      };
+
+      const RETRY_DELAYS_MS = [0, 300, 700, 1500];
+      let lastErr = null;
+      for (let attempt = 0; attempt < RETRY_DELAYS_MS.length; attempt++) {
         if (cancelled) return;
-        if (!err && Array.isArray(data) && data.length === 0) {
-          // Wipe guest state before showing the child-creation modal so
-          // the dashboard / footer behind it doesn't render the previous
-          // guest's points, lumens, session, or streak.
-          try {
-            localStorage.removeItem('spellify_session_v2');
-            localStorage.removeItem('spellify_session');         // legacy key
-            localStorage.removeItem('spellify_player_stats');    // points + lumens
-            localStorage.removeItem('spellify_streak');
-            localStorage.removeItem('spellify_explore_recent');
-            localStorage.removeItem('spellify_explore_favourites');
-          } catch { /* storage full / disabled — ignore */ }
-          setSession(null);
-          setPointsTick((t) => t + 1);   // force getPlayerStats() re-read → 0/0
-          setCreateChildOpen(true);
+        if (RETRY_DELAYS_MS[attempt] > 0) {
+          await new Promise((r) => setTimeout(r, RETRY_DELAYS_MS[attempt]));
+          if (cancelled) return;
         }
-      } catch { /* offline — skip silently */ }
+        console.info(`[auth] querying children for ${authUser.id} (attempt ${attempt + 1})`);
+        let res;
+        try { res = await queryChildren(); }
+        catch (e) {
+          // Network exception — treat as retryable.
+          console.warn(`[auth] children query attempt ${attempt + 1} threw`, e);
+          lastErr = e;
+          continue;
+        }
+        if (cancelled) return;
+        const { data, err } = res;
+        if (err) {
+          // Hard error from PostgREST (RLS, schema, etc.) — stop
+          // retrying since further attempts will fail the same way.
+          console.warn('[auth] children query failed — opening setup as fallback', err);
+          openChildSetup('children query error: ' + (err.message || err.code));
+          return;
+        }
+        if (Array.isArray(data) && data.length > 0) {
+          adoptChild(data[0]);
+          return;
+        }
+        // Zero rows — could be (a) genuinely a brand-new parent or
+        // (b) RLS hasn't propagated yet. Retry a couple of times
+        // before assuming (a).
+        console.info(`[auth] children query attempt ${attempt + 1} returned 0 rows`);
+        lastErr = null;
+      }
+
+      if (cancelled) return;
+      console.info('[auth] no children after retries — opening CreateChildProfile', lastErr || '');
+      openChildSetup('zero children after retries');
     })();
     return () => { cancelled = true; };
     // setSession / setPointsTick are stable React setters; including
@@ -160,12 +281,87 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authUser?.id]);
 
+  // Build a fresh App-level session from a Supabase children row.
+  // Hydration source-of-truth so the footer / gameplay / streak all
+  // reflect the active child instead of falling back to the parent's
+  // email. Keeps localStorage authoritative for in-game state; the
+  // child row is just the seed.
+  const sessionFromChild = React.useCallback((child, opts = {}) => {
+    if (!child) return null;
+    const { stats } = opts;
+    return {
+      childName:        child.nickname || '',
+      // Supabase column is `active_buddy_id`; the in-memory session
+      // keeps the historical `childCharacter` shape the rest of the
+      // app reads.
+      childCharacter:   child.active_buddy_id ? { id: child.active_buddy_id, emoji: '' } : null,
+      year:             child.school_year ?? null,
+      age:              null,
+      words:            [],
+      wordObjects:      [],
+      sourceMode:       'generated',
+      dyslexiaMode:     !!child.dyslexia_mode,
+      difficulty:       'medium',
+      activityStatuses: {},
+      activityProgress: {},
+      activityCompletions: {},
+      mastery:          {},
+      reviewQueue:      [],
+      // Existing `points` / `lumens` columns on children are the
+      // canonical totals; fall back to the guest snapshot if the row
+      // hasn't been updated yet.
+      lumens:           child.lumens ?? stats?.totalLumens ?? 0,
+      spellingConfidence: child.spelling_confidence || 'tricky',
+      senProfile:       Array.isArray(child.sen_profile) ? child.sen_profile : [],
+      adaptiveLearning: child.adaptive_learning !== false,
+      // Mark this session as belonging to a Supabase child so future
+      // sync code can tell it apart from a pure-guest local session.
+      _childId:         child.id,
+    };
+  }, []);
+
   // After child profile creation, offer to migrate local mastery rows
-  // (only if there's anything to migrate).
+  // (only if there's anything to migrate). Regardless of the migration
+  // choice, we hydrate the session from the new child row so the
+  // footer and gameplay show the child's name + year immediately.
   const handleChildCreated = (child) => {
     setCreateChildOpen(false);
-    if (child && hasLocalMastery()) setMigrateChild(child);
+    if (!child) return;
+    const stats  = guestPrefill?._stats;
+    const streak = guestPrefill?._streak;
+    setSession(sessionFromChild(child, { stats, streak }));
+    if (hasLocalMastery() || stats || streak) {
+      setMigrateChild(child);
+    } else {
+      // Nothing to migrate — safe to wipe leftover guest keys now.
+      finaliseGuestWipe();
+    }
   };
+
+  // Centralised "guest data has been migrated (or there was nothing to
+  // migrate) — drop the local keys we've now replaced" step. Called at
+  // the END of the first-sign-in flow, never before, so any failure
+  // earlier preserves the data for retry.
+  //
+  // We deliberately KEEP `spellify_player_stats` and `spellify_streak`
+  // in place. Even after migration they represent the live state of
+  // the current player (now a Supabase-backed child), and the existing
+  // gamification + streak engines read straight from those keys. The
+  // migration step also re-seeds them with the merged values so the
+  // footer reflects the migrated totals immediately.
+  const finaliseGuestWipe = React.useCallback(() => {
+    try {
+      localStorage.removeItem('spellify_session_v2');
+      localStorage.removeItem('spellify_session');                 // legacy
+      localStorage.removeItem('spellify_explore_recent');
+      localStorage.removeItem('spellify_explore_favourites');
+      // Mastery keys live under spellify_mastery_* — migrated to Supabase
+      Object.keys(localStorage)
+        .filter((k) => k.startsWith('spellify_mastery_'))
+        .forEach((k) => localStorage.removeItem(k));
+    } catch { /* ignore */ }
+    setGuestPrefill(null);
+  }, []);
   const [settingsOpen,     setSettingsOpen]     = useState(false);
   const [changeWordsOpen,  setChangeWordsOpen]  = useState(false);
   const { user, profile, signIn, signUp, signInWithGoogle, signOut } = useUser();
@@ -288,7 +484,7 @@ function App() {
     setScreen('onboarding');
   };
 
-  const handleOnboardingComplete = ({ name, character, year, age, words, wordObjects = [], dyslexiaMode = false, sourceMode = 'generated', ruleKey = null, ruleLabel = null, difficulty, spellingConfidence = 'tricky', senProfile = [] }) => {
+  const handleOnboardingComplete = ({ name, character, year, age, words, wordObjects = [], dyslexiaMode = false, sourceMode = 'generated', ruleKey = null, ruleLabel = null, difficulty, spellingConfidence = 'tricky', senProfile = [], wantAddList = false }) => {
     setSession({
       ...createSession({
         year, age, words, wordObjects, sourceMode, dyslexiaMode,
@@ -302,7 +498,10 @@ function App() {
       welcomeBonus: 100,
     });
     setIsFirstVisit(true);
-    setSection('mylists');
+    // Default: land on Home (Adventure Map). If the parent picked
+    // "Yes — add my own list" on the final onboarding step, route to
+    // My Lists instead so they can add their list immediately.
+    setSection(wantAddList ? 'mylists' : 'home');
     setScreen('hub');
     setTimeout(fireBuddyCheer, 600);
   };
@@ -423,7 +622,7 @@ function App() {
     setActiveActivity(null);
   };
 
-  const handleSettingsUpdate = (updates) => setSession((prev) => ({ ...prev, ...updates }));
+  const handleSettingsUpdate = (updates) => setSession((prev) => (prev ? { ...prev, ...updates } : prev));
   const handleClearProgress  = () => setSession((prev) => ({ ...prev, activityStatuses: INITIAL_STATUSES, activityProgress: {}, activityCompletions: {}, mastery: {}, reviewQueue: [] }));
 
   const handleSaveProgress = (id, progress) =>
@@ -498,6 +697,7 @@ function App() {
       {createChildOpen && authUser && (
         <CreateChildProfile
           authUser={authUser}
+          prefill={guestPrefill}
           onCreated={handleChildCreated}
           onCancel={() => setCreateChildOpen(false)}
         />
@@ -505,7 +705,46 @@ function App() {
       {migrateChild && (
         <MigratePrompt
           child={migrateChild}
-          onDone={() => setMigrateChild(null)}
+          guestStats={guestPrefill?._stats}
+          guestStreak={guestPrefill?._streak}
+          onDone={(result) => {
+            // result: { ok: boolean, skipped?: boolean }. We only wipe
+            // the guest data when the migration fully succeeded or the
+            // parent explicitly skipped — never on partial failure.
+            setMigrateChild(null);
+            if (result?.ok || result?.skipped) {
+              finaliseGuestWipe();
+            }
+            // If the migration wrote new totals back to the child row,
+            // refresh the in-memory session so the footer points/lumens
+            // reflect them.
+            if (result?.refreshChild) {
+              setSession(sessionFromChild(result.refreshChild, {
+                stats: guestPrefill?._stats,
+                streak: guestPrefill?._streak,
+              }));
+            }
+          }}
+        />
+      )}
+      {settingsOpen && (
+        <Settings
+          userAge={session?.age || 8}
+          year={session?.year ?? null}
+          dyslexiaMode={session?.dyslexiaMode || false}
+          spellingConfidence={session?.spellingConfidence || 'tricky'}
+          adaptiveLearning={session?.adaptiveLearning !== false}
+          childName={session?.childName || ''}
+          childCharacter={session?.childCharacter || null}
+          onUpdate={handleSettingsUpdate}
+          onChangeWords={() => { setSettingsOpen(false); setSection('mylists'); setChangeWordsOpen(true); }}
+          onClearProgress={handleClearProgress}
+          onExit={session ? handleBackToWelcome : undefined}
+          onClose={() => setSettingsOpen(false)}
+          authUser={authUser}
+          onSignInClick={() => { setSettingsOpen(false); openAuth('signin'); }}
+          onSignUpClick={() => { setSettingsOpen(false); openAuth('signup'); }}
+          onSignOut={signOut}
         />
       )}
     </>
@@ -710,29 +949,6 @@ function App() {
         <ExitConfirmModal
           onConfirm={confirmExit}
           onCancel={() => setShowExitModal(false)}
-        />
-      )}
-
-      {/* ── Settings modal (triggered from footer profile icon) ──
-          Available whether or not there's a session — guests need it
-          to access Sign In / Sign Up, which now lives here. */}
-      {settingsOpen && (
-        <Settings
-          userAge={session?.age || 8}
-          year={session?.year ?? null}
-          dyslexiaMode={session?.dyslexiaMode || false}
-          spellingConfidence={session?.spellingConfidence || 'tricky'}
-          adaptiveLearning={session?.adaptiveLearning !== false}
-          childName={session?.childName || ''}
-          childCharacter={session?.childCharacter || null}
-          onUpdate={handleSettingsUpdate}
-          onChangeWords={() => { setSettingsOpen(false); setSection('mylists'); setChangeWordsOpen(true); }}
-          onClearProgress={handleClearProgress}
-          onExit={handleBackToWelcome}
-          onClose={() => setSettingsOpen(false)}
-          authUser={authUser}
-          onSignInClick={() => { setSettingsOpen(false); openAuth('signin'); }}
-          onSignOut={signOut}
         />
       )}
 

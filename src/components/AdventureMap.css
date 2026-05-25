@@ -766,18 +766,20 @@
   opacity: 0.9;
 }
 
-/* Locked — cooler stone disc; clearly visible, not ghosted */
+/* Locked — uniform pink/rose so every locked stop reads the same.
+   (Previously this used a cool purple while landmark-locked stops
+   used pink, which made the path look two-toned.) */
 .am-v2-node--locked .am-v2-node__face {
   background:
-    radial-gradient(circle at 50% 34%, #6a4a7a 0%, #3a1e4a 70%, #1e1030 100%);
-  color: rgba(255, 230, 250, 0.78);
+    radial-gradient(circle at 50% 32%, #ffaccc 0%, #ff7aa8 35%, #c93a78 75%, #5a0a3a 100%);
+  color: #fff7e8;
   box-shadow:
-    inset 0 5px 6px rgba(255, 255, 255, 0.18),
-    inset 0 -6px 10px rgba(0, 0, 0, 0.55);
+    inset 0 5px 6px rgba(255, 255, 255, 0.22),
+    inset 0 -6px 10px rgba(0, 0, 0, 0.45);
 }
 .am-v2-node--locked .am-v2-node__glow {
-  background: radial-gradient(circle, rgba(199, 125, 255, 0.28) 0%, transparent 60%);
-  opacity: 0.6;
+  background: radial-gradient(circle, rgba(255, 122, 168, 0.45) 0%, rgba(201, 58, 120, 0.22) 45%, transparent 70%);
+  opacity: 0.75;
 }
 .am-v2-node--unassigned .am-v2-node__face {
   background:

@@ -1,30 +1,47 @@
 .settings-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  display: flex;
-  align-items: flex-start;
-  justify-content: flex-end;
-  padding: 4.5rem 1.5rem 0;
+  /* Lighter scrim — the map should still be visible behind the panel */
+  background: rgba(8, 4, 18, 0.25);
   z-index: 1000;
+  -webkit-backdrop-filter: blur(2px);
   backdrop-filter: blur(2px);
 }
 
+/* Panel anchors above the footer profile button (bottom-left), opening
+   upward from there. On narrow viewports it slides to a centred bottom
+   sheet so it always fits. */
 .settings-modal {
-  position: relative;
+  position: absolute;
+  bottom: 96px;            /* clears the 80px ArcadeFooter + a small gap */
+  left: 16px;
   background: #fff;
   border-radius: 18px;
-  box-shadow: 0 16px 48px rgba(0,0,0,0.25);
-  padding: 1.75rem 1.5rem 1.5rem;
-  width: 100%;
-  max-width: 320px;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.45);
+  padding: 1.5rem 1.4rem 1.25rem;
+  width: 360px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 96px - 24px);
+  overflow-y: auto;
   font-family: 'Nunito', sans-serif;
-  animation: slideDown 0.2s ease;
+  animation: settingsRise 0.22s ease;
 }
 
-@keyframes slideDown {
-  from { opacity: 0; transform: translateY(-12px); }
+@keyframes settingsRise {
+  from { opacity: 0; transform: translateY(14px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Mobile: footer is taller (the 96px mobile bottom nav) — sit just
+   above it and pin to the left edge with a small inset. */
+@media (max-width: 540px) {
+  .settings-modal {
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px) + 8px);
+    left: 8px;
+    right: 8px;
+    width: auto;
+    max-width: none;
+  }
 }
 
 .settings-close {
@@ -453,24 +470,22 @@
   color: #fff;
 }
 
-/* ── Bottom account row — small + discrete ────────────────────── */
+/* ── Signed-in: small clean account row ─────────────────────── */
 .settings-account-row {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   gap: 8px;
   margin-top: 14px;
   padding-top: 14px;
-  border-top: 1px solid rgba(199, 125, 255, 0.18);
+  border-top: 1px solid #e7e0f5;
   font-size: 0.82rem;
-  color: #a99bd1;
+  color: #6a5f88;
   flex-wrap: wrap;
-  text-align: center;
 }
-.settings-account-row__guest { line-height: 1.4; }
 .settings-account-row__email {
   font-family: 'Nunito', sans-serif;
-  color: #cdb4ff;
+  color: #4a3f6a;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -480,7 +495,7 @@
   background: none;
   border: none;
   padding: 0;
-  color: #ffd93d;
+  color: #6a4fc7;
   font-family: inherit;
   font-size: inherit;
   font-weight: 700;
@@ -488,3 +503,108 @@
   cursor: pointer;
 }
 .settings-account-row__link:hover { filter: brightness(1.1); }
+
+/* ── Guest: reward-teaser card — gold border, soft glow ───────── */
+.settings-unlock-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-top: 16px;
+  padding: 14px 16px;
+  text-align: left;
+  border-radius: 14px;
+  border: 2px solid #ffd93d;
+  background:
+    radial-gradient(circle at 12% 50%, rgba(255, 217, 61, 0.22), transparent 55%),
+    linear-gradient(135deg, #fffaeb 0%, #fff4d0 100%);
+  color: #1a0828;
+  cursor: pointer;
+  font-family: 'Nunito', sans-serif;
+  box-shadow:
+    0 0 0 4px rgba(255, 217, 61, 0.18),
+    0 8px 24px rgba(246, 163, 26, 0.28),
+    0 0 22px rgba(255, 217, 61, 0.35);
+  transition: transform 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease;
+  position: relative;
+  overflow: hidden;
+}
+.settings-unlock-card::after {
+  /* subtle sparkle wash that rotates slowly behind the content */
+  content: '';
+  position: absolute;
+  inset: -30%;
+  background:
+    conic-gradient(from 0deg,
+      rgba(255, 255, 255, 0.0) 0deg,
+      rgba(255, 255, 255, 0.45) 40deg,
+      rgba(255, 255, 255, 0.0) 90deg,
+      rgba(255, 217, 61, 0.0) 180deg,
+      rgba(255, 217, 61, 0.35) 250deg,
+      rgba(255, 255, 255, 0.0) 360deg);
+  opacity: 0.55;
+  animation: settingsUnlockSheen 7s linear infinite;
+  pointer-events: none;
+}
+@keyframes settingsUnlockSheen {
+  to { transform: rotate(360deg); }
+}
+.settings-unlock-card:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.04);
+  box-shadow:
+    0 0 0 5px rgba(255, 217, 61, 0.28),
+    0 10px 32px rgba(246, 163, 26, 0.4),
+    0 0 30px rgba(255, 217, 61, 0.55);
+}
+
+.settings-unlock-card__icon {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  font-size: 1.65rem;
+  filter:
+    drop-shadow(0 0 6px rgba(255, 217, 61, 0.9))
+    drop-shadow(0 0 14px rgba(255, 174, 61, 0.55));
+  animation: settingsUnlockTwinkle 2.2s ease-in-out infinite;
+}
+@keyframes settingsUnlockTwinkle {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  50%      { transform: scale(1.08) rotate(8deg); }
+}
+
+.settings-unlock-card__body {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.settings-unlock-card__title {
+  font-weight: 800;
+  font-size: 1rem;
+  color: #2a0e3a;
+  letter-spacing: 0.01em;
+}
+.settings-unlock-card__sub {
+  font-size: 0.82rem;
+  color: #5a4a7a;
+  line-height: 1.3;
+}
+.settings-unlock-card__cta {
+  margin-top: 6px;
+  align-self: flex-start;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ffd93d 0%, #f6a31a 100%);
+  color: #1a0828;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-shadow:
+    0 2px 0 rgba(0, 0, 0, 0.2),
+    0 4px 10px rgba(246, 163, 26, 0.35);
+}

@@ -17,6 +17,7 @@ function Settings({
   onExit,
   authUser = null,
   onSignInClick,
+  onSignUpClick,
   onSignOut,
 }) {
   const currentYear = yearProp ?? ageToYear(userAge);
@@ -52,7 +53,7 @@ function Settings({
       <div className="settings-modal" onClick={(e) => e.stopPropagation()}>
         <button className="settings-close" onClick={onClose} aria-label="Close settings">✕</button>
 
-        <h2 className="settings-title">⚙️ Settings</h2>
+        <h2 className="settings-title">Profile</h2>
 
         {/* ── Name ── */}
         <div className="settings-field-row">
@@ -171,40 +172,44 @@ function Settings({
             className="settings-exit-btn"
             onClick={() => { onClose?.(); onExit?.(); }}
           >
-            ↩ Exit to Welcome screen
+            ↩ Exit Game
           </button>
         )}
 
-        {/* ── Account row — bottom, small and clean ──
-            Guests see a subtle "save progress" prompt; signed-in users
-            see their email + Sign Out. */}
-        <div className="settings-account-row">
-          {authUser ? (
-            <>
-              <span className="settings-account-row__email" title={authUser.email}>
-                {authUser.email}
-              </span>
-              <button
-                type="button"
-                className="settings-account-row__link"
-                onClick={() => { onClose?.(); onSignOut?.(); }}
-              >
-                Sign Out
-              </button>
-            </>
-          ) : (
-            <span className="settings-account-row__guest">
-              Want to save your progress?{' '}
-              <button
-                type="button"
-                className="settings-account-row__link"
-                onClick={() => { onClose?.(); onSignInClick?.(); }}
-              >
-                Sign in
-              </button>
+        {authUser ? (
+          /* Signed-in: small clean row with email + Sign Out */
+          <div className="settings-account-row">
+            <span className="settings-account-row__email" title={authUser.email}>
+              {authUser.email}
             </span>
-          )}
-        </div>
+            <button
+              type="button"
+              className="settings-account-row__link"
+              onClick={() => { onClose?.(); onSignOut?.(); }}
+            >
+              Sign Out
+            </button>
+          </div>
+        ) : (
+          /* Guest: reward-teaser card — gold border, soft glow.
+             "Create free account" routes to the Sign Up tab (not Sign In). */
+          <button
+            type="button"
+            className="settings-unlock-card"
+            onClick={() => { onClose?.(); (onSignUpClick || onSignInClick)?.(); }}
+          >
+            <span className="settings-unlock-card__icon" aria-hidden="true">✨</span>
+            <span className="settings-unlock-card__body">
+              <span className="settings-unlock-card__title">Unlock new worlds</span>
+              <span className="settings-unlock-card__sub">
+                Save your progress and journey beyond Ember Isle
+              </span>
+              <span className="settings-unlock-card__cta">
+                Create free account&nbsp;→
+              </span>
+            </span>
+          </button>
+        )}
       </div>
     </div>
   );

@@ -870,3 +870,87 @@
     width: 72px;
   }
 }
+
+/* ── Step 5: Own lists? ──────────────────────────────────────────
+   Lives inside the white .ob-card panel like every other onboarding
+   step, so colours mirror .ob-confidence-card (the closest peer). */
+.ob-own-lists-buddy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 88px;
+  height: 88px;
+  margin: 0 auto 0.25rem;
+  animation: bounceIn 0.35s ease;
+}
+
+.ob-own-lists .ob-step-sub {
+  color: #4a4a5e;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.45;
+  margin-top: 0.5rem;
+}
+
+.ob-own-lists-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  width: 100%;
+}
+@media (min-width: 540px) {
+  .ob-own-lists-grid { grid-template-columns: 1fr 1fr; }
+}
+
+.ob-own-lists-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 1.1rem 1rem 1rem;
+  border-radius: 12px;
+  border: 3px solid #e0e0e0;
+  background: #f9f9f9;
+  color: #2a2a2a;
+  cursor: pointer;
+  font-family: 'Nunito', sans-serif;
+  text-align: center;
+  transition: transform 0.1s, border-color 0.1s, background 0.1s, box-shadow 0.1s;
+}
+.ob-own-lists-card:hover {
+  transform: translateY(-3px);
+  border-color: #667eea;
+  background: #fff;
+}
+.ob-own-lists-card--primary {
+  border-color: #667eea;
+  background: #667eea;
+  color: #fff;
+  box-shadow: 0 6px 14px rgba(102, 126, 234, 0.3);
+}
+.ob-own-lists-card--primary:hover {
+  background: #5468d0;
+  border-color: #5468d0;
+  color: #fff;
+}
+
+.ob-own-lists-emoji {
+  font-size: 1.9rem;
+  line-height: 1;
+}
+.ob-own-lists-label {
+  font-family: 'Nunito', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: 0;
+  color: inherit;
+}
+.ob-own-lists-sub {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: inherit;
+  opacity: 0.85;
+  line-height: 1.3;
+}

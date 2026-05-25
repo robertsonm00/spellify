@@ -4,6 +4,19 @@
 // parent caller is handed the child row and can decide whether to
 // prompt for localStorage progress migration.
 //
+// Field parity with Quick Start onboarding (May 2026):
+//   - nickname            ↔ session.childName
+//   - school_year         ↔ session.year
+//   - character           ↔ session.childCharacter.id           (raccoon free, others locked)
+//   - spelling_confidence ↔ session.spellingConfidence
+//   - sen_profile         ↔ session.senProfile                  (parent-only field, multi-select)
+//   - adaptive_learning   ↔ session.adaptiveLearning            (toggle)
+//   - dyslexia_mode       derived from confidence on save (Settings overrides later)
+//
+// If a `prefill` prop is provided (e.g. captured from a guest session
+// before sign-up wiped localStorage), the form is pre-populated from it
+// — parents shouldn't have to retype what Quick Start already asked.
+//
 // Auto-generates a friendly alias_id (Adjective + MagicalNoun + Animal).
 // If insert fails with a unique-collision on alias_id, it retries once
 // with a 2-digit suffix.
@@ -11,6 +24,8 @@
 import React, { useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { confidenceToDefaults } from '../../data/spelling/sessionSchema';
+import { CHARACTERS } from '../OnboardingFlow';
+import BuddyAvatar, { hasBuddyAvatar } from '../BuddyAvatar';
 import './CreateChildProfile.css';
 
 const ADJECTIVES = ['Glowing','Sparkling','Whispering','Glimmering','Blazing','Crystal','Amber','Ember','Flaring','Aurora','Twilight','Silver','Golden','Mystic','Wandering'];
@@ -40,12 +55,31 @@ const CONFIDENCE_OPTIONS = [
   { id: 'often-tricky', emoji: '🧐', label: 'Often feels tricky' },
 ];
 
-export default function CreateChildProfile({ authUser, onCreated, onCancel }) {
-  const [nickname,   setNickname]   = useState('');
-  const [yearGroup,  setYearGroup]  = useState(null);
-  const [confidence, setConfidence] = useState(null);
-  const [busy,       setBusy]       = useState(false);
-  const [error,      setError]      = useState(null);
+// Parent-declared SEN tags. Multi-select; empty array means "none /
+// prefer not to say". Matches the senProfile shape used by the
+// Learning Engine (see sessionSchema.js).
+const SEN_OPTIONS = [
+  { id: 'dyslexia',   label: 'Dyslexia' },
+  { id: 'dysgraphia', label: 'Dysgraphia' },
+  { id: 'processing', label: 'Processing differences' },
+  { id: 'eal',        label: 'English as an additional language' },
+  { id: 'other',      label: 'Other / prefer to discuss' },
+];
+
+export default function CreateChildProfile({ authUser, prefill = null, onCreated, onCancel }) {
+  // Prefill from a captured guest session (App.jsx snapshots it before
+  // wiping localStorage on first sign-in). Each branch falls back to a
+  // sensible default if the field is missing.
+  const [nickname,    setNickname]    = useState(prefill?.childName || '');
+  const [yearGroup,   setYearGroup]   = useState(prefill?.year ?? null);
+  const [confidence,  setConfidence]  = useState(prefill?.spellingConfidence || null);
+  const [characterId, setCharacterId] = useState(prefill?.childCharacter?.id || 'raccoon');
+  const [senProfile,  setSenProfile]  = useState(
+    Array.isArray(prefill?.senProfile) ? prefill.senProfile : []
+  );
+  const [adaptive,    setAdaptive]    = useState(prefill?.adaptiveLearning !== false);
+  const [busy,        setBusy]        = useState(false);
+  const [error,       setError]       = useState(null);
 
   const canSubmit =
     nickname.trim().length >= 1 &&
@@ -54,14 +88,21 @@ export default function CreateChildProfile({ authUser, onCreated, onCancel }) {
     confidence != null &&
     !busy;
 
+  const toggleSen = (id) => {
+    setSenProfile((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!canSubmit || !authUser?.id) return;
     setError(null);
     setBusy(true);
 
+    // Effective dyslexia default comes from confidence — Settings can
+    // override later. We persist it eagerly so the gameplay engine can
+    // pick it up on first session-hydrate (App.jsx) without an extra
+    // round-trip.
     const { dyslexiaMode } = confidenceToDefaults(confidence);
-    const adaptive_learning = true;
 
     const tryInsert = async (alias) => {
       return supabase.from('children').insert({
@@ -69,9 +110,14 @@ export default function CreateChildProfile({ authUser, onCreated, onCancel }) {
         nickname:            nickname.trim(),
         school_year:         yearGroup,
         working_level:       yearGroup,
+        // Supabase column is `active_buddy_id` (it pre-existed in the
+        // schema with a default of 'raccoon'; we don't add a parallel
+        // `buddy` column — see 2026_05_25_child_profile_parity.sql).
+        active_buddy_id:     characterId || 'raccoon',
         spelling_confidence: confidence,
+        sen_profile:         senProfile,
         dyslexia_mode:       dyslexiaMode,
-        adaptive_learning,
+        adaptive_learning:   adaptive,
         alias_id:            alias,
       }).select().single();
     };
@@ -140,6 +186,37 @@ export default function CreateChildProfile({ authUser, onCreated, onCancel }) {
             </div>
           </fieldset>
 
+          {/* Learning buddy — raccoon is free, others are locked
+              (mirror of the onboarding character picker). */}
+          <fieldset className="ccp-field">
+            <legend className="ccp-field__label">Learning buddy</legend>
+            <div className="ccp-buddy-grid">
+              {CHARACTERS.map((c) => {
+                const isRaccoon = c.id === 'raccoon';
+                const picked   = characterId === c.id;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    className={`ccp-buddy-card${picked ? ' ccp-buddy-card--picked' : ''}${isRaccoon ? '' : ' ccp-buddy-card--locked'}`}
+                    onClick={() => isRaccoon && setCharacterId('raccoon')}
+                    aria-pressed={picked}
+                    aria-label={`${c.name}${isRaccoon ? '' : ' (locked)'}`}
+                    title={isRaccoon ? c.name : `${c.name} — unlocks with subscription`}
+                  >
+                    <span className="ccp-buddy-card__face" aria-hidden="true">
+                      {hasBuddyAvatar(c.id)
+                        ? <BuddyAvatar id={c.id} size={44} />
+                        : <span className="ccp-buddy-card__emoji">{c.emoji}</span>}
+                    </span>
+                    <span className="ccp-buddy-card__name">{c.name}</span>
+                    {!isRaccoon && <span className="ccp-buddy-card__lock" aria-hidden="true">🔒</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+
           {/* Confidence */}
           <fieldset className="ccp-field">
             <legend className="ccp-field__label">How does spelling feel?</legend>
@@ -158,6 +235,45 @@ export default function CreateChildProfile({ authUser, onCreated, onCancel }) {
               ))}
             </div>
           </fieldset>
+
+          {/* SEN profile — parent-only, optional multi-select. Empty
+              means "none / prefer not to say"; the Learning Engine
+              treats it as no specialised adjustments. */}
+          <fieldset className="ccp-field">
+            <legend className="ccp-field__label">
+              Learning support <span className="ccp-field__optional">(optional)</span>
+            </legend>
+            <span className="ccp-field__hint">
+              Helps us tailor pace, hints and font support. Pick all that apply, or leave blank.
+            </span>
+            <div className="ccp-sen-grid">
+              {SEN_OPTIONS.map((opt) => {
+                const on = senProfile.includes(opt.id);
+                return (
+                  <label key={opt.id} className={`ccp-sen-chip${on ? ' ccp-sen-chip--on' : ''}`}>
+                    <input
+                      type="checkbox"
+                      checked={on}
+                      onChange={() => toggleSen(opt.id)}
+                    />
+                    <span>{opt.label}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
+
+          {/* Adaptive learning toggle */}
+          <label className="ccp-toggle">
+            <input
+              type="checkbox"
+              checked={adaptive}
+              onChange={(e) => setAdaptive(e.target.checked)}
+            />
+            <span className="ccp-toggle__label">
+              Adaptive learning <span className="ccp-toggle__hint">— focus practice on words this child finds tricky</span>
+            </span>
+          </label>
 
           {error && <p className="ccp-error" role="alert">{error}</p>}
 
