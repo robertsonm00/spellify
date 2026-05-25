@@ -383,7 +383,6 @@ function App() {
   // the footer reads the correct points/lumens/streak immediately.
   const handleSelectChild = React.useCallback((child) => {
     if (!child) return;
-    console.info('[nav] selecting child', { id: child.id, nickname: child.nickname });
     setSession(sessionFromChild(child));
     try {
       localStorage.setItem('spellify_player_stats', JSON.stringify({
@@ -409,7 +408,6 @@ function App() {
   // out: the parent stays authenticated, we just clear the active
   // child so the selector can show "who's playing?" again.
   const handleExitToSelector = React.useCallback(() => {
-    console.info('[nav] exit to ProfileSelector');
     setSession(null);
     setActiveActivity(null);
     setShowExitModal(false);
@@ -686,13 +684,6 @@ function App() {
   useEffect(() => {
     saveSession(session);
   }, [session]);
-
-  // Diagnostic: every screen transition is logged. Helps debug routing
-  // bugs (Exit not landing on ProfileSelector, etc.). Safe to remove
-  // once Prompts 1+2 are settled.
-  useEffect(() => {
-    console.info('[nav] screen →', screen);
-  }, [screen]);
 
   // Apply/remove extra-support body class whenever dyslexiaMode changes
   useEffect(() => {

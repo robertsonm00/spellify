@@ -249,7 +249,7 @@ function categoryKey(list) {
   return (list.strand || list.category || '').toString().toLowerCase();
 }
 
-function ListCard({ list, listType = 'curriculum', index = 0, onClick, progress, isFavourite, onToggleFavourite }) {
+function ListCard({ list, listType = 'curriculum', index = 0, onClick, progress, isFavourite, onToggleFavourite, onDelete, deleteHighlighted = false }) {
   const colour     = CATEGORY_COLOURS[list.category] || '#6b7280';
   const darkColour = CATEGORY_DARK[list.category]    || '#374151';
   const words      = list.words || [];
@@ -335,6 +335,18 @@ function ListCard({ list, listType = 'curriculum', index = 0, onClick, progress,
             <path d="M16 28.2c-1.6-1.1-13-7.9-13-16.3 0-3.7 2.7-6.8 6.3-6.8 2.6 0 4.7 1.3 6.7 3.5 2-2.2 4.1-3.5 6.7-3.5 3.6 0 6.3 3.1 6.3 6.8 0 8.4-11.4 15.2-13 16.3z" />
           </svg>
         </button>
+        {onDelete && (
+          <button
+            className={`ed-listcard__delete${deleteHighlighted ? ' ed-listcard__delete--highlight' : ''}`}
+            onClick={(e) => { e.stopPropagation(); onDelete(list.id, list.name); }}
+            aria-label={`Delete ${list.name}`}
+            title="Delete list"
+          >
+            <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14" aria-hidden="true">
+              <path d="M9 3h6l1 1h4v2H4V4h4l1-1zm-4 5h14l-1 13H6L5 8zm5 2v9h1v-9h-1zm3 0v9h1v-9h-1z"/>
+            </svg>
+          </button>
+        )}
       </div>
     </div>
   );
@@ -594,10 +606,12 @@ export default function ExploreDashboard({
 
   // Any top-nav tab click (even the same tab again) bumps navTick. When that
   // happens, drop out of the list-detail view and land on the requested page.
+  // Also clear manage mode so the delete highlight doesn't persist after navigation.
   const firstNavTick = useRef(true);
   useEffect(() => {
     if (firstNavTick.current) { firstNavTick.current = false; return; }
     setSelectedList(null);
+    setManageMode(false);
   }, [navTick]);
 
   const [creator,       setCreator]       = useState(null);     // null | 'random' | 'manual' | 'edit'
@@ -633,10 +647,22 @@ export default function ExploreDashboard({
   // 'newest' = most recently created first.
   const [sortOrder,         setSortOrder]         = useState('newest');
 
+  // ── Tier ceiling + delete state ────────────────────────────────────────
+  // Tier is derived from the profile record (subscription_tier column).
+  // Guest has no user; free/premium are the two signed-in tiers.
+  const tier = !user ? 'guest' : (profile?.subscription_tier === 'premium' ? 'premium' : 'free');
+  const LIST_LIMIT = { guest: 1, free: 5, premium: Infinity };
+  const listLimit  = LIST_LIMIT[tier] ?? 5;
+
+  const [deleteConfirm, setDeleteConfirm] = useState(null);  // { id, name } | null
+  const [ceilingKind,   setCeilingKind]   = useState(null);  // null | 'guest' | 'free'
+  const [manageMode,    setManageMode]    = useState(false);  // highlight delete buttons
+  const [showUpsell,    setShowUpsell]    = useState(false);  // "coming soon" modal
+
   useEffect(() => { localStorage.setItem(FAV_KEY, JSON.stringify(favourites)); }, [favourites]);
   useEffect(() => { localStorage.setItem(RECENT_KEY, JSON.stringify(recent));     }, [recent]);
 
-  const { lists: customLists, addList, updateList } = useCustomLists(user);
+  const { lists: customLists, addList, deleteList, updateList } = useCustomLists(user);
   const { getListProgress, markComplete } = useProgress(user);
 
   const selectedYear      = session?.year ?? 1;
@@ -816,9 +842,38 @@ export default function ExploreDashboard({
     } catch { return ''; }
   };
 
-  // Sidebar / dotted-card entry point: opens the chooser, which then routes
-  // to one of the onboarding's existing list-creation screens.
-  const startAddList = () => setShowChooser(true);
+  // Sidebar / dotted-card entry point: check tier ceiling first, then
+  // open the chooser if we're under the limit.
+  const startAddList = () => {
+    if (customLists.length >= listLimit) {
+      setCeilingKind(tier === 'guest' ? 'guest' : 'free');
+      return;
+    }
+    setShowChooser(true);
+  };
+
+  // Delete list — used by the trash button on custom list cards.
+  const handleDeleteList = async (id, name) => {
+    setDeleteConfirm({ id, name });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm) return;
+    await deleteList(deleteConfirm.id);
+    // If the deleted list is currently open, close it.
+    if (selectedList?.list?.id === deleteConfirm.id) setSelectedList(null);
+    setDeleteConfirm(null);
+  };
+
+  // Guest ceiling: delete their single list, then open the chooser.
+  const handleGuestDeleteAndAdd = async () => {
+    if (customLists.length > 0) {
+      await deleteList(customLists[0].id);
+      if (selectedList?.list?.id === customLists[0].id) setSelectedList(null);
+    }
+    setCeilingKind(null);
+    setShowChooser(true);
+  };
 
   // Single create-list handler — same path for random + manual.
   // Names progress as "My word list 1", "My word list 2", ... — we scan the
@@ -1092,6 +1147,14 @@ export default function ExploreDashboard({
                 sortOrder={sortOrder}
                 onSortOrderChange={setSortOrder}
               />
+              {/* Ceiling indicator — visible when at the limit */}
+              {customLists.length >= listLimit && listLimit < Infinity && (
+                <p className="ed-ceiling-notice">
+                  {tier === 'guest'
+                    ? `You've used your 1 guest list. Delete it to add a new one, or create a free account for up to 5.`
+                    : `You've reached your ${listLimit}-list limit. Delete a list to add another, or unlock Premium for unlimited.`}
+                </p>
+              )}
               <div className="hub-grid">
                 {hasLists && filteredCustom.map((list, i) => (
                   <ListCard
@@ -1103,6 +1166,8 @@ export default function ExploreDashboard({
                     isFavourite={favourites.includes(list.id)}
                     onToggleFavourite={toggleFavourite}
                     onClick={() => openList(list, 'custom')}
+                    onDelete={handleDeleteList}
+                    deleteHighlighted={manageMode}
                   />
                 ))}
                 <button
@@ -1112,7 +1177,11 @@ export default function ExploreDashboard({
                 >
                   <span className="ed-create-card-plus" aria-hidden="true">＋</span>
                   <span className="ed-create-card-text">
-                    {hasLists ? 'Add another list' : 'Create your first list'}
+                    {hasLists
+                      ? customLists.length >= listLimit && listLimit < Infinity
+                        ? `${listLimit} list limit reached`
+                        : 'Add another list'
+                      : 'Create your first list'}
                   </span>
                 </button>
               </div>
@@ -1444,6 +1513,102 @@ export default function ExploreDashboard({
           signUp={signUp}
           signInWithGoogle={signInWithGoogle}
         />
+      )}
+
+      {/* ── Delete confirmation modal ──────────────────────────────────── */}
+      {deleteConfirm && (
+        <div className="ed-modal-overlay" onClick={() => setDeleteConfirm(null)} role="dialog" aria-modal="true" aria-label="Delete list">
+          <div className="ed-modal" onClick={e => e.stopPropagation()}>
+            <h2 className="ed-modal__title">Delete "{deleteConfirm.name}"?</h2>
+            <p className="ed-modal__body">This can't be undone. All words and progress for this list will be removed.</p>
+            <div className="ed-modal__actions">
+              <button className="ed-modal__btn ed-modal__btn--cancel" onClick={() => setDeleteConfirm(null)}>Cancel</button>
+              <button className="ed-modal__btn ed-modal__btn--danger" onClick={confirmDelete}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Guest ceiling modal ───────────────────────────────────────── */}
+      {ceilingKind === 'guest' && (
+        <div className="ed-modal-overlay" onClick={() => setCeilingKind(null)} role="dialog" aria-modal="true" aria-label="List limit reached">
+          <div className="ed-modal" onClick={e => e.stopPropagation()}>
+            <div className="ed-modal__icon" aria-hidden="true">📋</div>
+            <h2 className="ed-modal__title">Want to save more lists?</h2>
+            <p className="ed-modal__body">
+              You can delete your current list to start fresh, or create a free account to save up to 5 lists.
+            </p>
+            <div className="ed-modal__actions ed-modal__actions--col">
+              <button
+                className="ed-modal__btn ed-modal__btn--danger"
+                onClick={handleGuestDeleteAndAdd}
+              >
+                Delete current list
+              </button>
+              <button
+                className="ed-modal__btn ed-modal__btn--primary"
+                onClick={() => { setCeilingKind(null); setShowSignIn(true); }}
+              >
+                Create free account
+              </button>
+              <button className="ed-modal__btn ed-modal__btn--cancel" onClick={() => setCeilingKind(null)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Free tier ceiling modal ───────────────────────────────────── */}
+      {ceilingKind === 'free' && (
+        <div className="ed-modal-overlay" onClick={() => setCeilingKind(null)} role="dialog" aria-modal="true" aria-label="List limit reached">
+          <div className="ed-modal" onClick={e => e.stopPropagation()}>
+            <div className="ed-modal__icon" aria-hidden="true">📋</div>
+            <h2 className="ed-modal__title">You've got 5 lists saved</h2>
+            <p className="ed-modal__body">
+              Delete one of your existing lists to make room, or unlock Premium for unlimited lists.
+            </p>
+            <div className="ed-modal__actions ed-modal__actions--col">
+              <button
+                className="ed-modal__btn ed-modal__btn--primary"
+                onClick={() => {
+                  setCeilingKind(null);
+                  setManageMode(true);
+                  setPage('mylists');
+                  setSelectedList(null);
+                }}
+              >
+                Manage my lists
+              </button>
+              <button
+                className="ed-modal__btn ed-modal__btn--premium"
+                onClick={() => { setCeilingKind(null); setShowUpsell(true); }}
+              >
+                Unlock Premium
+              </button>
+              <button className="ed-modal__btn ed-modal__btn--cancel" onClick={() => setCeilingKind(null)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Premium upsell placeholder ────────────────────────────────── */}
+      {showUpsell && (
+        <div className="ed-modal-overlay" onClick={() => setShowUpsell(false)} role="dialog" aria-modal="true" aria-label="Premium">
+          <div className="ed-modal" onClick={e => e.stopPropagation()}>
+            <div className="ed-modal__icon" aria-hidden="true">⭐</div>
+            <h2 className="ed-modal__title">Premium — coming soon!</h2>
+            <p className="ed-modal__body">
+              Unlimited lists, all worlds, and full progress reports are on the way.
+              We'll let you know when Premium launches.
+            </p>
+            <div className="ed-modal__actions">
+              <button className="ed-modal__btn ed-modal__btn--primary" onClick={() => setShowUpsell(false)}>Got it</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
