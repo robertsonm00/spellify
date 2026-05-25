@@ -53,3 +53,5 @@ export const isSupabaseEnabled = !!supabase;
  * create policy "Users can manage own progress" on progress
  *   using (auth.uid() = user_id) with check (auth.uid() = user_id);
  */
+console.log('Supabase URL:', process.env.REACT_APP_SUPABASE_URL)
+console.log('Supabase enabled:', !!supabase)

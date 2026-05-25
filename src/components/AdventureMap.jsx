@@ -34,15 +34,18 @@ const ISLE_BACKDROP_V2_RATIO = {
 // now slot #0 where the buddy stands).
 const V2_STOP_COORDS = {
   ember: [
-    { x: 45, y: 23 },
-    { x: 54, y: 30 },
-    { x: 46, y: 38 },
-    { x: 55, y: 45 },
-    { x: 47, y: 52 },
-    { x: 54, y: 59 },
-    { x: 46, y: 66 },
-    { x: 52, y: 72 },
-    { x: 49, y: 78 },
+    // Tighter vertical spacing so the path feels compact on the
+    // painted island rather than stretched out, plus a stronger side
+    // swing so the snake is unmistakable.
+    { x: 50, y: 22 },
+    { x: 39, y: 28 },
+    { x: 61, y: 34 },
+    { x: 38, y: 40 },
+    { x: 62, y: 46 },
+    { x: 40, y: 52 },
+    { x: 60, y: 58 },
+    { x: 39, y: 64 },
+    { x: 55, y: 70 },
   ],
 };
 
@@ -560,7 +563,12 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
                   />
                 )}
 
-                {/* Magical pathway connecting all stops (cubic-bezier rope) */}
+                {/* Magical pathway connecting all stops. Four layered
+                    strokes give it depth: outer warm halo (huge & soft),
+                    mid amber rope, inner bright core, and a moving
+                    "marching embers" dash that animates along the path
+                    to suggest progress/flow. Wider snake amplitude in
+                    the coords means the path swings noticeably. */}
                 <svg
                   className="am-v2-magic-path"
                   viewBox="0 0 100 100"
@@ -573,9 +581,6 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
                       <stop offset="0.5" stopColor="#ffd93d" />
                       <stop offset="1"   stopColor="#ff8c3d" />
                     </linearGradient>
-                    <filter id="am-v2-magicGlow" x="-20%" y="-20%" width="140%" height="140%">
-                      <feGaussianBlur stdDeviation="0.6" />
-                    </filter>
                   </defs>
                   {(() => {
                     if (v2Stops.length < 2) return null;
@@ -587,9 +592,21 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
                     }
                     return (
                       <>
-                        <path d={d} className="am-v2-magic-path__halo" filter="url(#am-v2-magicGlow)" />
-                        <path d={d} className="am-v2-magic-path__outer" />
-                        <path d={d} className="am-v2-magic-path__inner" />
+                        {/* 1. Soft glow halo — large diffuse band */}
+                        <path d={d} className="am-v2-magic-path__halo" />
+                        {/* 2. Dark rope shadow — gives the path weight */}
+                        <path d={d} className="am-v2-magic-path__shadow" />
+                        {/* 3. Mid amber rope — main visible line */}
+                        <path d={d} className="am-v2-magic-path__rope" />
+                        {/* 4. Bright core — hot inner highlight */}
+                        <path d={d} className="am-v2-magic-path__core" />
+                        {/* 5. Marching embers — animated dash flowing
+                            forwards toward the next stop, "guiding" the
+                            player up the path. Two layers: warm amber
+                            dashes (slow) + bright white sparks (fast)
+                            travelling along the same curve. */}
+                        <path d={d} className="am-v2-magic-path__embers" />
+                        <path d={d} className="am-v2-magic-path__sparks" />
                       </>
                     );
                   })()}
@@ -598,9 +615,8 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
                 {v2Stops.map((stop, idx) => {
                   const labelSide = stop.x < 50 ? 'right' : 'left';
                   const isActive = stop.state === 'active';
-                  // View 2 behaviour: ONLY the active stop is clickable.
-                  // Every other stop renders as a locked node (visually
-                  // AND behaviourally) regardless of its underlying state.
+                  // View 2: only the active stop is clickable. Everything
+                  // else renders locked (visually + behaviourally).
                   const renderState = isActive ? 'active' : 'locked';
                   const stars = renderState === 'completed' ? starsForList(stop.list) : 0;
                   return (
@@ -614,10 +630,22 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
                       disabled={!isActive}
                     >
                       <span className="am-v2-node__disc" aria-hidden="true">
-                        {stop.landmark
-                          ? <span className="am-v2-node__icon">{stop.landmark.icon}</span>
-                          : isActive ? <span className="am-v2-node__num">{idx + 1}</span>
-                          : <span className="am-v2-node__lock">🔒</span>}
+                        <span className="am-v2-node__rim" />
+                        <span className="am-v2-node__glow" />
+                        <span className="am-v2-node__face">
+                          {isActive
+                            ? <span className="am-v2-node__num">{idx + 1}</span>
+                            : <span className="am-v2-node__lock">🔒</span>}
+                        </span>
+                        {isActive && (
+                          <span className="am-v2-node__sparks" aria-hidden="true">
+                            <span className="am-v2-node__spark am-v2-node__spark--1">✦</span>
+                            <span className="am-v2-node__spark am-v2-node__spark--2">✧</span>
+                            <span className="am-v2-node__spark am-v2-node__spark--3">✦</span>
+                            <span className="am-v2-node__spark am-v2-node__spark--4">✧</span>
+                            <span className="am-v2-node__spark am-v2-node__spark--5">✦</span>
+                          </span>
+                        )}
                       </span>
 
                       {renderState === 'completed' && stars > 0 && (
@@ -631,8 +659,12 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
                         </span>
                       )}
 
+                      {/* Label: always shown for the active stop;
+                          for everything else it appears on hover only. */}
                       {(stop.list || stop.landmark) && (
-                        <span className={`am-v2-node__label am-v2-node__label--${labelSide}`}>
+                        <span
+                          className={`am-v2-node__label am-v2-node__label--${labelSide}${isActive ? ' am-v2-node__label--always' : ''}`}
+                        >
                           {stop.landmark?.label || stop.list?.name}
                         </span>
                       )}

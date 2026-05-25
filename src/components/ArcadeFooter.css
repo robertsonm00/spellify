@@ -170,6 +170,44 @@
   text-shadow: 0 0 4px rgba(236, 72, 153, 0.4);
 }
 
+/* ── Lumens (secondary currency: 1 per 5 Spell Points) ───────────────── */
+.arcade-footer__lumens {
+  padding: 0 14px;
+  flex-shrink: 0;
+}
+.arcade-footer__lumens-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.arcade-footer__lumens-icon {
+  font-size: 16px;
+  line-height: 1;
+  color: #ffd700;
+  text-shadow:
+    0 0 6px rgba(255, 215, 0, 0.85),
+    0 0 12px rgba(255, 215, 0, 0.45);
+}
+.arcade-footer__lumens-num {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 18px;
+  background: linear-gradient(180deg, #ffe27a 0%, #FFD700 50%, #b8960a 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: 2px;
+  line-height: 1;
+  filter: drop-shadow(1px 1px 0 #2e1065);
+}
+.arcade-footer__lumens-label {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 6px;
+  color: var(--pink-soft);
+  letter-spacing: 2px;
+  margin-top: 3px;
+  text-shadow: 0 0 4px rgba(236, 72, 153, 0.4);
+}
+
 /* ── Level pill + tooltip ─────────────────────────────────────────────── */
 .arcade-footer__level {
   padding: 0 16px;

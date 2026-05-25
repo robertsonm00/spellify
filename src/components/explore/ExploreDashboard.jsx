@@ -576,6 +576,11 @@ export default function ExploreDashboard({
   // we openList() it and call onPendingHandled to let parent clear.
   pendingOpenList = null,
   onPendingHandled = null,
+  // Called when the user backs out of a list that was opened from an
+  // external origin (e.g. the Adventure Map). The parent decides where
+  // to send them. If omitted, back falls through to the default
+  // behaviour (return to the explore list grid).
+  onListExit = null,
 }) {
   const [page,          setPage]          = useState(pageProp || 'home');   // 'home'|'assignments'|'mylists'|'explore'|'favourites'|'recent'
 
@@ -762,14 +767,18 @@ export default function ExploreDashboard({
     setRecent(prev => [listId, ...prev.filter(id => id !== listId)].slice(0, RECENT_MAX));
   };
 
-  const openList = (list, listType) => {
+  const openList = (list, listType, origin = 'internal') => {
     pushRecent(list.id);
     // Lazy-enrich curriculum lessons on open so the detail view has access to
     // the rich v13/v26 data. Custom lists pass through unchanged.
     const enriched = listType === 'curriculum'
       ? (getEnrichedLesson(list.id) || list)
       : list;
-    setSelectedList({ list: enriched, listType });
+    // `origin` records where we came from — 'internal' means the user
+    // landed on this list from inside ExploreDashboard (so back returns
+    // to the list grid), 'map' means they entered from the Adventure
+    // Map (so back returns to the map via `onListExit`).
+    setSelectedList({ list: enriched, listType, origin });
     setListNameDraft(list.name);
   };
 
@@ -779,7 +788,8 @@ export default function ExploreDashboard({
   useEffect(() => {
     if (!pendingOpenList) return;
     const listType = pendingOpenList.listType || 'curriculum';
-    openList(pendingOpenList.list || pendingOpenList, listType);
+    const origin   = pendingOpenList.origin   || 'map';
+    openList(pendingOpenList.list || pendingOpenList, listType, origin);
     if (typeof onPendingHandled === 'function') onPendingHandled();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingOpenList]);
@@ -927,7 +937,16 @@ export default function ExploreDashboard({
   // Right pane content per page.
   const renderPage = () => {
     if (selectedList) {
-      const backHome = () => setSelectedList(null);
+      const backHome = () => {
+        // If we got here from an external origin (e.g. the Adventure
+        // Map), let the parent send the user back to the right place.
+        if (selectedList?.origin && selectedList.origin !== 'internal' && typeof onListExit === 'function') {
+          setSelectedList(null);
+          onListExit(selectedList.origin);
+          return;
+        }
+        setSelectedList(null);
+      };
       const isCustom = selectedList.listType === 'custom';
       const meta = isCustom
         ? formatBannerDate(selectedList.list.created_at)

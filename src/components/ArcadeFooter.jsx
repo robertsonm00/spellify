@@ -14,6 +14,7 @@ export default function ArcadeFooter({
   year = null,
   isGuest = false,
   points = 0,
+  lumens = 0,
   level = 1,
   levelTitle = '',
   xpCurrent = 0,
@@ -76,6 +77,17 @@ export default function ArcadeFooter({
           {points.toLocaleString()}
         </div>
         <div className="arcade-footer__points-label">POINTS</div>
+      </div>
+
+      <div className="arcade-footer__vdiv" />
+
+      {/* Lumens — secondary currency (1 per 5 Spell Points) */}
+      <div className="arcade-footer__lumens" aria-label={`${lumens} lumens`}>
+        <div className="arcade-footer__lumens-row">
+          <span className="arcade-footer__lumens-icon" aria-hidden="true">✦</span>
+          <span className="arcade-footer__lumens-num">{lumens.toLocaleString()}</span>
+        </div>
+        <div className="arcade-footer__lumens-label">LUMENS</div>
       </div>
 
       <div className="arcade-footer__vdiv" />

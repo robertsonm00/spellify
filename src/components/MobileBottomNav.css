@@ -84,6 +84,26 @@
     line-height: 1;
     white-space: nowrap;
   }
+  .mbn__lumens {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.95rem;
+    line-height: 1;
+    color: #c8b6ff;
+    white-space: nowrap;
+  }
+  .mbn__lumens-icon {
+    color: #c4a4ff;
+    font-size: 1rem;
+    text-shadow:
+      0 0 6px rgba(196, 164, 255, 0.85),
+      0 0 12px rgba(196, 164, 255, 0.45);
+  }
+  .mbn__lumens-num {
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
   .mbn__level-block {
     margin-left: auto;
     display: flex;

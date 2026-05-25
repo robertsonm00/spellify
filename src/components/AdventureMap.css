@@ -467,7 +467,14 @@
   z-index: 0;
 }
 
-/* ── Magical pathway between stops (cubic bezier glowing rope) ───── */
+/* ── Magical pathway between stops ────────────────────────────────
+   Layered cubic-bezier strokes give the path real weight and a sense
+   of warmth — soft outer halo, a dark "shadow" ring under the rope so
+   it lifts off the painted ground, a rich amber rope, a hot inner
+   core, and an animated ember-dash overlay that flows from stop to
+   stop ("guiding embers"). All strokes use vector-effect:
+   non-scaling-stroke so their thickness stays in real pixels at any
+   scene size. */
 .am-v2-magic-path {
   position: absolute;
   inset: 0;
@@ -477,160 +484,293 @@
   z-index: 2;
   overflow: visible;
 }
+.am-v2-magic-path path {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
 .am-v2-magic-path__halo {
-  fill: none;
-  stroke: #ffd93d;
-  stroke-width: 3;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  opacity: 0.4;
-  vector-effect: non-scaling-stroke;
+  stroke: #ffae3d;
+  stroke-width: 44;
+  opacity: 0.18;
+  filter: blur(8px);
 }
-.am-v2-magic-path__outer {
-  fill: none;
-  stroke: url(#am-v2-magicGrad);
-  stroke-width: 1.4;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  opacity: 0.95;
-  vector-effect: non-scaling-stroke;
-  filter: drop-shadow(0 0 4px rgba(255, 217, 61, 0.7));
+/* Dark ground shadow under the path — pulls focus to the embers and
+   makes the trail feel grounded into the painted dirt. */
+.am-v2-magic-path__shadow {
+  stroke: #1a0810;
+  stroke-width: 14;
+  opacity: 0.42;
+  transform: translateY(4px);
+  filter: blur(2px);
 }
-.am-v2-magic-path__inner {
-  fill: none;
-  stroke: #fff5b8;
-  stroke-width: 0.5;
-  stroke-dasharray: 0.4 1.4;
-  stroke-linecap: round;
-  opacity: 0.9;
-  vector-effect: non-scaling-stroke;
-}
+/* (rope + core layers removed — the path is now ALL ember dashes) */
+.am-v2-magic-path__rope,
+.am-v2-magic-path__core { display: none; }
 
-/* ── Nodes (positioned on painted path) ──────────────────────────── */
+/* Layer 1: large soft embers, slower */
+.am-v2-magic-path__embers {
+  stroke: #ffd93d;
+  stroke-width: 9;
+  stroke-linecap: round;
+  stroke-dasharray: 2 18;
+  opacity: 0.95;
+  filter:
+    drop-shadow(0 0 6px #fff5b8)
+    drop-shadow(0 0 14px #ffae3d)
+    drop-shadow(0 0 24px rgba(255, 174, 61, 0.5));
+  animation: am-v2-flow-a 2.4s linear infinite;
+}
+/* Layer 2: tiny hot sparks, faster — added as a duplicated path
+   automatically by repeating the embers class with a different selector */
+.am-v2-magic-path__embers + .am-v2-magic-path__embers,
+.am-v2-magic-path__sparks {
+  stroke: #fff;
+  stroke-width: 3;
+  stroke-dasharray: 1 22;
+  opacity: 0.9;
+  filter: drop-shadow(0 0 4px #fff8c8) drop-shadow(0 0 8px #ffd93d);
+  animation: am-v2-flow-b 1.2s linear infinite;
+}
+@keyframes am-v2-flow-a { to { stroke-dashoffset: -20; } }
+@keyframes am-v2-flow-b { to { stroke-dashoffset: -23; } }
+
+/* ── Nodes (positioned on painted path) ──────────────────────────────
+   Modelled on the painted ember-discs in the original Ember Isle
+   illustration: a dark stone ring, a bright amber face, an inner glow
+   pool, and a soft ground shadow. Three layered children:
+     .am-v2-node__rim   — outer ground-shadow/ring (offset down)
+     .am-v2-node__glow  — radial halo behind the face (active = pulsing)
+     .am-v2-node__face  — the disc itself with radial fill + content
+   Active state adds an idle bob + intensified halo. */
 .am-v2-node {
   position: absolute;
   transform: translate(-50%, -50%);
-  width: 54px;
-  height: 54px;
+  width: 56px;
+  height: 56px;
   border: none;
   background: transparent;
   padding: 0;
   cursor: pointer;
   z-index: 3;
   font-family: 'Press Start 2P', monospace;
+  /* Soft idle bob for all nodes — feels alive but stays subtle for
+     locked stops (active stop gets a bigger pulse on top). */
+  animation: am-v2-idle-bob 3.4s ease-in-out infinite;
 }
 .am-v2-node:disabled { cursor: not-allowed; }
+.am-v2-node:nth-child(odd)  { animation-delay: -0.4s; }
+.am-v2-node:nth-child(even) { animation-delay: -1.6s; }
+@keyframes am-v2-idle-bob {
+  0%, 100% { transform: translate(-50%, calc(-50% - 1px)); }
+  50%      { transform: translate(-50%, calc(-50% + 2px)); }
+}
 
-/* The chunky disc with dark border + drop shadow + inset highlight.
-   Approved prototype look — keep these values. */
 .am-v2-node__disc {
   position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Rim — dark stone ring + drop shadow grounding the disc on the path */
+.am-v2-node__rim {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: #1a0a1c;
+  box-shadow:
+    0 6px 0 rgba(0, 0, 0, 0.55),
+    0 10px 18px rgba(0, 0, 0, 0.45);
+}
+
+/* Glow — soft halo behind the face. Default subtle, active = wide & hot */
+.am-v2-node__glow {
+  position: absolute;
+  inset: -12px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 217, 61, 0.55) 0%, rgba(255, 174, 61, 0.25) 35%, transparent 65%);
+  filter: blur(2px);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Face — the ember disc proper. Layered radial mimicking a glowing
+   stone tile: bright hot centre → warm amber → deep umber rim. */
+.am-v2-node__face {
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  border: 3px solid #1a0828;
-  background: #3a2c52;
+  background:
+    radial-gradient(circle at 50% 36%, #fff5b8 0%, #ffd06b 30%, #ff8c3d 65%, #b03a14 100%);
   color: #fff;
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   letter-spacing: 0.04em;
   box-shadow:
-    0 4px 0 rgba(0, 0, 0, 0.5),
-    inset 0 4px 0 rgba(255, 255, 255, 0.14);
-  transition: transform 0.12s ease;
+    inset 0 5px 6px rgba(255, 255, 255, 0.35),   /* top highlight */
+    inset 0 -6px 10px rgba(120, 30, 0, 0.55);    /* bottom warmth */
 }
-.am-v2-node:hover:not(:disabled) .am-v2-node__disc {
-  transform: translateY(-1px) scale(1.04);
+.am-v2-node:hover:not(:disabled) .am-v2-node__face {
+  transform: scale(1.06);
+  transition: transform 0.18s ease;
 }
-
 .am-v2-node__num,
 .am-v2-node__tick,
 .am-v2-node__lock,
 .am-v2-node__icon {
   position: relative;
   z-index: 1;
-  text-shadow: 0 2px 2px rgba(0, 0, 0, 0.55);
+  text-shadow: 0 2px 2px rgba(0, 0, 0, 0.7);
 }
 .am-v2-node__icon { font-size: 1.2rem; }
 .am-v2-node__tick { font-size: 1.3rem; color: #fff; }
-.am-v2-node__lock { font-size: 0.95rem; }
+.am-v2-node__lock {
+  font-size: 1rem;
+  filter: grayscale(0.2) brightness(0.95);
+}
 
-/* Completed — ember disc with white tick */
-.am-v2-node--completed .am-v2-node__disc {
+/* Active — bigger disc, hotter glow, slow pulse on the halo */
+.am-v2-node--active {
+  width: 72px;
+  height: 72px;
+  z-index: 6;
+  animation: am-v2-idle-bob 2.4s ease-in-out infinite;
+}
+.am-v2-node--active .am-v2-node__rim {
+  background: #2a0e10;
+  box-shadow:
+    0 7px 0 rgba(0, 0, 0, 0.6),
+    0 14px 22px rgba(0, 0, 0, 0.55);
+}
+.am-v2-node--active .am-v2-node__glow {
+  /* Layered halo — a wide violet outer aura behind a hot gold core.
+     The conic background adds a slowly rotating sparkly sheen. */
+  inset: -32px;
+  background:
+    radial-gradient(circle, rgba(255, 245, 184, 0.95) 0%, rgba(255, 217, 61, 0.7) 18%, rgba(255, 140, 60, 0.4) 38%, rgba(199, 125, 255, 0.4) 60%, rgba(120, 60, 220, 0.18) 78%, transparent 100%);
+  filter: blur(3px);
+  opacity: 1;
+  animation: am-v2-pulse-glow 1.7s ease-in-out infinite;
+}
+/* Slow-rotating conic sparkle wash behind the disc face */
+.am-v2-node--active .am-v2-node__glow::before {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  background:
+    conic-gradient(
+      from 0deg,
+      rgba(255, 255, 255, 0.65) 0deg,
+      rgba(199, 125, 255, 0)   40deg,
+      rgba(255, 217, 61, 0.45) 90deg,
+      rgba(199, 125, 255, 0)   140deg,
+      rgba(255, 255, 255, 0.55) 200deg,
+      rgba(255, 174, 61, 0)    260deg,
+      rgba(199, 125, 255, 0.5) 320deg,
+      rgba(255, 255, 255, 0.65) 360deg
+    );
+  filter: blur(4px);
+  opacity: 0.7;
+  animation: am-v2-conic 6s linear infinite;
+}
+@keyframes am-v2-conic {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Active stop sparkle cluster ─────────────────────────────────── */
+.am-v2-node__sparks {
+  position: absolute;
+  inset: -28px;
+  pointer-events: none;
+  z-index: 4;
+}
+.am-v2-node__spark {
+  position: absolute;
+  color: #fff5b8;
+  font-size: 14px;
+  line-height: 1;
+  text-shadow:
+    0 0 6px #fff,
+    0 0 12px #ffd93d,
+    0 0 18px rgba(199, 125, 255, 0.7);
+  animation: am-v2-twinkle 2.2s ease-in-out infinite;
+  opacity: 0;
+}
+.am-v2-node__spark--1 { top:  8%; left: 12%; animation-delay: 0.0s; }
+.am-v2-node__spark--2 { top: 18%; right: 6%; animation-delay: 0.45s; font-size: 11px; color: #d6b3ff; }
+.am-v2-node__spark--3 { bottom: 12%; right: 16%; animation-delay: 0.9s; }
+.am-v2-node__spark--4 { bottom: 6%; left: 18%; animation-delay: 1.35s; font-size: 12px; color: #c9a4ff; }
+.am-v2-node__spark--5 { top: 46%; left: -4%; animation-delay: 1.8s; font-size: 10px; }
+@keyframes am-v2-twinkle {
+  0%, 100% { opacity: 0; transform: scale(0.7) rotate(0deg);   }
+  35%      { opacity: 1; transform: scale(1.15) rotate(20deg); }
+  65%      { opacity: 0.8; transform: scale(1)  rotate(-10deg);}
+}
+.am-v2-node--active .am-v2-node__face {
+  background:
+    radial-gradient(circle at 50% 30%, #fff8c8 0%, #ffe27a 25%, #ffae3d 65%, #c44a1a 100%);
+}
+@keyframes am-v2-pulse-glow {
+  0%, 100% { opacity: 0.85; transform: scale(1);    }
+  50%      { opacity: 1;    transform: scale(1.06); }
+}
+
+/* Completed — saturated ember, cooler centre + white tick */
+.am-v2-node--completed .am-v2-node__face {
   background:
     radial-gradient(circle at 50% 32%, #ffd06b 0%, #ff8c3d 55%, #c44a1a 100%);
-  border-color: #4a1808;
-  box-shadow:
-    0 4px 0 rgba(0, 0, 0, 0.5),
-    inset 0 4px 0 rgba(255, 255, 255, 0.22),
-    0 0 12px rgba(255, 174, 61, 0.35);
 }
 
-/* Current/active — large pulsing layered glow with buddy inside */
-.am-v2-node--active { width: 68px; height: 68px; z-index: 5; }
-.am-v2-node--active .am-v2-node__disc {
-  background:
-    radial-gradient(circle at 50% 32%, #fff5b8 0%, #ffd93d 40%, #ffa500 80%, #c4571a 100%);
-  border-color: #4a2200;
-  box-shadow:
-    0 4px 0 rgba(0, 0, 0, 0.55),
-    inset 0 4px 0 rgba(255, 255, 255, 0.32),
-    0 0 22px #ffd93d,
-    0 0 44px #ffa500;
-  animation: am-v2-pulse 1.8s ease-in-out infinite;
+/* Next (unlocked, not mastered) — brighter ember + faster bob */
+.am-v2-node--next {
+  animation: am-v2-idle-bob 1.8s ease-in-out infinite;
 }
-@keyframes am-v2-pulse {
-  0%, 100% { transform: scale(1);    box-shadow: 0 4px 0 rgba(0,0,0,.55), inset 0 4px 0 rgba(255,255,255,.32), 0 0 22px #ffd93d, 0 0 44px #ffa500; }
-  50%      { transform: scale(1.04); box-shadow: 0 4px 0 rgba(0,0,0,.55), inset 0 4px 0 rgba(255,255,255,.32), 0 0 32px #ffd93d, 0 0 60px #ffa500; }
+.am-v2-node--next .am-v2-node__glow {
+  inset: -16px;
+  background: radial-gradient(circle, rgba(255, 217, 61, 0.7) 0%, rgba(255, 174, 61, 0.4) 35%, transparent 65%);
+  opacity: 0.9;
 }
 
-/* Next (unlocked, not mastered) — brighter ember + gentle bob */
-.am-v2-node--next .am-v2-node__disc {
+/* Locked — cooler stone disc; clearly visible, not ghosted */
+.am-v2-node--locked .am-v2-node__face {
   background:
-    radial-gradient(circle at 50% 32%, #ffd06b 0%, #ff8c3d 60%, #c44a1a 100%);
-  border-color: #4a1808;
+    radial-gradient(circle at 50% 34%, #6a4a7a 0%, #3a1e4a 70%, #1e1030 100%);
+  color: rgba(255, 230, 250, 0.78);
   box-shadow:
-    0 4px 0 rgba(0, 0, 0, 0.5),
-    inset 0 4px 0 rgba(255, 255, 255, 0.25),
-    0 0 16px rgba(255, 174, 61, 0.7);
-  animation: am-v2-bob 2.6s ease-in-out infinite;
+    inset 0 5px 6px rgba(255, 255, 255, 0.18),
+    inset 0 -6px 10px rgba(0, 0, 0, 0.55);
 }
-@keyframes am-v2-bob {
-  0%, 100% { transform: translateY(0);    }
-  50%      { transform: translateY(-4px); }
+.am-v2-node--locked .am-v2-node__glow {
+  background: radial-gradient(circle, rgba(199, 125, 255, 0.28) 0%, transparent 60%);
+  opacity: 0.6;
 }
+.am-v2-node--unassigned .am-v2-node__face {
+  background:
+    radial-gradient(circle at 50% 34%, #4a3a5a 0%, #2a1f3e 70%, #14081e 100%);
+  color: rgba(255, 230, 250, 0.6);
+}
+.am-v2-node--unassigned .am-v2-node__glow { opacity: 0.3; }
 
-/* Locked — clearly visible dim purple, NOT ghosted */
-.am-v2-node--locked .am-v2-node__disc {
-  background: #3a2c52;
-  border-color: #1a0828;
-  color: rgba(255, 255, 255, 0.7);
-}
-.am-v2-node--unassigned .am-v2-node__disc {
-  background: #2a1f3e;
-  border-color: #1a0828;
-  color: rgba(255, 255, 255, 0.55);
-}
-
-/* Landmarks — magenta/crystal ring overrides the colour-by-state */
-.am-v2-node--landmark .am-v2-node__disc {
+/* Landmarks — a different ember tone (warm rose/coral) so they read as
+   distinctive jewel-stops along the path without the magenta icon
+   variant. The shape and lock icon match every other locked stop. */
+.am-v2-node--landmark .am-v2-node__face {
   background:
-    radial-gradient(circle at 50% 30%, #f3b8ff 0%, #c77dff 50%, #6a1a8a 100%);
-  border-color: #2a0a3a;
-  box-shadow:
-    0 4px 0 rgba(0, 0, 0, 0.55),
-    inset 0 4px 0 rgba(255, 255, 255, 0.28),
-    0 0 16px rgba(199, 125, 255, 0.7);
+    radial-gradient(circle at 50% 32%, #ffd0e0 0%, #ff7aa8 35%, #c93a78 70%, #5a0a3a 100%);
+  color: #fff7e8;
 }
-.am-v2-node--landmark.am-v2-node--locked .am-v2-node__disc {
+.am-v2-node--landmark .am-v2-node__glow {
+  background: radial-gradient(circle, rgba(255, 122, 168, 0.55) 0%, rgba(201, 58, 120, 0.3) 40%, transparent 70%);
+  opacity: 0.85;
+}
+.am-v2-node--landmark.am-v2-node--locked .am-v2-node__face {
   background:
-    radial-gradient(circle at 50% 30%, #6a4a7a 0%, #3a1e4a 70%, #1e1030 100%);
-  box-shadow:
-    0 4px 0 rgba(0, 0, 0, 0.5),
-    inset 0 4px 0 rgba(255, 255, 255, 0.12),
-    0 0 8px rgba(199, 125, 255, 0.2);
+    radial-gradient(circle at 50% 32%, #ffaccc 0%, #ff7aa8 35%, #c93a78 75%, #5a0a3a 100%);
 }
 
 /* ── Stars under completed nodes ─────────────────────────────────── */
@@ -649,30 +789,62 @@
 .am-v2-node__star      { color: rgba(60, 40, 80, 0.85); }
 .am-v2-node__star--on  { color: #ffd93d; text-shadow: 0 0 6px rgba(255, 217, 61, 0.8); }
 
-/* ── Labels (pixel chip) ─────────────────────────────────────────── */
+/* ── Labels (pixel chip) ─────────────────────────────────────────────
+   Hidden by default. The active stop label gets `--always` and stays
+   visible. Other stops reveal on hover. The active-stop label is also
+   clickable — clicks bubble to the parent button so tapping the name
+   opens the list just like tapping the disc. */
 .am-v2-node__label {
   position: absolute;
   top: 50%;
-  transform: translateY(-50%);
-  max-width: 140px;
-  padding: 5px 8px;
-  background: rgba(20, 8, 32, 0.92);
-  border: 1.5px solid rgba(255, 217, 61, 0.4);
-  border-radius: 8px;
+  transform: translateY(-50%) translateY(2px);
+  max-width: 280px;
+  padding: 7px 11px;
+  background: rgba(20, 8, 32, 0.95);
+  border: 2px solid rgba(255, 217, 61, 0.55);
+  border-radius: 10px;
   font-family: 'Press Start 2P', monospace;
-  font-size: 0.48rem;
+  font-size: 0.62rem;
   line-height: 1.35;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
   color: #fff7e8;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  pointer-events: none;
-  z-index: 6;
+  pointer-events: none;          /* hover-revealed labels stay passive */
+  z-index: 8;
+  opacity: 0;
+  transition: opacity 0.18s ease, transform 0.18s ease;
 }
-.am-v2-node__label--right { left: calc(100% + 10px); }
-.am-v2-node__label--left  { right: calc(100% + 10px); }
+.am-v2-node__label--right { left: calc(100% + 14px); }
+.am-v2-node__label--left  { right: calc(100% + 14px); }
+
+/* Reveal: active node always; everything else on hover */
+.am-v2-node__label--always,
+.am-v2-node:hover .am-v2-node__label {
+  opacity: 1;
+  transform: translateY(-50%);
+}
+
+/* Active stop's label is part of the clickable hit area + larger */
+.am-v2-node__label--always {
+  pointer-events: auto;
+  font-size: 0.72rem;
+  padding: 9px 13px;
+  border-color: #ffd93d;
+  background: rgba(60, 28, 6, 0.95);
+  color: #fff7e8;
+  box-shadow:
+    0 4px 14px rgba(255, 174, 61, 0.45),
+    0 0 18px rgba(255, 217, 61, 0.3);
+  cursor: pointer;
+}
+.am-v2-node--active:hover .am-v2-node__label--always {
+  box-shadow:
+    0 4px 18px rgba(255, 174, 61, 0.65),
+    0 0 26px rgba(255, 217, 61, 0.5);
+}
 
 .am-v2-node--active .am-v2-node__label {
   border-color: #ffd93d;

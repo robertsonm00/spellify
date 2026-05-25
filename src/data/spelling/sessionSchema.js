@@ -67,6 +67,10 @@ export function createSession({
     activityCompletions: {},
     mastery:     {},
     reviewQueue: [],
+    // Secondary currency — 1 Lumen per 5 Spell Points. Mirrors
+    // gamificationEngine.totalLumens; kept on session so Supabase can
+    // sync the same source of truth without coupling to the engine.
+    lumens: 0,
   };
 }
 
@@ -130,6 +134,7 @@ export function loadSession() {
         spellingConfidence: 'tricky',
         senProfile:         [],
         adaptiveLearning:   true,
+        lumens:             0,
         ...s,
       };
     }

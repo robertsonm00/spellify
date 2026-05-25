@@ -6,7 +6,7 @@ import SpellingQuiz   from './components/SpellingQuiz';
 import { loadSession, saveSession, createSession, INITIAL_STATUSES, updateMastery, rebuildReviewQueue, getActivityProgress, setActivityProgress } from './data/spelling/sessionSchema';
 import { getActivity, getActivityTitle } from './data/activities';
 import { isActivityAvailable } from './utils/activityAvailability';
-import { recordGameCompleted, getPlayerStats } from './utils/gamificationEngine';
+import { recordGameCompleted, getPlayerStats, getLevelFromPoints } from './utils/gamificationEngine';
 import { recordPlayToday, getStreak, getStreakStatus } from './utils/streakEngine';
 import TopNav         from './components/TopNav';
 import { fireBuddyCheer } from './components/BuddyAvatar';
@@ -15,7 +15,11 @@ import AdventureMap from './components/AdventureMap';
 import ArcadeFooter from './components/ArcadeFooter';
 import MobileBottomNav from './components/MobileBottomNav';
 import MobileTopBar from './components/MobileTopBar';
-import SignInModal    from './components/explore/SignInModal';
+import AuthModal      from './components/auth/AuthModal';
+import CreateChildProfile from './components/auth/CreateChildProfile';
+import MigratePrompt, { hasLocalMastery } from './components/auth/MigratePrompt';
+import { getSession, onAuthStateChange } from './lib/auth';
+import { supabase, isSupabaseEnabled } from './lib/supabase';
 import Settings       from './components/Settings';
 import { GeneratedWords } from './components/OnboardingFlow';
 import { useUser }    from './hooks/useUser';
@@ -36,14 +40,77 @@ function App() {
   // via this prop. ED clears it (via onPendingHandled) once consumed.
   const [pendingMapList, setPendingMapList] = useState(null);
   const handleAdventureOpenList = (list) => {
-    setPendingMapList({ list, listType: 'curriculum' });
+    setPendingMapList({ list, listType: 'curriculum', origin: 'map' });
     setSection('exploreDashboard');
     setNavTick(t => t + 1);
+  };
+  // Back from a list opened externally — route to the right place.
+  // For now only 'map' is wired (returns to the home/Adventure Map).
+  const handleListExit = (origin) => {
+    if (origin === 'map') {
+      setSection('home');
+      setNavTick(t => t + 1);
+    }
   };
   // Increments on every top-nav tab click so ExploreDashboard can clear its
   // internal selectedList even when the user clicks the tab they're already on.
   const [navTick,        setNavTick]        = useState(0);
   const [showSignIn,     setShowSignIn]     = useState(false);
+
+  // ── New auth state — independent of the legacy useUser hook ──────
+  // `authUser` is the Supabase auth.users record (null when not signed
+  // in). After first sign-in we look up children rows: if none we show
+  // CreateChildProfile, then optionally the localStorage MigratePrompt.
+  const [authUser,        setAuthUser]        = useState(null);
+  const [createChildOpen, setCreateChildOpen] = useState(false);
+  const [migrateChild,    setMigrateChild]    = useState(null);  // child row after creation
+
+  useEffect(() => {
+  let cancelled = false;
+  getSession().then((s) => { if (!cancelled) setAuthUser(s?.user ?? null); });
+  
+  const unsub = onAuthStateChange((session, event) => {
+  if (cancelled) return;
+  setAuthUser(session?.user ?? null);
+  if (event === 'SIGNED_IN' && session?.user) {
+    setShowSignIn(false); // fix the variable name first
+  }
+  if (event === 'SIGNED_OUT') {
+    setCreateChildOpen(false);
+    setMigrateChild(null); // whatever your child state setter is called
+  }
+});
+  
+  return () => { cancelled = true; unsub(); };
+}, []);
+
+  // When the signed-in parent has no children, prompt for child setup.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!authUser?.id || !isSupabaseEnabled) {
+        setCreateChildOpen(false);
+        return;
+      }
+      try {
+        const { data, error: err } = await supabase
+          .from('children')
+          .select('id')
+          .eq('parent_id', authUser.id)
+          .limit(1);
+        if (cancelled) return;
+        if (!err && Array.isArray(data) && data.length === 0) setCreateChildOpen(true);
+      } catch { /* offline — skip silently */ }
+    })();
+    return () => { cancelled = true; };
+  }, [authUser?.id]);
+
+  // After child profile creation, offer to migrate local mastery rows
+  // (only if there's anything to migrate).
+  const handleChildCreated = (child) => {
+    setCreateChildOpen(false);
+    if (child && hasLocalMastery()) setMigrateChild(child);
+  };
   const [settingsOpen,     setSettingsOpen]     = useState(false);
   const [changeWordsOpen,  setChangeWordsOpen]  = useState(false);
   const { user, profile, signIn, signUp, signInWithGoogle, signOut } = useUser();
@@ -58,6 +125,20 @@ function App() {
   }, []);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const livePoints = React.useMemo(() => getPlayerStats().totalPoints, [pointsTick]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const liveLumens = React.useMemo(() => getPlayerStats().totalLumens || 0, [pointsTick]);
+  const liveLevel  = React.useMemo(() => getLevelFromPoints(livePoints), [livePoints]);
+
+  // Keep session.lumens mirrored to the gamification engine so it
+  // persists with the rest of the session (Supabase syncs from here).
+  useEffect(() => {
+    setSession((prev) => {
+      if (!prev) return prev;
+      if (prev.lumens === liveLumens) return prev;
+      return { ...prev, lumens: liveLumens };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveLumens]);
 
   // ── Streak popup (once per app open) + milestone confetti ──────────
   // The popup state stores an absolute `dismissAt` (epoch ms) rather
@@ -417,6 +498,7 @@ function App() {
               onOpenSettings={() => setSettingsOpen(true)}
               pendingOpenList={pendingMapList}
               onPendingHandled={() => setPendingMapList(null)}
+              onListExit={handleListExit}
             />
           )}
           <ArcadeFooter
@@ -424,8 +506,9 @@ function App() {
             year={5}
             isGuest={true}
             points={livePoints}
-            level={10}
-            levelTitle="Grand Wordmancer"
+            lumens={liveLumens}
+            level={liveLevel}
+            levelTitle={`LVL ${liveLevel}`}
             xpCurrent={650}
             xpMax={1000}
             buddyId={session?.childCharacter?.id || 'raccoon'}
@@ -438,8 +521,9 @@ function App() {
             section={section}
             onSectionChange={(s) => { setSection(s); setNavTick(t => t + 1); }}
             points={livePoints}
-            level={10}
-            levelTitle="Grand Wordmancer"
+            lumens={liveLumens}
+            level={liveLevel}
+            levelTitle={`LVL ${liveLevel}`}
             xpCurrent={650}
             xpMax={1000}
             buddyId={session?.childCharacter?.id || 'raccoon'}
@@ -497,6 +581,7 @@ function App() {
           onOpenSettings={() => setSettingsOpen(true)}
           pendingOpenList={pendingMapList}
           onPendingHandled={() => setPendingMapList(null)}
+          onListExit={handleListExit}
         />
       )}
 
@@ -539,13 +624,28 @@ function App() {
         </div>
       )}
 
-      {/* ── Global sign-in modal (triggered from TopNav) ── */}
+      {/* ── Global auth modal (parent sign in / sign up) ── */}
       {showSignIn && (
-        <SignInModal
+        <AuthModal
           onClose={() => setShowSignIn(false)}
-          signIn={signIn}
-          signUp={signUp}
-          signInWithGoogle={signInWithGoogle}
+          onSignedIn={() => setShowSignIn(false)}
+        />
+      )}
+
+      {/* ── First-time child profile creation (after sign-in) ── */}
+      {createChildOpen && authUser && (
+        <CreateChildProfile
+          authUser={authUser}
+          onCreated={handleChildCreated}
+          onCancel={() => setCreateChildOpen(false)}
+        />
+      )}
+
+      {/* ── localStorage → mastery_records migration prompt ── */}
+      {migrateChild && (
+        <MigratePrompt
+          child={migrateChild}
+          onDone={() => setMigrateChild(null)}
         />
       )}
 
@@ -565,8 +665,9 @@ function App() {
         year={5}
         isGuest={true}
         points={livePoints}
-        level={10}
-        levelTitle="Grand Wordmancer"
+        lumens={liveLumens}
+        level={liveLevel}
+        levelTitle={`LVL ${liveLevel}`}
         xpCurrent={650}
         xpMax={1000}
         buddyId={session?.childCharacter?.id || 'raccoon'}
@@ -576,8 +677,9 @@ function App() {
         section={section}
         onSectionChange={(s) => { setSection(s); setNavTick(t => t + 1); }}
         points={livePoints}
-        level={10}
-        levelTitle="Grand Wordmancer"
+        lumens={liveLumens}
+        level={liveLevel}
+        levelTitle={`LVL ${liveLevel}`}
         xpCurrent={650}
         xpMax={1000}
         buddyId={session?.childCharacter?.id || 'raccoon'}

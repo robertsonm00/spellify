@@ -87,6 +87,7 @@ export const BADGE_DEFINITIONS = [
 function emptyStats() {
   return {
     totalPoints: 0,
+    totalLumens: 0,          // secondary currency — 1 per 5 Spell Points
     totalGames: 0,
     totalMastered: 0,
     totalTestAlls: 0,
@@ -94,6 +95,32 @@ function emptyStats() {
     streakDays: 0,
     lastPlayedDate: null,    // ISO yyyy-mm-dd
   };
+}
+
+/* ── Level milestones ─────────────────────────────────────────────────── */
+// Derived from points — never stored. Supabase will eventually store the
+// computed level for analytics but localStorage stays the source for
+// points and lumens; level is a view over points.
+export const LEVEL_THRESHOLDS = [
+  0, 50, 120, 220, 360, 550, 800, 1100, 1500, 2000,
+  2700, 3500, 4400, 5500, 6700, 8000, 9500, 11000, 12700, 14600,
+  17000, 19600, 22400, 25400, 28700, 32300, 36200, 40500, 45200, 50300,
+  56000, 62000, 68500, 75500, 83000, 91000, 99500, 108500, 118000, 128000,
+  139000, 151000, 164000, 178000, 193000, 209000, 226000, 244000, 263000, 283000,
+];
+
+export function getLevelFromPoints(points) {
+  let level = 1;
+  for (let i = 0; i < LEVEL_THRESHOLDS.length; i++) {
+    if (points >= LEVEL_THRESHOLDS[i]) level = i + 1;
+    else break;
+  }
+  return level;
+}
+
+// Lumens per 5 points (integer floor).
+export function lumensFromPoints(points) {
+  return Math.floor(Math.max(0, points) / 5);
 }
 
 export function getPlayerStats() {
@@ -250,7 +277,12 @@ export function recordGameCompleted(
   // economy isn't dominated by long streaks.
   pointsAwarded += POINTS_CONFIG.streakBonus * Math.min(streak, 7);
 
-  stats = { ...stats, totalPoints: stats.totalPoints + pointsAwarded };
+  const lumensAwarded = lumensFromPoints(pointsAwarded);
+  stats = {
+    ...stats,
+    totalPoints: stats.totalPoints + pointsAwarded,
+    totalLumens: (stats.totalLumens || 0) + lumensAwarded,
+  };
   savePlayerStats(stats);
 
   // 5) Badge checks — fire each relevant trigger so condition sets compose
@@ -266,5 +298,5 @@ export function recordGameCompleted(
   if (isTestAll)           fire('testAllCompleted');
   if (listCompleted)       fire('listCompleted');
 
-  return { pointsAwarded, newBadges, wordsMastered, listCompleted };
+  return { pointsAwarded, lumensAwarded, newBadges, wordsMastered, listCompleted };
 }

@@ -103,6 +103,7 @@ export default function MobileBottomNav({
   section,
   onSectionChange,
   points = 0,
+  lumens = 0,
   level = 1,
   levelTitle = '',
   xpCurrent = 0,
@@ -146,6 +147,10 @@ export default function MobileBottomNav({
             <BuddyAvatar id={buddyId} size={92} fallback={buddyFallback} interactive />
           </div>
           <span className="mbn__points-num">{points.toLocaleString()}</span>
+          <span className="mbn__lumens" aria-label={`${lumens} lumens`}>
+            <span className="mbn__lumens-icon" aria-hidden="true">✦</span>
+            <span className="mbn__lumens-num">{lumens.toLocaleString()}</span>
+          </span>
           <div className="mbn__level-block">
             <span className="mbn__level-title">{levelTitle || `LVL ${level}`}</span>
             <span className="mbn__xp" aria-hidden="true">
