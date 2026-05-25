@@ -1,0 +1,720 @@
+/* AdventureMap — v3: painted-island backdrop.
+   The art does the heavy lifting (path, scenery, painted disc-stops).
+   Code adds: pan/scroll viewport, state ring on each disc, buddy on
+   the active disc, hover/tap popovers, calibration tool. */
+
+.am-root {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 50px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 96px);
+  left: 0;
+  right: 0;
+  background: #07030f;
+  overflow: hidden;
+  color: #f5ecff;
+  font-family: 'Nunito', 'Segoe UI', Arial, sans-serif;
+}
+
+@media (min-width: 769px) {
+  .am-root {
+    top: 60px;
+    bottom: 80px;
+  }
+}
+
+/* ── Topbar ──────────────────────────────────────────────────────── */
+.am-topbar {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  pointer-events: none;
+}
+.am-topbar > *, .am-topbar__right > * { pointer-events: auto; }
+.am-topbar__right {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.am-isle-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px 8px 12px;
+  background: rgba(20, 8, 32, 0.78);
+  border: 2px solid rgba(255, 217, 61, 0.7);
+  color: #fff;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: 'Press Start 2P', 'Nunito', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  box-shadow:
+    0 4px 18px rgba(0, 0, 0, 0.55),
+    0 0 20px rgba(255, 217, 61, 0.22);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+.am-isle-pill__emoji { font-size: 1.15rem; }
+.am-isle-pill__chev  { font-size: 0.7rem; opacity: 0.8; }
+
+.am-hfw-btn {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 10px 5px;
+  background: linear-gradient(180deg, #5c2d10 0%, #2a1208 100%);
+  border: 2px solid rgba(255, 159, 67, 0.75);
+  color: #ffd9a8;
+  border-radius: 14px;
+  cursor: pointer;
+  font-family: 'Press Start 2P', 'Nunito', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.06em;
+  line-height: 1.1;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+}
+.am-hfw-btn__emoji { font-size: 1.15rem; }
+
+.am-calib-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 8px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(255, 217, 61, 0.45);
+  background: rgba(20, 8, 32, 0.78);
+  color: #ffd93d;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.65rem;
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+.am-calib-btn--on {
+  background: #ffd93d;
+  color: #1a0828;
+  box-shadow: 0 0 14px rgba(255, 217, 61, 0.6);
+}
+
+/* ── Viewport + scene ────────────────────────────────────────────── */
+.am-viewport {
+  position: absolute;
+  inset: 0;
+  overflow-x: auto;
+  overflow-y: hidden;          /* image fits height — never reveal vertical overflow */
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  cursor: grab;
+  touch-action: pan-x;         /* horizontal pan only on touch */
+  user-select: none;
+}
+.am-viewport::-webkit-scrollbar { display: none; }
+.am-viewport--dragging         { cursor: grabbing; }
+.am-viewport--dragging * { cursor: grabbing !important; }
+
+.am-scene {
+  position: relative;
+  /* Fit image to viewport height; horizontal scroll picks up the rest.
+     On taller-than-wide viewports the image will scale up vertically. */
+  height: 100%;
+  display: inline-block;
+}
+.am-scene--calibrating { cursor: crosshair; }
+
+.am-bg-img {
+  display: block;
+  height: 100%;
+  width: auto;
+  user-select: none;
+  -webkit-user-drag: none;
+  image-rendering: pixelated;     /* keep the painted pixels crisp */
+}
+
+/* ── Stop overlays ───────────────────────────────────────────────── */
+.am-stop {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 44px;
+  height: 44px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  z-index: 3;
+}
+.am-stop:disabled { cursor: not-allowed; }
+
+.am-stop__ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Active — strong gold halo around the painted ember-disc */
+.am-stop--active { width: 60px; height: 60px; z-index: 5; }
+.am-stop--active .am-stop__ring {
+  box-shadow:
+    0 0 0 3px #ffd93d,
+    0 0 26px 4px rgba(255, 217, 61, 0.7),
+    0 0 60px 12px rgba(255, 174, 61, 0.45);
+}
+
+/* Completed — small tick badge top-right of the painted disc */
+.am-stop__check {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #6bcb77;
+  color: #0d2a13;
+  font-size: 0.7rem;
+  font-weight: 900;
+  border-radius: 50%;
+  border: 2px solid #0d2a13;
+  box-shadow: 0 0 8px rgba(107, 203, 119, 0.65);
+  pointer-events: none;
+}
+
+/* Locked — overlay a soft dim and a tiny lock icon */
+.am-stop__lock {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.65);
+  text-shadow: 0 1px 2px #000;
+  pointer-events: none;
+}
+.am-stop--locked .am-stop__ring {
+  background: radial-gradient(circle, rgba(10, 4, 20, 0.6) 45%, transparent 65%);
+}
+.am-stop--locked:hover .am-stop__ring {
+  background: radial-gradient(circle, rgba(10, 4, 20, 0.35) 45%, transparent 65%);
+}
+
+.am-stop:hover:not(:disabled) .am-stop__ring {
+  transform: scale(1.08);
+}
+
+/* Unassigned — slot has no list yet ("Coming soon"). Same dim as
+   locked but slightly cooler tint so future-content slots read as
+   distinct from locked-future-list slots on close inspection. */
+.am-stop--unassigned .am-stop__ring {
+  background: radial-gradient(circle, rgba(20, 10, 40, 0.55) 45%, transparent 65%);
+}
+.am-stop--unassigned:hover .am-stop__ring {
+  background: radial-gradient(circle, rgba(20, 10, 40, 0.3) 45%, transparent 65%);
+}
+
+/* ── Popover ─────────────────────────────────────────────────────── */
+.am-stop__popover {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 10px);
+  transform: translateX(-50%);
+  padding: 6px 10px;
+  background: rgba(20, 8, 28, 0.95);
+  border: 1.5px solid rgba(255, 217, 61, 0.5);
+  color: #fff7e8;
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+  border-radius: 8px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  z-index: 6;
+}
+.am-stop__popover::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: rgba(255, 217, 61, 0.5);
+}
+.am-stop__popover--active {
+  border-color: #ffd93d;
+  background: rgba(60, 30, 5, 0.95);
+  box-shadow: 0 6px 24px rgba(255, 174, 61, 0.5);
+}
+.am-stop__popover--locked {
+  border-color: rgba(160, 140, 200, 0.5);
+  color: #cdb4ff;
+}
+
+/* ── Buddy on the active disc ────────────────────────────────────── */
+.am-buddy {
+  position: absolute;
+  z-index: 4;
+  width: 56px;
+  height: 56px;
+  /* Feet sit on the chip top edge */
+  transform: translate(-50%, calc(-100% + 22px));
+  pointer-events: none;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.7));
+}
+
+/* ── Calibration captured-point markers ──────────────────────────── */
+.am-calib-dot {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #ffd93d;
+  border: 2px solid #1a0828;
+  color: #1a0828;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.55rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 7;
+  box-shadow: 0 0 8px rgba(255, 217, 61, 0.8);
+}
+
+/* ── Toast ───────────────────────────────────────────────────────── */
+.am-locked-msg {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  padding: 10px 16px;
+  background: rgba(20, 8, 32, 0.95);
+  border: 1px solid rgba(255, 217, 61, 0.55);
+  color: #fff7e8;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  z-index: 20;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+/* ── Isle switcher modal ─────────────────────────────────────────── */
+.am-switcher-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 4, 14, 0.85);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.am-switcher-modal {
+  width: min(420px, 100%);
+  background: #2a0e3a;
+  border: 2px solid rgba(255, 217, 61, 0.4);
+  border-radius: 20px;
+  padding: 20px;
+  color: #f5ecff;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+.am-switcher-title {
+  margin: 0 0 14px;
+  font-family: 'Press Start 2P', 'Nunito', monospace;
+  font-size: 0.95rem;
+  color: #ffd93d;
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+.am-switcher-list { display: grid; gap: 10px; }
+.am-switcher-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 2px solid rgba(199, 125, 255, 0.25);
+  background: rgba(40, 22, 70, 0.7);
+  color: #f5ecff;
+  font-family: inherit;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+.am-switcher-item--past    { border-color: rgba(107, 203, 119, 0.55); }
+.am-switcher-item--current {
+  border-color: #ffd93d;
+  box-shadow: 0 0 12px rgba(255, 217, 61, 0.3);
+}
+.am-switcher-item--future  { opacity: 0.55; }
+.am-switcher-emoji { font-size: 1.4rem; }
+.am-switcher-name  { flex: 1; text-align: left; font-weight: 600; }
+.am-switcher-meta  { font-size: 0.85rem; opacity: 0.85; }
+.am-switcher-meta--past    { color: #6bcb77; }
+.am-switcher-meta--current {
+  color: #ffd93d;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.6rem;
+}
+.am-switcher-close {
+  margin-top: 14px;
+  width: 100%;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(199, 125, 255, 0.4);
+  background: rgba(199, 125, 255, 0.18);
+  color: #f5ecff;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   View toggle button (lives in topbar, swaps illustrated map ↔ snake)
+   ════════════════════════════════════════════════════════════════════ */
+.am-view-toggle {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(255, 217, 61, 0.55);
+  background: rgba(20, 8, 32, 0.78);
+  color: #ffd93d;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  white-space: nowrap;
+}
+.am-view-toggle:hover {
+  background: rgba(40, 16, 60, 0.85);
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   VIEW 2 — Panoramic island map (vertical scroll, painted path).
+   The PAINTED dirt path in the illustration IS the path; we don't
+   draw a connector. Nodes are pinned at calibrated (%x, %y) coords.
+   ════════════════════════════════════════════════════════════════════ */
+
+.am-view-2 {
+  background: #0a0414;
+}
+
+.am-v2-wrap {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+/* ── Viewport (vertical scroll over panoramic image) ─────────────── */
+.am-viewport--v2 {
+  position: absolute;
+  inset: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  cursor: grab;
+  touch-action: pan-y;
+  user-select: none;
+  z-index: 2;
+}
+.am-viewport--v2::-webkit-scrollbar { display: none; }
+
+/* Scene = the panoramic image at a FIXED width matching a typical
+   desktop "full-width" view. Zoom never shrinks; narrower browsers
+   simply clip the sides (viewport overflow-x: hidden does the work).
+   Centred via negative margin so when the viewport is narrower than
+   the scene the CENTRE of the image (where the painted path lives)
+   stays in the visible window — not the left edge. */
+.am-v2-scene {
+  position: relative;
+  width: 1280px;
+  /* Equal-clip centring at any viewport width. When parent ≥ 1280
+     this is positive margin (centred with side gutters). When parent
+     < 1280 it goes negative and pulls the scene left so the painted
+     middle path stays on-screen. */
+  margin-left: calc((100% - 1280px) / 2);
+  /* aspect-ratio set inline per isle */
+}
+
+.am-v2-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  user-select: none;
+  -webkit-user-drag: none;
+  /* Smooth scaling — painted artwork, not pixel-sized art. */
+  image-rendering: auto;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Magical pathway between stops (cubic bezier glowing rope) ───── */
+.am-v2-magic-path {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+  overflow: visible;
+}
+.am-v2-magic-path__halo {
+  fill: none;
+  stroke: #ffd93d;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.4;
+  vector-effect: non-scaling-stroke;
+}
+.am-v2-magic-path__outer {
+  fill: none;
+  stroke: url(#am-v2-magicGrad);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.95;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 4px rgba(255, 217, 61, 0.7));
+}
+.am-v2-magic-path__inner {
+  fill: none;
+  stroke: #fff5b8;
+  stroke-width: 0.5;
+  stroke-dasharray: 0.4 1.4;
+  stroke-linecap: round;
+  opacity: 0.9;
+  vector-effect: non-scaling-stroke;
+}
+
+/* ── Nodes (positioned on painted path) ──────────────────────────── */
+.am-v2-node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 54px;
+  height: 54px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  z-index: 3;
+  font-family: 'Press Start 2P', monospace;
+}
+.am-v2-node:disabled { cursor: not-allowed; }
+
+/* The chunky disc with dark border + drop shadow + inset highlight.
+   Approved prototype look — keep these values. */
+.am-v2-node__disc {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 3px solid #1a0828;
+  background: #3a2c52;
+  color: #fff;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  box-shadow:
+    0 4px 0 rgba(0, 0, 0, 0.5),
+    inset 0 4px 0 rgba(255, 255, 255, 0.14);
+  transition: transform 0.12s ease;
+}
+.am-v2-node:hover:not(:disabled) .am-v2-node__disc {
+  transform: translateY(-1px) scale(1.04);
+}
+
+.am-v2-node__num,
+.am-v2-node__tick,
+.am-v2-node__lock,
+.am-v2-node__icon {
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 2px 2px rgba(0, 0, 0, 0.55);
+}
+.am-v2-node__icon { font-size: 1.2rem; }
+.am-v2-node__tick { font-size: 1.3rem; color: #fff; }
+.am-v2-node__lock { font-size: 0.95rem; }
+
+/* Completed — ember disc with white tick */
+.am-v2-node--completed .am-v2-node__disc {
+  background:
+    radial-gradient(circle at 50% 32%, #ffd06b 0%, #ff8c3d 55%, #c44a1a 100%);
+  border-color: #4a1808;
+  box-shadow:
+    0 4px 0 rgba(0, 0, 0, 0.5),
+    inset 0 4px 0 rgba(255, 255, 255, 0.22),
+    0 0 12px rgba(255, 174, 61, 0.35);
+}
+
+/* Current/active — large pulsing layered glow with buddy inside */
+.am-v2-node--active { width: 68px; height: 68px; z-index: 5; }
+.am-v2-node--active .am-v2-node__disc {
+  background:
+    radial-gradient(circle at 50% 32%, #fff5b8 0%, #ffd93d 40%, #ffa500 80%, #c4571a 100%);
+  border-color: #4a2200;
+  box-shadow:
+    0 4px 0 rgba(0, 0, 0, 0.55),
+    inset 0 4px 0 rgba(255, 255, 255, 0.32),
+    0 0 22px #ffd93d,
+    0 0 44px #ffa500;
+  animation: am-v2-pulse 1.8s ease-in-out infinite;
+}
+@keyframes am-v2-pulse {
+  0%, 100% { transform: scale(1);    box-shadow: 0 4px 0 rgba(0,0,0,.55), inset 0 4px 0 rgba(255,255,255,.32), 0 0 22px #ffd93d, 0 0 44px #ffa500; }
+  50%      { transform: scale(1.04); box-shadow: 0 4px 0 rgba(0,0,0,.55), inset 0 4px 0 rgba(255,255,255,.32), 0 0 32px #ffd93d, 0 0 60px #ffa500; }
+}
+
+/* Next (unlocked, not mastered) — brighter ember + gentle bob */
+.am-v2-node--next .am-v2-node__disc {
+  background:
+    radial-gradient(circle at 50% 32%, #ffd06b 0%, #ff8c3d 60%, #c44a1a 100%);
+  border-color: #4a1808;
+  box-shadow:
+    0 4px 0 rgba(0, 0, 0, 0.5),
+    inset 0 4px 0 rgba(255, 255, 255, 0.25),
+    0 0 16px rgba(255, 174, 61, 0.7);
+  animation: am-v2-bob 2.6s ease-in-out infinite;
+}
+@keyframes am-v2-bob {
+  0%, 100% { transform: translateY(0);    }
+  50%      { transform: translateY(-4px); }
+}
+
+/* Locked — clearly visible dim purple, NOT ghosted */
+.am-v2-node--locked .am-v2-node__disc {
+  background: #3a2c52;
+  border-color: #1a0828;
+  color: rgba(255, 255, 255, 0.7);
+}
+.am-v2-node--unassigned .am-v2-node__disc {
+  background: #2a1f3e;
+  border-color: #1a0828;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* Landmarks — magenta/crystal ring overrides the colour-by-state */
+.am-v2-node--landmark .am-v2-node__disc {
+  background:
+    radial-gradient(circle at 50% 30%, #f3b8ff 0%, #c77dff 50%, #6a1a8a 100%);
+  border-color: #2a0a3a;
+  box-shadow:
+    0 4px 0 rgba(0, 0, 0, 0.55),
+    inset 0 4px 0 rgba(255, 255, 255, 0.28),
+    0 0 16px rgba(199, 125, 255, 0.7);
+}
+.am-v2-node--landmark.am-v2-node--locked .am-v2-node__disc {
+  background:
+    radial-gradient(circle at 50% 30%, #6a4a7a 0%, #3a1e4a 70%, #1e1030 100%);
+  box-shadow:
+    0 4px 0 rgba(0, 0, 0, 0.5),
+    inset 0 4px 0 rgba(255, 255, 255, 0.12),
+    0 0 8px rgba(199, 125, 255, 0.2);
+}
+
+/* ── Stars under completed nodes ─────────────────────────────────── */
+.am-v2-node__stars {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 4px);
+  transform: translateX(-50%);
+  display: inline-flex;
+  gap: 1px;
+  font-size: 0.72rem;
+  line-height: 1;
+  pointer-events: none;
+  text-shadow: 0 2px 3px rgba(0, 0, 0, 0.85);
+}
+.am-v2-node__star      { color: rgba(60, 40, 80, 0.85); }
+.am-v2-node__star--on  { color: #ffd93d; text-shadow: 0 0 6px rgba(255, 217, 61, 0.8); }
+
+/* ── Labels (pixel chip) ─────────────────────────────────────────── */
+.am-v2-node__label {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  max-width: 140px;
+  padding: 5px 8px;
+  background: rgba(20, 8, 32, 0.92);
+  border: 1.5px solid rgba(255, 217, 61, 0.4);
+  border-radius: 8px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.48rem;
+  line-height: 1.35;
+  letter-spacing: 0.03em;
+  color: #fff7e8;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  z-index: 6;
+}
+.am-v2-node__label--right { left: calc(100% + 10px); }
+.am-v2-node__label--left  { right: calc(100% + 10px); }
+
+.am-v2-node--active .am-v2-node__label {
+  border-color: #ffd93d;
+  background: rgba(60, 30, 5, 0.95);
+  box-shadow: 0 4px 16px rgba(255, 174, 61, 0.45);
+}
+.am-v2-node--landmark .am-v2-node__label {
+  border-color: rgba(199, 125, 255, 0.7);
+  background: rgba(50, 10, 70, 0.92);
+}
+
+/* ── Buddy sits on the active disc ────────────────────────────────── */
+.am-v2-buddy {
+  position: absolute;
+  z-index: 7;
+  width: 56px;
+  height: 56px;
+  transform: translate(-50%, calc(-100% + 18px));
+  pointer-events: none;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.65));
+}
+
+/* ── Floating HFW pin (always accessible) ────────────────────────── */
+.am-v2-hfw {
+  position: absolute;
+  top: 70px;
+  right: 12px;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 14px;
+  border: 2px solid rgba(255, 159, 67, 0.75);
+  background: linear-gradient(180deg, #5c2d10 0%, #2a1208 100%);
+  color: #ffd9a8;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.06em;
+  line-height: 1.1;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
+}
+.am-v2-hfw__emoji { font-size: 1.2rem; }

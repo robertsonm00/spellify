@@ -571,6 +571,11 @@ export default function ExploreDashboard({
   signUp,
   signInWithGoogle,
   onOpenSettings,
+  // Optional: parent can request a specific list be opened (e.g. the
+  // Adventure Map taps a stop). When this changes to a non-null value,
+  // we openList() it and call onPendingHandled to let parent clear.
+  pendingOpenList = null,
+  onPendingHandled = null,
 }) {
   const [page,          setPage]          = useState(pageProp || 'home');   // 'home'|'assignments'|'mylists'|'explore'|'favourites'|'recent'
 
@@ -767,6 +772,17 @@ export default function ExploreDashboard({
     setSelectedList({ list: enriched, listType });
     setListNameDraft(list.name);
   };
+
+  // Parent-requested list open (e.g. tap a stop on the Adventure Map).
+  // Runs once per non-null pendingOpenList value, then clears it so the
+  // next request fires even for the same list id.
+  useEffect(() => {
+    if (!pendingOpenList) return;
+    const listType = pendingOpenList.listType || 'curriculum';
+    openList(pendingOpenList.list || pendingOpenList, listType);
+    if (typeof onPendingHandled === 'function') onPendingHandled();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingOpenList]);
 
   // ── Editable list name (custom lists only) ────────────────────────────
   const [listNameDraft, setListNameDraft] = useState('');

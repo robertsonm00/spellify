@@ -11,6 +11,7 @@ import { recordPlayToday, getStreak, getStreakStatus } from './utils/streakEngin
 import TopNav         from './components/TopNav';
 import { fireBuddyCheer } from './components/BuddyAvatar';
 import ExploreDashboard from './components/explore/ExploreDashboard';
+import AdventureMap from './components/AdventureMap';
 import ArcadeFooter from './components/ArcadeFooter';
 import MobileBottomNav from './components/MobileBottomNav';
 import MobileTopBar from './components/MobileTopBar';
@@ -31,6 +32,14 @@ const REVIEW_TITLE = 'Spelling Quiz';
 
 function App() {
   const [section,        setSection]        = useState('home'); // 'home' | 'assignments' | 'mylists' | 'exploreDashboard' | 'favourites' | 'recent'
+  // When AdventureMap taps a stop, we hand the list off to ExploreDashboard
+  // via this prop. ED clears it (via onPendingHandled) once consumed.
+  const [pendingMapList, setPendingMapList] = useState(null);
+  const handleAdventureOpenList = (list) => {
+    setPendingMapList({ list, listType: 'curriculum' });
+    setSection('exploreDashboard');
+    setNavTick(t => t + 1);
+  };
   // Increments on every top-nav tab click so ExploreDashboard can clear its
   // internal selectedList even when the user clicks the tab they're already on.
   const [navTick,        setNavTick]        = useState(0);
@@ -389,17 +398,27 @@ function App() {
             onSettings={() => setSettingsOpen(true)}
           />
           <MobileTopBar />
-          <ExploreDashboard
-            page={dashboardPage}
-            navTick={navTick}
-            session={session}
-            user={user}
-            profile={profile}
-            signIn={signIn}
-            signUp={signUp}
-            signInWithGoogle={signInWithGoogle}
-            onOpenSettings={() => setSettingsOpen(true)}
-          />
+          {section === 'home' ? (
+            <AdventureMap
+              session={session}
+              onSectionChange={(s) => { setSection(s); setNavTick(t => t + 1); }}
+              onOpenList={handleAdventureOpenList}
+            />
+          ) : (
+            <ExploreDashboard
+              page={dashboardPage}
+              navTick={navTick}
+              session={session}
+              user={user}
+              profile={profile}
+              signIn={signIn}
+              signUp={signUp}
+              signInWithGoogle={signInWithGoogle}
+              onOpenSettings={() => setSettingsOpen(true)}
+              pendingOpenList={pendingMapList}
+              onPendingHandled={() => setPendingMapList(null)}
+            />
+          )}
           <ArcadeFooter
             playerName="ERNEST-WREN"
             year={5}
@@ -459,17 +478,27 @@ function App() {
             favourites / recent / alerts) ─ All routed through
             ExploreDashboard so they share the same purple starfield
             chrome + arcade-style headings on every viewport. */}
-      <ExploreDashboard
-        page={section === 'exploreDashboard' ? 'explore' : section}
-        navTick={navTick}
-        session={session}
-        user={user}
-        profile={profile}
-        signIn={signIn}
-        signUp={signUp}
-        signInWithGoogle={signInWithGoogle}
-        onOpenSettings={() => setSettingsOpen(true)}
-      />
+      {section === 'home' ? (
+        <AdventureMap
+          session={session}
+          onSectionChange={(s) => { setSection(s); setNavTick(t => t + 1); }}
+          onOpenList={handleAdventureOpenList}
+        />
+      ) : (
+        <ExploreDashboard
+          page={section === 'exploreDashboard' ? 'explore' : section}
+          navTick={navTick}
+          session={session}
+          user={user}
+          profile={profile}
+          signIn={signIn}
+          signUp={signUp}
+          signInWithGoogle={signInWithGoogle}
+          onOpenSettings={() => setSettingsOpen(true)}
+          pendingOpenList={pendingMapList}
+          onPendingHandled={() => setPendingMapList(null)}
+        />
+      )}
 
       {showExitModal && (
         <ExitConfirmModal
