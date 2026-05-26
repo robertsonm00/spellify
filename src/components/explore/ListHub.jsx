@@ -9,6 +9,7 @@ import {
 import { effectiveSenProfile } from '../../data/spelling/sessionSchema';
 import {
   getMasteryState,
+  saveMasteryState,
   getUnmasteredWords,
   recordWordResult,
   getStrugglingWordEntries,
@@ -187,6 +188,33 @@ export default function ListHub({
         : 0;                          // wrong on a 1-attempt task → 0, not -0.5
       recordWordResult(list.id, r.word, 'practicequest', credit);
     }
+    setMasteryTick(t => t + 1);
+  };
+
+  // DEV-only: directly write mastery state for all words in this list,
+  // bypassing the credit-accumulation threshold. Useful for testing the
+  // "list completed" and mastery-chip UI without having to play every
+  // game twice. Dead-code-eliminated in production builds.
+  const handleDevForceMastery = () => {
+    const state = getMasteryState(list.id);
+    const now = Date.now();
+    for (const word of fullWords) {
+      const key = String(word || '').toLowerCase().trim();
+      state.words[key] = {
+        ...(state.words[key] || {}),
+        word,
+        attempts: 4,
+        creditByGame: { quizquest: 1.0, writeit: 1.0 },
+        totalCredit: 2.0,
+        lastAttempted: now,
+        mastered: true,
+        spacedRepetition: { masteredAtSession: 1, postMasterySessions: 0 },
+        struggling: false,
+        consecutiveMisses: 0,
+        cleanSessionsPostFlag: 0,
+      };
+    }
+    saveMasteryState(list.id, state);
     setMasteryTick(t => t + 1);
   };
 
@@ -563,6 +591,21 @@ export default function ListHub({
             chipColor={activeWord.chipColor}
             onClose={() => setActiveWord(null)}
           />
+        )}
+
+        {/* DEV-only: force all words in this list to mastered state */}
+        {process.env.NODE_ENV === 'development' && (
+          <button
+            onClick={handleDevForceMastery}
+            style={{
+              position: 'fixed', bottom: 16, left: 16, zIndex: 9999,
+              background: '#6c3fc5', color: 'white', border: 'none',
+              borderRadius: 8, padding: '8px 14px', fontSize: 13,
+              cursor: 'pointer', fontFamily: 'monospace',
+            }}
+          >
+            ⚡ DEV: Master all words
+          </button>
         )}
 
         {/* Test All game picker modal */}
