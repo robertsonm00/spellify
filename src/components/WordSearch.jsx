@@ -161,6 +161,13 @@ export default function WordSearch({ words, year = null, savedProgress = null, o
     dragStartRef.current  = null;
   }, [words, onSaveProgress]);
 
+  // ── DEV-only: instant complete ─────────────────────────────────────────────
+  const handleDevComplete = () => {
+    if (!gameState) return;
+    setFoundWords(gameState.placedWords.map(pw => pw.word));
+    setFoundCells([]); // cell highlighting skipped; isComplete still triggers
+  };
+
   // Restart without regenerating the grid — only clears found state.
   const resetProgress = useCallback(() => {
     onSaveProgress?.(null);
@@ -428,6 +435,13 @@ export default function WordSearch({ words, year = null, savedProgress = null, o
             </div>
           </div>
         </div>
+      )}
+
+      {/* DEV-only: instant complete — stripped by webpack in production builds */}
+      {process.env.NODE_ENV === 'development' && (
+        <button onClick={handleDevComplete} style={{ position: 'fixed', bottom: 16, right: 16, zIndex: 9999, background: '#ff6b35', color: 'white', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 13, cursor: 'pointer', fontFamily: 'monospace' }}>
+          ⚡ DEV: Complete
+        </button>
       )}
 
     </div>

@@ -479,6 +479,23 @@ export default function QuizQuest({
     setPhase('start');
   };
 
+  // ── DEV-only: instant complete ─────────────────────────────────────────────
+  // process.env.NODE_ENV is 'production' in CRA prod builds — webpack dead-
+  // code-eliminates this entire block. (Note: this project uses CRA/react-
+  // scripts, not Vite; process.env.NODE_ENV is the correct CRA equivalent of
+  // import.meta.env.DEV.)
+  const handleDevComplete = () => {
+    const fakeResults = words.map(w => ({
+      word:     w,
+      correct:  true,
+      given:    w,
+      hintUsed: false,
+    }));
+    setResults(fakeResults);
+    setQIdx(words.length - 1);
+    setPhase('results');
+  };
+
   const restartHasProgress = (qIdx > 0 || results.length > 0) && phase !== 'results';
 
   const handleComplete = () => {
@@ -566,6 +583,11 @@ export default function QuizQuest({
             </button>
           </div>
         </div>
+        {process.env.NODE_ENV === 'development' && (
+          <button onClick={handleDevComplete} style={{ position: 'fixed', bottom: 16, right: 16, zIndex: 9999, background: '#ff6b35', color: 'white', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 13, cursor: 'pointer', fontFamily: 'monospace' }}>
+            ⚡ DEV: Complete
+          </button>
+        )}
       </div>
     );
   }
@@ -622,6 +644,11 @@ export default function QuizQuest({
 
       <div className="qq-stage">
         <div className="qq-phase">
+          {process.env.NODE_ENV === 'development' && (
+            <button onClick={handleDevComplete} style={{ position: 'fixed', bottom: 16, right: 16, zIndex: 9999, background: '#ff6b35', color: 'white', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 13, cursor: 'pointer', fontFamily: 'monospace' }}>
+              ⚡ DEV: Complete
+            </button>
+          )}
           <span className="qq-buddy" aria-hidden="true">
             <BuddyAvatar
               id={childCharacter?.id}

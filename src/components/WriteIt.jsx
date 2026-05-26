@@ -294,6 +294,18 @@ function WriteIt({
     setConfettiFired(false);
   };
 
+  // ── DEV-only: instant complete ─────────────────────────────────────────────
+  const handleDevComplete = () => {
+    setConfettiFired(false); // ensure the celebration fires on next render
+    setRows(prev => prev.map(row => ({
+      ...row,
+      practices: row.practices.map((p, i) =>
+        i < NUM_BASE ? { ...p, done: true, status: 'correct', value: row.word, attempts: 1 } : p
+      ),
+      celebrated: false,
+    })));
+  };
+
   const hasProgress = rows.some(r => r.practices.some(p => p.done));
 
   const updatePractice = useCallback((wordIdx, practiceIdx, patch) => {
@@ -623,6 +635,13 @@ function WriteIt({
           userAge={7}
           onClose={() => setActiveWord(null)}
         />
+      )}
+
+      {/* DEV-only: instant complete — stripped by webpack in production builds */}
+      {process.env.NODE_ENV === 'development' && (
+        <button onClick={handleDevComplete} style={{ position: 'fixed', bottom: 16, right: 16, zIndex: 9999, background: '#ff6b35', color: 'white', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 13, cursor: 'pointer', fontFamily: 'monospace' }}>
+          ⚡ DEV: Complete
+        </button>
       )}
     </div>
   );
