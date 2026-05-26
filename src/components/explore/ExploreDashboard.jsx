@@ -996,6 +996,14 @@ export default function ExploreDashboard({
         // If we got here from an external origin (e.g. the Adventure
         // Map), let the parent send the user back to the right place.
         if (selectedList?.origin && selectedList.origin !== 'internal' && typeof onListExit === 'function') {
+          // Fire the map-return signal on ALL exit paths (back button AND
+          // "Next word list →") so AdventureMap can check for a stage
+          // advance and animate the buddy hop if needed. AdventureMap's
+          // mount effect uses position comparison — not this event — to
+          // decide whether to hop, so a false positive here is harmless.
+          window.dispatchEvent(new CustomEvent('spellify-map-return', {
+            detail: { listId: selectedList.list?.id },
+          }));
           setSelectedList(null);
           onListExit(selectedList.origin);
           return;
@@ -1003,21 +1011,6 @@ export default function ExploreDashboard({
         setSelectedList(null);
       };
 
-      // "Next word list →" handler for the mastery modal (Part 4).
-      // Only wired for curriculum lists — custom lists have no natural
-      // sequence so the button is hidden when onNextList is null.
-      const handleNextList = selectedList.listType === 'curriculum' ? () => {
-        const yearLists = curriculumLists.filter(
-          l => Number(l.year) === Number(session?.year || 1)
-        );
-        const currentIdx = yearLists.findIndex(l => l.id === selectedList.list.id);
-        if (currentIdx >= 0 && currentIdx < yearLists.length - 1) {
-          openList(yearLists[currentIdx + 1], 'curriculum');
-        } else {
-          // Last list in the year — return to the list grid
-          setSelectedList(null);
-        }
-      } : null;
       const isCustom = selectedList.listType === 'custom';
       const meta = isCustom
         ? formatBannerDate(selectedList.list.created_at)
@@ -1047,7 +1040,7 @@ export default function ExploreDashboard({
             getListProgress={getListProgress}
             markComplete={handleMarkComplete}
             onBack={backHome}
-            onNextList={handleNextList}
+            listOrigin={selectedList.origin || 'internal'}
             onCreateAccount={() => setShowSignIn(true)}
             listNamePanel={
               <div className="ed-listname-panel">

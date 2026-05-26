@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useState, useRef } from 'react';
+import React, { useMemo, useEffect, useState, useRef, useCallback } from 'react';
 import confetti from 'canvas-confetti';
 import BuddyAvatar, { fireBuddyCheer } from './BuddyAvatar';
 import { curriculumLists } from '../data/curriculumLists';
@@ -64,7 +64,13 @@ const ISLE_CHAPTERS = {
   ],
 };
 
-// Star count (0–3) derived from real mastery ratio. Completion is at
+// ── Module-level persistence (survives React unmount/remount cycles) ─────────
+// When the user taps an active stop the orb position is saved here so the
+// hop animation knows where Buddy was sitting even after the component
+// unmounts while the list screen is showing.
+let _lastActiveStopPos = null; // { x, y } | null
+
+// ── Star count (0–3) derived from real mastery ratio. ───────────────────── Completion is at
 // the existing 80% threshold; star tiers above that reward perfection.
 function starsForList(list) {
   const total = list?.wordCount || list?.words?.length || 0;
@@ -107,22 +113,150 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
   // Snapshot of previous stop states — used to detect transitions.
   const prevStopsSnap = useRef(null);
 
-  // Listen for the global 'spellify-list-mastered' event (fired by ListHub
-  // when the mastery modal first appears). Re-read mastery data and schedule
-  // the reveal animation for the now-completed stop + newly unlocked next stop.
+  // { fromX, fromY, midX, midY, toX, toY } while the hop is in progress.
+  const [buddyHop, setBuddyHop] = useState(null);
+
+  // Pre-hop override for buddy's position. Initialised lazily so the VERY
+  // FIRST render already shows buddy at the "from" orb when returning from
+  // mastery — this prevents a visible flash of buddy at the destination
+  // before the hop animation starts.
+  // No window-flag check needed: if _lastActiveStopPos is set the user left
+  // via an active stop (regardless of whether mastery happened). The mount
+  // effect below decides whether a hop is warranted via position comparison.
+  const [buddyHopFrom, setBuddyHopFrom] = useState(() =>
+    _lastActiveStopPos ? { ..._lastActiveStopPos } : null
+  );
+
+  // Mirror of `stops` readable inside event-listener / setTimeout closures
+  // without stale-closure risk.
+  const stopsRef = useRef([]);
+
+  // Helper — fires the full map reveal celebration (confetti + buddy cheer +
+  // revealing-ring animation + buddy hop). Called either immediately (when
+  // the map is already visible) or deferred via 'spellify-map-return'.
+  const fireCelebration = useCallback((ids, hopFrom, hopTo) => {
+    setTimeout(() => fireBuddyCheer(), 200);
+    setTimeout(() => {
+      confetti({
+        particleCount: 130,
+        spread: 85,
+        origin: { y: 0.48 },
+        colors: ['#6bcb77', '#ffd93d', '#c77dff', '#ec4899', '#60a5fa', '#fff'],
+      });
+    }, 350);
+    setRevealingIds(ids);
+    setTimeout(() => setRevealingIds(new Set()), 700);
+
+    // Buddy hop — arc from completed orb to newly active orb.
+    // Clear buddyHopFrom at the same time so the CSS animation's 0% keyframe
+    // (left: var(--bh-from-x)) is the only thing positioning buddy — the
+    // inline `left/top` fall back to activeStop which the animation overrides.
+    if (hopFrom && hopTo) {
+      const midX = (hopFrom.x + hopTo.x) / 2;
+      const midY = Math.min(hopFrom.y, hopTo.y) - 8; // apex above both orbs
+      setBuddyHopFrom(null);
+      setBuddyHop({ fromX: hopFrom.x, fromY: hopFrom.y, midX, midY, toX: hopTo.x, toY: hopTo.y });
+      setTimeout(() => setBuddyHop(null), 1100);
+    } else {
+      setBuddyHopFrom(null);
+    }
+  }, []);
+
+  // ── spellify-list-mastered ────────────────────────────────────────────────
+  // Fired by ListHub when all words are mastered. Bumps masteryVersion so
+  // the stops memo re-reads localStorage and the stop flips to 'completed'.
   useEffect(() => {
-    const onMastered = (e) => {
-      const masteredId = e.detail?.listId || null;
-      setMasteryVersion(v => v + 1);
-      if (masteredId) {
-        // Mark this stop for reveal; the actual reveal fires in the
-        // effect below once stops re-evaluates with the new mastery data.
-        setRevealingIds(prev => new Set([...prev, masteredId]));
-      }
-    };
+    const onMastered = () => setMasteryVersion(v => v + 1);
     window.addEventListener('spellify-list-mastered', onMastered);
     return () => window.removeEventListener('spellify-list-mastered', onMastered);
   }, []);
+
+  // ── Mount effect — deferred celebration on return from mastery ────────────
+  // Problem: 'spellify-map-return' fires from ListHub/backHome BEFORE this
+  // component mounts (React batches the section-switch after the button click,
+  // so the event is dispatched before the new tree renders). We can't receive
+  // an event that fires before our listener is wired up.
+  //
+  // Solution — position comparison (no window flag):
+  //   _lastActiveStopPos stores the orb Buddy was sitting on when the user
+  //   left for a list. On mount, compare that saved position with the current
+  //   active stop. If they differ the list was mastered (active advanced) →
+  //   fire the celebration. If they are the same → no mastery → just clear.
+  //
+  // React 18 Strict Mode runs useEffect(fn, []) twice (run → cleanup → run).
+  // The outer body must NOT clear _lastActiveStopPos — only the timer callback
+  // does, so the second StrictMode run still finds the value intact.
+  useEffect(() => {
+    const hopFrom = _lastActiveStopPos ? { ..._lastActiveStopPos } : null;
+    if (!hopFrom) return; // Nothing pending — buddy is already in the right place.
+
+    // 150 ms gives stopsRef time to be populated by the sync effect below.
+    const t = setTimeout(() => {
+      _lastActiveStopPos = null; // Clear INSIDE the timer — Strict Mode safe.
+      const currentStops = stopsRef.current;
+      const hopTo = currentStops.find(s => s.state === 'active');
+
+      if (!hopTo) { setBuddyHopFrom(null); return; }
+
+      // Position comparison — did the active orb change while we were away?
+      const posChanged = hopTo.x !== hopFrom.x || hopTo.y !== hopFrom.y;
+      if (!posChanged) {
+        // Same orb → user exited without mastering. No hop needed.
+        setBuddyHopFrom(null);
+        return;
+      }
+
+      // Active orb moved → list was mastered → celebrate + hop.
+      const recentCompleted = currentStops
+        .filter(s => s.state === 'completed')
+        .slice(-1)
+        .map(s => s.list?.id)
+        .filter(Boolean);
+      const ids = new Set([...recentCompleted, hopTo.list?.id].filter(Boolean));
+      fireCelebration(ids, hopFrom, { x: hopTo.x, y: hopTo.y });
+    }, 150);
+    return () => clearTimeout(t);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── spellify-map-return event ─────────────────────────────────────────────
+  // Belt-and-braces for the case where AdventureMap stays mounted in the
+  // background (e.g. future rendering architectures). The mount effect handles
+  // the common unmount→remount path; this listener handles the stay-mounted
+  // path. _lastActiveStopPos is cleared immediately to prevent double-fire if
+  // both ListHub and backHome dispatch the event in the same tick.
+  useEffect(() => {
+    const onMapReturn = () => {
+      const hopFrom = _lastActiveStopPos ? { ..._lastActiveStopPos } : null;
+      _lastActiveStopPos = null; // Immediate clear — prevents double-fire.
+
+      if (!hopFrom) return; // No position recorded — nothing to animate.
+
+      // Park buddy at the "from" orb right away so there's no flash at
+      // the destination before the hop animation kicks off.
+      setBuddyHopFrom(hopFrom);
+
+      setTimeout(() => {
+        const currentStops = stopsRef.current;
+        const hopTo = currentStops.find(s => s.state === 'active');
+
+        if (!hopTo) { setBuddyHopFrom(null); return; }
+
+        // Position comparison — only hop if the active orb actually moved.
+        const posChanged = hopTo.x !== hopFrom.x || hopTo.y !== hopFrom.y;
+        if (!posChanged) { setBuddyHopFrom(null); return; }
+
+        const recentCompleted = currentStops
+          .filter(s => s.state === 'completed')
+          .slice(-1)
+          .map(s => s.list?.id)
+          .filter(Boolean);
+        const ids = new Set([...recentCompleted, hopTo.list?.id].filter(Boolean));
+        fireCelebration(ids, hopFrom, { x: hopTo.x, y: hopTo.y });
+      }, 150);
+    };
+    window.addEventListener('spellify-map-return', onMapReturn);
+    return () => window.removeEventListener('spellify-map-return', onMapReturn);
+  }, [fireCelebration]);
 
   useEffect(() => { setSelectedIsleId(isleForYear(sessionYear).id); }, [sessionYear]);
 
@@ -200,39 +334,14 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coords, chapterLists, landmarks, masteryVersion]);
 
-  // Detect stop state transitions (e.g. locked→completed, locked→active)
-  // and fire the map-return celebration + reveal animation (Part 6).
+  // Keep stopsRef in sync so event-listener closures (spellify-map-return)
+  // can read the latest orb positions without a stale-closure risk.
+  useEffect(() => { stopsRef.current = stops; }, [stops]);
+
+  // Keep a snapshot of stop states so we can detect transitions in future
+  // renders (currently used by stopsRef; kept for forward-compatibility).
   useEffect(() => {
-    const snap = stops.map(s => ({ id: s.list?.id || null, state: s.state }));
-    const prev = prevStopsSnap.current;
-    if (prev) {
-      const newlyCompleted = snap.filter((s, i) =>
-        s.state === 'completed' && prev[i]?.state !== 'completed'
-      );
-      const newlyUnlocked = snap.filter((s, i) =>
-        s.state === 'active' && (prev[i]?.state === 'locked' || prev[i]?.state === 'next')
-      );
-      if (newlyCompleted.length > 0) {
-        // Staggered celebration: buddy + confetti burst
-        setTimeout(() => fireBuddyCheer(), 200);
-        setTimeout(() => {
-          confetti({
-            particleCount: 130,
-            spread: 85,
-            origin: { y: 0.48 },
-            colors: ['#6bcb77', '#ffd93d', '#c77dff', '#ec4899', '#60a5fa', '#fff'],
-          });
-        }, 350);
-        // Reveal animation for newly-transitioned stops
-        const ids = new Set([
-          ...newlyCompleted.map(s => s.id),
-          ...newlyUnlocked.map(s => s.id),
-        ].filter(Boolean));
-        setRevealingIds(ids);
-        setTimeout(() => setRevealingIds(new Set()), 700);
-      }
-    }
-    prevStopsSnap.current = snap;
+    prevStopsSnap.current = stops.map(s => ({ id: s.list?.id || null, state: s.state }));
   }, [stops]);
 
   const activeStop = activeIdx >= 0 ? stops[activeIdx] : null;
@@ -289,6 +398,11 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
       setLockedMsg('Complete earlier stops to unlock');
       setTimeout(() => setLockedMsg(null), 1800);
       return;
+    }
+    // Save buddy's current orb position so the hop animation knows its
+    // starting point when the user returns after mastering the list.
+    if (stop.state === 'active') {
+      _lastActiveStopPos = { x: stop.x, y: stop.y };
     }
     if (typeof onOpenList === 'function') onOpenList(stop.list);
     else onSectionChange?.('exploreDashboard');
@@ -504,16 +618,35 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
               );
             })}
 
-            {/* Buddy sits on the active disc */}
-            {activeStop && (
-              <div className="am-v2-buddy" style={{ left: `${activeStop.x}%`, top: `${activeStop.y}%` }}>
+            {/* Buddy sits on the active disc; hops to it after a stage advance.
+                buddyHopFrom overrides activeStop while the pre-hop pause plays
+                so the very first paint shows buddy at the correct "from" orb. */}
+            {(activeStop || buddyHopFrom) && (() => {
+              const bPos = buddyHopFrom || { x: activeStop.x, y: activeStop.y };
+              return (
+              <div
+                className={`am-v2-buddy${buddyHop ? ' am-v2-buddy--hopping' : ''}`}
+                style={{
+                  left: `${bPos.x}%`,
+                  top:  `${bPos.y}%`,
+                  ...(buddyHop ? {
+                    '--bh-from-x': `${buddyHop.fromX}%`,
+                    '--bh-from-y': `${buddyHop.fromY}%`,
+                    '--bh-mid-x':  `${buddyHop.midX}%`,
+                    '--bh-mid-y':  `${buddyHop.midY}%`,
+                    '--bh-to-x':   `${buddyHop.toX}%`,
+                    '--bh-to-y':   `${buddyHop.toY}%`,
+                  } : {}),
+                }}
+              >
                 <BuddyAvatar
                   id={session?.childCharacter?.id || 'raccoon'}
                   fallback={session?.childCharacter?.emoji || '🦝'}
                   size={56}
                 />
               </div>
-            )}
+              );
+            })()}
 
             {/* ── Chapter advance CTA — bottom of the panoramic ── */}
             {hasNextChapter && (

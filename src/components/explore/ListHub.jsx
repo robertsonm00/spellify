@@ -75,9 +75,10 @@ export default function ListHub({
   markComplete,
   user,
   onCreateAccount = null,
-  // Called when the child taps "Next word list →" in the mastery modal.
-  // If omitted the button is hidden (e.g. custom lists have no natural next).
-  onNextList = null,
+  // 'map' when opened from the Adventure Map — shows "Next word list →" in
+  // the mastery modal so the player returns to the map to advance the stage.
+  // 'internal' (default) for lists opened from within ExploreDashboard.
+  listOrigin = 'internal',
   /* Optional injection slots so wrappers (e.g. ExploreDashboard) can drop
      custom UI inside the WORD LIST panel without forking ListHub. */
   listNamePanel = null,
@@ -675,12 +676,21 @@ export default function ListHub({
               </p>
 
               <div className="lh-mastery-actions">
-                {typeof onNextList === 'function' && (
+                {listOrigin === 'map' && (
                   <button
                     className="lh-mastery-btn lh-mastery-btn--primary"
                     onClick={() => {
                       setShowMasteryModal(false);
-                      onNextList();
+                      // Dispatch the map-return signal so AdventureMap can run
+                      // the staged reveal + buddy hop if it is already mounted
+                      // in the background. If the map is currently unmounted
+                      // (the common case — the section switch happens in onBack)
+                      // the event fires into the void; AdventureMap's own mount
+                      // effect detects the stage advance via position comparison.
+                      window.dispatchEvent(new CustomEvent('spellify-map-return', {
+                        detail: { listId: list.id },
+                      }));
+                      onBack();
                     }}
                   >
                     Next word list →

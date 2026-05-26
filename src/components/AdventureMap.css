@@ -941,6 +941,50 @@
   filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.65));
 }
 
+/* Part 7 — Buddy hop: arc from completed orb to newly active orb.
+   CSS custom properties (--bh-from-x/y, --bh-mid-x/y, --bh-to-x/y) are
+   set via inline style from JS so the keyframe values are dynamic. The
+   base transform stays so Buddy is centred on the orb at both ends. */
+.am-v2-buddy--hopping {
+  animation: am-v2-buddy-hop 0.9s cubic-bezier(0.45, 0, 0.55, 1) forwards;
+}
+@keyframes am-v2-buddy-hop {
+  0% {
+    left: var(--bh-from-x);
+    top:  var(--bh-from-y);
+    transform: translate(-50%, calc(-100% + 18px)) scale(1);
+  }
+  12% {
+    /* Lift-off — small squash then stretch */
+    transform: translate(-50%, calc(-100% + 18px)) scale(1.1, 0.92) rotate(-4deg);
+  }
+  40% {
+    /* Arc apex — Buddy floats above the midpoint */
+    left: var(--bh-mid-x);
+    top:  var(--bh-mid-y);
+    transform: translate(-50%, calc(-100% + 18px)) scale(0.95, 1.12);
+  }
+  78% {
+    /* Approaching landing */
+    left: var(--bh-to-x);
+    top:  var(--bh-to-y);
+    transform: translate(-50%, calc(-100% + 18px)) scale(1.15, 0.88);
+  }
+  88% {
+    /* Bounce overshoot — squash on impact */
+    transform: translate(-50%, calc(-100% + 22px)) scale(1.22, 0.82);
+  }
+  95% {
+    /* Bounce rebound — slight stretch */
+    transform: translate(-50%, calc(-100% + 14px)) scale(0.96, 1.06);
+  }
+  100% {
+    left: var(--bh-to-x);
+    top:  var(--bh-to-y);
+    transform: translate(-50%, calc(-100% + 18px)) scale(1);
+  }
+}
+
 /* ── Floating HFW pin (always accessible) ────────────────────────── */
 .am-v2-hfw {
   position: absolute;
