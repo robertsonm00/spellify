@@ -145,6 +145,18 @@ body {
   min-height: calc(100vh - 68px);
 }
 
+/* ── Universal magical game background ────────────────────────────────────
+   Applied to the root element of every game screen that uses the magical
+   star-field theme (Word Search, Memory Spell, Spell Duel, …).
+   Add className="… game-magical-bg" to any new game to inherit it. */
+.game-magical-bg {
+  background-color: var(--app-bg-base-color);
+  background-image: var(--app-bg-stars), var(--app-bg-gradient);
+  background-size: var(--app-bg-stars-size);
+  background-attachment: fixed;
+  color: #fff;
+}
+
 /* ── Exit confirmation modal ── */
 
 .exit-overlay {

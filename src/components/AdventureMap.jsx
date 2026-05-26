@@ -64,6 +64,17 @@ const ISLE_CHAPTERS = {
   ],
 };
 
+// Sign board image for each isle — drop in a new entry when new art arrives.
+// Keyed by isle theme; value is the public path to the sign image.
+const ISLE_SIGNS = {
+  ember: '/adventure/ember_isle_sign.webp',
+  flare: '/adventure/flare_isle_sign.webp',
+  // blaze, aurora: add sign art here when ready
+};
+
+// Fixed right-hand sign for the HFW Island — always visible on the map.
+const HFW_SIGN = '/adventure/High-frequency_island_sign.png';
+
 // ── Module-level persistence (survives React unmount/remount cycles) ─────────
 // When the user taps an active stop the orb position is saved here so the
 // hop animation knows where Buddy was sitting even after the component
@@ -454,33 +465,15 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
 
   return (
     <main className={`am-root am-theme--${selectedIsle.theme}`}>
-      {/* Floating topbar — isle pill + HFW pin */}
-      <header className="am-topbar">
-        <button
-          type="button"
-          className="am-isle-pill"
-          onClick={() => setSwitcherOpen(true)}
-          aria-haspopup="dialog"
-          aria-expanded={switcherOpen}
-        >
-          <span className="am-isle-pill__emoji" aria-hidden="true">{selectedIsle.emoji}</span>
-          <span className="am-isle-pill__name">{selectedIsle.name}</span>
-          <span className="am-isle-pill__chev" aria-hidden="true">▾</span>
-        </button>
-      </header>
+      {/* Shooting stars — three staggered streaks across the backdrop */}
+      <div className="am-shooting-stars" aria-hidden="true">
+        <span className="am-shooting-star am-shooting-star--1" />
+        <span className="am-shooting-star am-shooting-star--2" />
+        <span className="am-shooting-star am-shooting-star--3" />
+      </div>
 
       {/* Painted panoramic map with nodes positioned on the painted path */}
       <div className="am-v2-wrap">
-        <button
-          type="button"
-          className="am-v2-hfw"
-          onClick={() => onSectionChange?.('exploreDashboard')}
-          aria-label="HFW Island"
-        >
-          <span className="am-v2-hfw__emoji" aria-hidden="true">🏝️</span>
-          <span className="am-v2-hfw__name">HFW</span>
-        </button>
-
         <div
           className="am-viewport am-viewport--v2"
           ref={viewportRef}
@@ -737,7 +730,7 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
 
         {/* Chapter pill — shown beside the isle pill (sticky top) */}
         <div className="am-v2-chapter-badge" aria-hidden="true">
-          Chapter {chapterIdx + 1} <span className="am-v2-chapter-badge__div">·</span> {chapterIdx + 1} / {totalChapters}
+          Chapter {chapterIdx + 1}
         </div>
       </div>
 
@@ -760,6 +753,33 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
           <span className="am-v2-back-to-latest__label">Back to Latest Level</span>
         </button>
       )}
+
+      {/* ── Isle sign — bottom-left, clicks open the island switcher ── */}
+      {ISLE_SIGNS[selectedIsle.theme] && (
+        <button
+          type="button"
+          className="am-isle-sign"
+          onClick={() => setSwitcherOpen(true)}
+          aria-haspopup="dialog"
+          aria-expanded={switcherOpen}
+          aria-label={`${selectedIsle.name} — switch island`}
+        >
+          <img
+            src={ISLE_SIGNS[selectedIsle.theme]}
+            alt={`${selectedIsle.name} sign`}
+          />
+        </button>
+      )}
+
+      {/* ── HFW Island sign — fixed bottom-right, navigates to HFW hub ── */}
+      <button
+        type="button"
+        className="am-hfw-sign"
+        onClick={() => onSectionChange?.('exploreDashboard')}
+        aria-label="Go to High-Frequency Island"
+      >
+        <img src={HFW_SIGN} alt="High-Frequency Island sign" />
+      </button>
 
       {switcherOpen && (
         <div className="am-switcher-overlay" onClick={() => setSwitcherOpen(false)}>

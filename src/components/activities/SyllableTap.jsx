@@ -166,7 +166,7 @@ function SyllableTap({ words, onComplete, onExit, savedProgress = null, onSavePr
   if (phase === 'complete') {
     const wins = results.filter((r) => r.correct).length;
     return (
-      <>
+      <div className="st-wrap game-magical-bg">
         <GameHeader title="Syllable Tap" onExit={onExit} />
         <GameProgressStrip percent={100}>
           {results.length} of {queue.length} words done
@@ -188,23 +188,23 @@ function SyllableTap({ words, onComplete, onExit, savedProgress = null, onSavePr
             </button>
           </div>
         </div>
-      </>
+      </div>
     );
   }
 
   if (!word) {
     return (
-      <>
+      <div className="st-wrap game-magical-bg">
         <GameHeader title="Syllable Tap" onExit={onExit} />
         <div className="st-shell">
           <p>No words available.</p>
         </div>
-      </>
+      </div>
     );
   }
 
   return (
-    <div className="st-wrap">
+    <div className="st-wrap game-magical-bg">
       <GameHeader title="Syllable Tap" onExit={onExit} />
       <GameProgressStrip percent={(wordIndex / queue.length) * 100}>
         Word {wordIndex + 1} of {queue.length}
@@ -230,7 +230,7 @@ function SyllableTap({ words, onComplete, onExit, savedProgress = null, onSavePr
                 onClick={handleUndo}
                 aria-label="Undo last tap"
               >
-                ↶ Undo
+                ↩ Undo
               </button>
             ) : (
               <span className="st-tap-row-spacer" aria-hidden="true" />
@@ -247,7 +247,7 @@ function SyllableTap({ words, onComplete, onExit, savedProgress = null, onSavePr
 
             {/* Done appears after the first tap. */}
             {taps >= 1 ? (
-              <button className="st-cta" onClick={handleDone}>
+              <button className="st-cta st-cta--done" onClick={handleDone}>
                 Done ✓
               </button>
             ) : (

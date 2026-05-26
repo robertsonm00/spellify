@@ -1189,26 +1189,226 @@
 .am-v2-chapter-badge {
   position: absolute;
   top: 16px;
-  left: calc(50% + 60px);   /* sits beside the floating isle pill */
+  left: 50%;
   transform: translateX(-50%);
-  padding: 6px 12px;
+  padding: 8px 18px;
   border-radius: 999px;
   border: 1.5px solid rgba(199, 125, 255, 0.4);
   background: rgba(20, 8, 32, 0.78);
   color: #cdb4ff;
   font-family: 'Press Start 2P', monospace;
-  font-size: 0.55rem;
+  font-size: 0.75rem;
   letter-spacing: 0.05em;
   z-index: 6;
+  white-space: nowrap;
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
 }
-.am-v2-chapter-badge__div { opacity: 0.5; margin: 0 3px; }
 @media (max-width: 640px) {
   .am-v2-chapter-badge {
-    left: 50%;
     top: auto;
-    bottom: 12px;       /* on mobile, float above the footer */
-    transform: translateX(-50%);
+    bottom: 12px;
+    font-size: 0.65rem;
   }
+}
+
+/* ── Isle sign board — bottom-left corner, above the footer ────────────────
+   The sign image floats in place with a warm amber backlight that breathes
+   gently, simulating a torch or lantern glowing behind the wooden post. */
+.am-isle-sign {
+  position: fixed;
+  bottom: 96px;
+  left: 0;
+  z-index: 20;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  user-select: none;
+}
+
+.am-isle-sign:hover img,
+.am-isle-sign:focus-visible img {
+  filter:
+    drop-shadow(2px 5px 10px rgba(0, 0, 0, 0.9))
+    drop-shadow(0 0 28px rgba(255, 255, 255, 1.0))
+    drop-shadow(0 0 60px rgba(0, 230, 255, 0.95))
+    drop-shadow(0 0 100px rgba(40, 120, 255, 0.75));
+}
+
+.am-isle-sign:focus-visible {
+  outline: 2px solid #c77dff;
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+.am-isle-sign img {
+  width: 238px;
+  height: auto;
+  display: block;
+  filter:
+    drop-shadow(2px 5px 10px rgba(0, 0, 0, 0.9))
+    drop-shadow(0 0 20px rgba(255, 255, 255, 0.95))
+    drop-shadow(0 0 45px rgba(0, 210, 255, 0.85))
+    drop-shadow(0 0 80px rgba(30, 100, 255, 0.65));
+  transform-origin: bottom center;
+}
+
+/* Breathing backlight — electric blue/aqua/white halo pulses */
+@keyframes am-sign-glow {
+  0%, 100% {
+    filter:
+      drop-shadow(2px 5px 10px rgba(0, 0, 0, 0.9))
+      drop-shadow(0 0 16px rgba(255, 255, 255, 0.80))
+      drop-shadow(0 0 38px rgba(0, 200, 255, 0.70))
+      drop-shadow(0 0 65px rgba(20, 80, 255, 0.50));
+  }
+  50% {
+    filter:
+      drop-shadow(2px 5px 10px rgba(0, 0, 0, 0.9))
+      drop-shadow(0 0 28px rgba(255, 255, 255, 1.0))
+      drop-shadow(0 0 60px rgba(0, 230, 255, 0.95))
+      drop-shadow(0 0 100px rgba(40, 120, 255, 0.75));
+  }
+}
+
+@media (min-width: 769px) {
+  .am-isle-sign {
+    bottom: 80px; /* desktop footer height */
+  }
+}
+
+@media (max-width: 640px) {
+  .am-isle-sign img {
+    width: 168px;
+  }
+}
+
+/* ── HFW Island sign — fixed bottom-right, bleeds slightly into footer ── */
+.am-hfw-sign {
+  position: fixed;
+  bottom: 46px;
+  right: 0;
+  z-index: 49;
+  background: none;
+  border: none;
+  padding: 0 8px 0 0;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.2s ease;
+}
+
+.am-hfw-sign:hover img,
+.am-hfw-sign:focus-visible img {
+  filter:
+    drop-shadow(2px 5px 10px rgba(0, 0, 0, 0.9))
+    drop-shadow(0 0 28px rgba(255, 255, 255, 1.0))
+    drop-shadow(0 0 60px rgba(220, 150, 255, 0.95))
+    drop-shadow(0 0 100px rgba(140, 50, 255, 0.75));
+}
+
+.am-hfw-sign:focus-visible {
+  outline: 2px solid #c77dff;
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+.am-hfw-sign img {
+  width: 164px;
+  height: auto;
+  display: block;
+  filter:
+    drop-shadow(2px 5px 8px rgba(0, 0, 0, 0.9))
+    drop-shadow(0 0 8px rgba(236, 72, 153, 0.90))
+    drop-shadow(0 0 16px rgba(199, 125, 255, 0.80));
+  transition: filter 0.2s ease;
+}
+
+.am-hfw-sign:hover,
+.am-hfw-sign:focus-visible {
+  transform: translateY(-4px);
+}
+
+@media (min-width: 769px) {
+  .am-hfw-sign {
+    bottom: 31px;
+  }
+}
+
+@media (max-width: 640px) {
+  .am-hfw-sign img {
+    width: 116px;
+  }
+}
+
+/* ── Shooting stars ────────────────────────────────────────────────────────
+   Three independent streaks on staggered 45s cycles — one fires roughly
+   every 15 seconds. Mirrors the ExploreDashboard implementation. */
+.am-shooting-stars {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 1; /* above the background image, below map nodes */
+}
+
+.am-shooting-star {
+  position: absolute;
+  width: 140px;
+  height: 2px;
+  border-radius: 999px;
+  opacity: 0;
+  background: linear-gradient(90deg, transparent 0%, currentColor 70%, currentColor 100%);
+  filter: drop-shadow(0 0 6px currentColor);
+}
+
+/* Path 1 — pink, top-right → bottom-left. */
+.am-shooting-star--1 {
+  color: #ec4899;
+  top: 12%;
+  right: 0;
+  animation: am-shooting-star-1 45s linear infinite;
+}
+@keyframes am-shooting-star-1 {
+  0%    { transform: translate(140px, 0) rotate(155deg);      opacity: 0; }
+  1%    { opacity: 1; }
+  5%    { opacity: 1; }
+  5.5%  { transform: translate(-110vw, 55vh) rotate(155deg);  opacity: 0; }
+  100%  { transform: translate(-110vw, 55vh) rotate(155deg);  opacity: 0; }
+}
+
+/* Path 2 — gold, top-left → bottom-right. Fires 15s after Path 1. */
+.am-shooting-star--2 {
+  color: #FFD700;
+  top: 6%;
+  left: 0;
+  animation: am-shooting-star-2 45s linear infinite;
+  animation-delay: 15s;
+}
+@keyframes am-shooting-star-2 {
+  0%    { transform: translate(-140px, 0) rotate(25deg);    opacity: 0; }
+  1%    { opacity: 1; }
+  5%    { opacity: 1; }
+  5.5%  { transform: translate(115vw, 70vh) rotate(25deg);  opacity: 0; }
+  100%  { transform: translate(115vw, 70vh) rotate(25deg);  opacity: 0; }
+}
+
+/* Path 3 — white, top-centre → bottom-right. Fires 30s after Path 1. */
+.am-shooting-star--3 {
+  color: #fff;
+  top: 0;
+  left: 38%;
+  animation: am-shooting-star-3 45s linear infinite;
+  animation-delay: 30s;
+}
+@keyframes am-shooting-star-3 {
+  0%    { transform: translate(0, -140px) rotate(45deg);   opacity: 0; }
+  1%    { opacity: 1; }
+  5%    { opacity: 1; }
+  5.5%  { transform: translate(55vw, 100vh) rotate(45deg); opacity: 0; }
+  100%  { transform: translate(55vw, 100vh) rotate(45deg); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .am-shooting-star { animation: none !important; opacity: 0; }
 }

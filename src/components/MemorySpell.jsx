@@ -313,7 +313,7 @@ export default function MemorySpell({
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
-  const wrapClass = `ms-wrap${dyslexiaMode ? ' ms-wrap--es' : ''}`;
+  const wrapClass = `ms-wrap game-magical-bg${dyslexiaMode ? ' ms-wrap--es' : ''}`;
 
   const topbar = <GameHeader title="Memory Spell" onExit={onExit} />;
 

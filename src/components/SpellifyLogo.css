@@ -1,56 +1,146 @@
-/* Floating Spellify wordmark — fixed top-left, no chrome behind it. */
+/* ── Spellify floating wordmark — magical adventure edition ─────────────── */
 
 .spellify-logo {
   position: fixed;
-  top: calc(env(safe-area-inset-top, 0px) + 14px);
-  left: 16px;
-  z-index: 1100;          /* above the map, below modal overlays */
+  top: calc(env(safe-area-inset-top, 0px) + 22px);
+  left: 32px;
+  z-index: 1100;
   background: none;
   border: none;
-  padding: 0;
+  padding: 10px 14px;
   margin: 0;
   cursor: pointer;
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* Transition for hover lift */
+  transition: transform 0.18s ease;
+}
+
+.spellify-logo:hover  { transform: translateY(-2px); }
+.spellify-logo:active { transform: translateY(0); }
+
+/* ── Frosted backdrop ── */
+.spellify-logo__backdrop {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  background: rgba(10, 4, 24, 0.45);
+  border: 1px solid rgba(199, 125, 255, 0.25);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow:
+    0 2px 16px rgba(0, 0, 0, 0.45),
+    inset 0 0 12px rgba(199, 125, 255, 0.08);
+  pointer-events: none;
+}
+
+/* ── Wordmark ── */
+.spellify-logo__word {
+  position: relative;
+  display: inline-flex;
   align-items: baseline;
   gap: 1px;
-  /* Soft drop shadow keeps it legible against either light sky or
-     dark sea on the painted backdrop. */
-  filter:
-    drop-shadow(0 1px 0 rgba(0, 0, 0, 0.75))
-    drop-shadow(0 0 8px rgba(0, 0, 0, 0.55));
+  z-index: 1;
 }
 
+/* ── Individual letters ── */
 .spellify-logo__letter {
   font-family: 'Press Start 2P', monospace;
-  font-size: 1.05rem;
+  font-size: 1.365rem;
   line-height: 1;
   display: inline-block;
-  animation: spellify-logo-bob 3.4s ease-in-out infinite;
+  animation: spellify-logo-wave 2.8s ease-in-out infinite;
+  /* Deep layered glow: inner colour glow + dark outline for legibility */
   text-shadow:
-    0 1px 0 rgba(0, 0, 0, 0.4),
-    0 0 6px currentColor;
+    0 0 8px currentColor,
+    0 0 20px currentColor,
+    0 2px 0 rgba(0, 0, 0, 0.8),
+    0 0 2px rgba(0, 0, 0, 0.9);
+  transition: filter 0.15s ease;
 }
 
-@keyframes spellify-logo-bob {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-2px); }
+/* Wave float — each letter gets a staggered delay via inline style */
+@keyframes spellify-logo-wave {
+  0%, 100% { transform: translateY(0);    }
+  50%       { transform: translateY(-4px); }
 }
 
-.spellify-logo:hover .spellify-logo__letter { filter: brightness(1.15); }
+/* Brighten glows on hover */
+.spellify-logo:hover .spellify-logo__letter {
+  text-shadow:
+    0 0 12px currentColor,
+    0 0 30px currentColor,
+    0 0 50px currentColor,
+    0 2px 0 rgba(0, 0, 0, 0.8);
+}
+
+/* ── Sparkle stars ── */
+.spellify-logo__spark {
+  position: absolute;
+  z-index: 2;
+  font-size: 0.55rem;
+  pointer-events: none;
+  animation: spellify-spark-float 2.4s ease-in-out infinite;
+  opacity: 0;
+}
+
+@keyframes spellify-spark-float {
+  0%        { opacity: 0;    transform: translateY(0)    scale(0.6); }
+  25%, 75%  { opacity: 1;    transform: translateY(-4px) scale(1);   }
+  100%      { opacity: 0;    transform: translateY(-8px) scale(0.6); }
+}
+
+/* Star positions + colours + timing offsets */
+.spellify-logo__spark--1 {
+  color: #fbbf24;
+  top: 2px;
+  left: 8%;
+  animation-delay: 0s;
+  animation-duration: 2.2s;
+}
+.spellify-logo__spark--2 {
+  color: #ec4899;
+  top: 0px;
+  right: 10%;
+  animation-delay: 0.6s;
+  animation-duration: 2.8s;
+}
+.spellify-logo__spark--3 {
+  color: #06b6d4;
+  bottom: 2px;
+  left: 28%;
+  animation-delay: 1.2s;
+  animation-duration: 2.0s;
+}
+.spellify-logo__spark--4 {
+  color: #c77dff;
+  bottom: 4px;
+  right: 22%;
+  animation-delay: 1.8s;
+  animation-duration: 2.5s;
+}
+
+/* ── Focus ring ── */
 .spellify-logo:focus-visible {
   outline: 2px solid #ffd93d;
-  outline-offset: 6px;
-  border-radius: 6px;
+  outline-offset: 4px;
+  border-radius: 14px;
 }
 
+/* ── Mobile scale down ── */
 @media (max-width: 540px) {
-  .spellify-logo__letter { font-size: 0.85rem; }
+  .spellify-logo__letter { font-size: 1.105rem; }
 }
 
-/* Hide the floating wordmark while the Word List Hub (ed-active) or a
-   game (game-active) is mounted — the Back button / Exit button take its
-   slot, and the logo would overlap them. */
+/* ── Hide during hub (ed-active) or in-game (game-active) ── */
 body.ed-active .spellify-logo,
 body.game-active .spellify-logo {
   display: none;
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .spellify-logo__letter { animation: none; }
+  .spellify-logo__spark  { animation: none; opacity: 0; }
 }

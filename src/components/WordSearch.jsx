@@ -394,7 +394,7 @@ export default function WordSearch({ words, wordObjects = [], year = null, saved
             title={`Move list to the ${listSide === 'left' ? 'right' : 'left'}`}
             aria-label={`Move list to the ${listSide === 'left' ? 'right' : 'left'}`}
           >
-            {listSide === 'left' ? '→' : '←'}
+            {listSide === 'left' ? '→' : '←'} Switch
           </button>
           <ul className="ws-word-list">
             {placedWords.map(({ word }) => {

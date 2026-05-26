@@ -141,8 +141,8 @@
 .ws-progress-strip {
   position: relative;
   width: 100%;
-  height: 26px;
-  background: #e9d5ff;   /* light purple track */
+  height: 28px;
+  background: transparent;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -152,8 +152,23 @@
 .ws-bar-fill {
   position: absolute;
   left: 0; top: 0; bottom: 0;
-  background: linear-gradient(90deg, #6bcb77, #4ade80);
+  background: linear-gradient(
+    90deg,
+    #c77dff 0%,
+    #ec4899 25%,
+    #06b6d4 50%,
+    #c77dff 75%,
+    #ec4899 100%
+  );
+  background-size: 300% 100%;
+  animation: ws-fill-shimmer 3s linear infinite;
+  box-shadow: 0 0 14px rgba(199, 125, 255, 0.55), 0 0 6px rgba(6, 182, 212, 0.4);
   transition: width 0.35s ease;
+}
+
+@keyframes ws-fill-shimmer {
+  0%   { background-position: 100% 50%; }
+  100% { background-position:   0% 50%; }
 }
 
 .ws-count {
@@ -247,13 +262,11 @@
    is sitting on at the end of a drag.                                  */
 .ws-cell--sel,
 .ws-cell--sel:hover                   { background: #ffd93d; color: #1a1a2e; }
-/* Found cells stay green by default; hover deepens to a darker green so the
-   user still gets visual feedback when pointing at an already-found cell. */
-.ws-cell--found                       { background: #bbf7d0; color: #14532d; }
-.ws-cell--found:hover                 { background: #86efac; color: #14532d; }
-/* found always beats selected, but hover still tints */
-.ws-cell--found.ws-cell--sel          { background: #bbf7d0; color: #14532d; }
-.ws-cell--found.ws-cell--sel:hover    { background: #86efac; color: #14532d; }
+/* Found cells — same yellow as the selection highlight. */
+.ws-cell--found                       { background: #ffd93d; color: #1a1a2e; }
+.ws-cell--found:hover                 { background: #ffd93d; color: #1a1a2e; }
+.ws-cell--found.ws-cell--sel          { background: #ffd93d; color: #1a1a2e; }
+.ws-cell--found.ws-cell--sel:hover    { background: #ffd93d; color: #1a1a2e; }
 
 /* ── Toast ── */
 
@@ -513,29 +526,9 @@
   animation: ws-rainbow 6s linear infinite;
 }
 
-/* Progress strip — transparent background blends with the star-field page. */
+/* Progress strip — subtle bottom border to mark the boundary. */
 .ws-wrap .ws-progress-strip {
-  background: transparent;
   border-bottom: 1.5px solid rgba(199, 125, 255, 0.35);
-}
-
-/* Animated magical fill — purples / pinks / aqua shimmer. */
-.ws-wrap .ws-bar-fill {
-  background: linear-gradient(
-    90deg,
-    #c77dff 0%,
-    #ec4899 25%,
-    #06b6d4 50%,
-    #c77dff 75%,
-    #ec4899 100%
-  );
-  background-size: 300% 100%;
-  animation: ws-fill-shimmer 3s linear infinite;
-  box-shadow: 0 0 14px rgba(199, 125, 255, 0.55), 0 0 6px rgba(6, 182, 212, 0.4);
-}
-@keyframes ws-fill-shimmer {
-  0%   { background-position: 100% 50%; }
-  100% { background-position:   0% 50%; }
 }
 .ws-wrap .ws-count {
   color: #FFD700;
@@ -596,18 +589,16 @@
   50%      { filter: brightness(1.18); }
 }
 
-/* Found (locked) — golden tile with a soft pink halo. */
+/* Found (locked) — same flat yellow as the selection highlight. */
 .ws-wrap .ws-cell--found,
 .ws-wrap .ws-cell--found:hover,
 .ws-wrap .ws-cell--found.ws-cell--sel,
 .ws-wrap .ws-cell--found.ws-cell--sel:hover {
-  background: linear-gradient(180deg, #FFD700 0%, #fbbf24 100%);
-  color: #2e1065;
-  border-color: #FFD700;
-  text-shadow: 0 0 4px rgba(255, 255, 255, 0.6);
-  box-shadow:
-    inset 0 0 8px rgba(255, 255, 255, 0.5),
-    0 0 12px rgba(251, 191, 36, 0.7);
+  background: #ffd93d;
+  color: #1a1a2e;
+  border-color: rgba(255, 215, 0, 0.6);
+  text-shadow: none;
+  box-shadow: none;
 }
 
 /* Word list panel — transparent, no chrome. Words float as pills. */
@@ -640,11 +631,11 @@
   text-shadow: none;
 }
 
-/* Found words — golden tint, strikethrough. */
+/* Found words — green background, strikethrough. */
 .ws-wrap .ws-word-list .game-word--done {
-  background: rgba(255, 215, 0, 0.14);
-  border-color: rgba(255, 215, 0, 0.45);
-  color: #5a4200;
+  background: rgba(74, 222, 128, 0.25);
+  border-color: rgba(74, 222, 128, 0.55);
+  color: #14532d;
   text-shadow: none;
   text-decoration: line-through;
 }

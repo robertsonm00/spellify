@@ -2,7 +2,6 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background: linear-gradient(160deg, #f0f4ff 0%, #fdf4ff 100%);
   font-family: 'Nunito', sans-serif;
 }
 
@@ -328,7 +327,7 @@
 .sd-charges-label {
   font-size: 1rem;
   font-weight: 700;
-  color: #7c3aed;
+  color: #fbbf24;
   letter-spacing: 0.02em;
 }
 
@@ -374,7 +373,7 @@
 .hm-clue-label {
   font-size: 1rem;
   font-weight: 800;
-  color: #6d28d9;
+  color: #fbbf24;
   letter-spacing: 0.02em;
   margin: 0;
 }
@@ -382,7 +381,7 @@
 .hm-clue-text {
   font-size: 1.6rem;
   font-weight: 800;
-  color: #111;
+  color: #fff;
   line-height: 1.3;
   margin: 0;
 }
@@ -452,7 +451,7 @@
 .hm-keyboard-label {
   font-size: 0.8rem;
   font-weight: 700;
-  color: rgba(0, 0, 0, 0.8);
+  color: #fff;
   letter-spacing: 0.03em;
   margin: 0 0 0.3rem;
 }
@@ -531,12 +530,13 @@
 
 .hm-complete h2 {
   margin-bottom: 0.3rem;
+  color: #fff;
 }
 
 .hm-child-name {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #667eea;
+  color: #fbbf24;
   margin: 0.5rem 0 1rem;
   letter-spacing: 0.02em;
 }
@@ -544,7 +544,7 @@
 .hm-score-big {
   font-size: 2rem;
   font-weight: 700;
-  color: #4a90e2;
+  color: #fbbf24;
   margin: 0.5rem 0 1.5rem;
 }
 
@@ -565,7 +565,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .hm-result-list li.won  { color: #2e7d32; }

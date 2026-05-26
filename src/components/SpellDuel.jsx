@@ -357,7 +357,7 @@ function SpellDuel({
     const encouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
 
     return (
-      <div className="hm-wrap">
+      <div className="hm-wrap game-magical-bg">
         {topbar}
         <GameProgressStrip percent={100}>
           {wordResults.filter(r => r.won).length} of {wordResults.length} words guessed
@@ -420,7 +420,7 @@ function SpellDuel({
   );
 
   return (
-    <div className="hm-wrap">
+    <div className="hm-wrap game-magical-bg">
       {topbar}
       <GameProgressStrip percent={queue.length > 0 ? (wordResults.length / queue.length) * 100 : 0}>
         {wordResults.length} of {queue.length} words done
