@@ -30,7 +30,7 @@ const DEFAULT_CHAPTER_COORDS = [
   { x: 40, y: 49 },
   { x: 60, y: 55 },
   { x: 39, y: 61 },
-  { x: 55, y: 67 },
+  { x: 55, y: 65 },
   { x: 49, y: 73 },
 ];
 
@@ -152,10 +152,14 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
     // (left: var(--bh-from-x)) is the only thing positioning buddy — the
     // inline `left/top` fall back to activeStop which the animation overrides.
     if (hopFrom && hopTo) {
+      // Apply the same -2 % vertical offset used in the buddy's inline style
+      // so the hop keyframes start/end exactly where the static buddy sits.
+      const adjFromY = hopFrom.y - 2;
+      const adjToY   = hopTo.y   - 2;
       const midX = (hopFrom.x + hopTo.x) / 2;
-      const midY = Math.min(hopFrom.y, hopTo.y) - 8; // apex above both orbs
+      const midY = Math.min(adjFromY, adjToY) - 8; // apex above both orbs
       setBuddyHopFrom(null);
-      setBuddyHop({ fromX: hopFrom.x, fromY: hopFrom.y, midX, midY, toX: hopTo.x, toY: hopTo.y });
+      setBuddyHop({ fromX: hopFrom.x, fromY: adjFromY, midX, midY, toX: hopTo.x, toY: adjToY });
       setTimeout(() => setBuddyHop(null), 1100);
     } else {
       setBuddyHopFrom(null);
@@ -512,39 +516,61 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
               </defs>
               {(() => {
                 if (stops.length < 2) return null;
-                let d = `M ${stops[0].x} ${stops[0].y}`;
-                for (let i = 1; i < stops.length; i++) {
+
+                // Split the path at the active stop:
+                //   dActive — stops 0 → active (animated magical trail)
+                //   dFuture — active → end      (static muted trail)
+                // Extend the animated path one stop beyond the active orb
+                // so the magic trail reaches the next stage, not just the current one.
+                const splitIdx = activeIdx >= 0
+                  ? Math.min(activeIdx + 1, stops.length - 1)
+                  : stops.length - 1;
+
+                let dActive = `M ${stops[0].x} ${stops[0].y}`;
+                for (let i = 1; i <= splitIdx; i++) {
                   const a = stops[i - 1], b = stops[i];
                   const midY = (a.y + b.y) / 2;
-                  d += ` C ${a.x} ${midY} ${b.x} ${midY} ${b.x} ${b.y}`;
+                  dActive += ` C ${a.x} ${midY} ${b.x} ${midY} ${b.x} ${b.y}`;
                 }
-                // Extend past the last stop — the path snakes onward
-                // toward the bottom of the panoramic to signal that
-                // more world lies beyond.
-                if (lastStop && hasNextChapter) {
-                  const exitX = lastStop.x < 50 ? lastStop.x + 12 : lastStop.x - 12;
-                  const exitY = 96;            // just past the painted dock
-                  const midY = (lastStop.y + exitY) / 2;
-                  d += ` C ${lastStop.x} ${midY} ${exitX} ${midY} ${exitX} ${exitY}`;
+
+                let dFuture = null;
+                if (splitIdx < stops.length - 1) {
+                  dFuture = `M ${stops[splitIdx].x} ${stops[splitIdx].y}`;
+                  for (let i = splitIdx + 1; i < stops.length; i++) {
+                    const a = stops[i - 1], b = stops[i];
+                    const midY = (a.y + b.y) / 2;
+                    dFuture += ` C ${a.x} ${midY} ${b.x} ${midY} ${b.x} ${b.y}`;
+                  }
+                  // Extend future path past the last stop
+                  if (lastStop && hasNextChapter) {
+                    const exitX = lastStop.x < 50 ? lastStop.x + 12 : lastStop.x - 12;
+                    const exitY = 96;
+                    const mY = (lastStop.y + exitY) / 2;
+                    dFuture += ` C ${lastStop.x} ${mY} ${exitX} ${mY} ${exitX} ${exitY}`;
+                  }
+                } else {
+                  // Active is the last stop — give extension to active path
+                  if (lastStop && hasNextChapter) {
+                    const exitX = lastStop.x < 50 ? lastStop.x + 12 : lastStop.x - 12;
+                    const exitY = 96;
+                    const mY = (lastStop.y + exitY) / 2;
+                    dActive += ` C ${lastStop.x} ${mY} ${exitX} ${mY} ${exitX} ${exitY}`;
+                  }
                 }
+
                 return (
                   <>
-                    {/* Outer violet aura — wider, softer, sets the
-                        magical purple atmosphere around the path */}
-                    <path d={d} className="am-v2-magic-path__aura" />
-                    {/* Warm amber halo on top of it */}
-                    <path d={d} className="am-v2-magic-path__halo" />
-                    {/* Dark grounding shadow */}
-                    <path d={d} className="am-v2-magic-path__shadow" />
-                    {/* (rope + core layers stay hidden — the path is
-                        ALL ember dashes; see CSS) */}
-                    <path d={d} className="am-v2-magic-path__rope" />
-                    <path d={d} className="am-v2-magic-path__core" />
-                    {/* Three layered moving dash currents:
-                        amber (slow), magenta (medium), white (fast) */}
-                    <path d={d} className="am-v2-magic-path__embers" />
-                    <path d={d} className="am-v2-magic-path__shimmer" />
-                    <path d={d} className="am-v2-magic-path__sparks" />
+                    {/* ── Completed / active path — full magical animated trail ── */}
+                    <path d={dActive} className="am-v2-magic-path__aura" />
+                    <path d={dActive} className="am-v2-magic-path__halo" />
+                    <path d={dActive} className="am-v2-magic-path__shadow" />
+                    <path d={dActive} className="am-v2-magic-path__rope" />
+                    <path d={dActive} className="am-v2-magic-path__core" />
+                    <path d={dActive} className="am-v2-magic-path__embers" />
+                    <path d={dActive} className="am-v2-magic-path__shimmer" />
+                    <path d={dActive} className="am-v2-magic-path__sparks" />
+                    {/* ── Future / locked path — static muted trail ── */}
+                    {dFuture && <path d={dFuture} className="am-v2-magic-path__future" />}
                   </>
                 );
               })()}
@@ -577,13 +603,18 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
                 >
                   <span className="am-v2-node__disc" aria-hidden="true">
                     <span className="am-v2-node__rim" />
-                    <span className="am-v2-node__glow" />
                     <span className="am-v2-node__face">
                       {isActive
                         ? <span className="am-v2-node__num">{idx + 1}</span>
                         : isCompleted
                           ? <span className="am-v2-node__tick">✓</span>
-                          : <span className="am-v2-node__lock">🔒</span>}
+                          : <span className="am-v2-node__lock" aria-label="Locked">
+                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <rect x="5" y="11" width="14" height="10" rx="2" fill="rgba(230,210,255,0.9)" />
+                                <path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="rgba(230,210,255,0.9)" strokeWidth="2.2" strokeLinecap="round" fill="none" />
+                                <circle cx="12" cy="16" r="1.5" fill="rgba(120,60,180,0.7)" />
+                              </svg>
+                            </span>}
                     </span>
                     {isActive && (
                       <span className="am-v2-node__sparks" aria-hidden="true">
@@ -628,7 +659,7 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
                 className={`am-v2-buddy${buddyHop ? ' am-v2-buddy--hopping' : ''}`}
                 style={{
                   left: `${bPos.x}%`,
-                  top:  `${bPos.y}%`,
+                  top:  `${bPos.y - 2}%`,
                   ...(buddyHop ? {
                     '--bh-from-x': `${buddyHop.fromX}%`,
                     '--bh-from-y': `${buddyHop.fromY}%`,
@@ -642,7 +673,7 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
                 <BuddyAvatar
                   id={session?.childCharacter?.id || 'raccoon'}
                   fallback={session?.childCharacter?.emoji || '🦝'}
-                  size={56}
+                  size={86}
                 />
               </div>
               );
