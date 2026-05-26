@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ACTIVITIES, PHASES } from '../../data/activities';
 import { getActivityAvailability } from '../../utils/activityAvailability';
 import { renderExploreActivity } from './exploreActivityRunner';
@@ -75,6 +75,9 @@ export default function ListHub({
   markComplete,
   user,
   onCreateAccount = null,
+  // Called when the child taps "Next word list →" in the mastery modal.
+  // If omitted the button is hidden (e.g. custom lists have no natural next).
+  onNextList = null,
   /* Optional injection slots so wrappers (e.g. ExploreDashboard) can drop
      custom UI inside the WORD LIST panel without forking ListHub. */
   listNamePanel = null,
@@ -91,6 +94,14 @@ export default function ListHub({
   // full unmastered list and isTestAll: true flows into recordGameCompleted.
   const [testAllStage, setTestAllStage] = useState('idle');
   const [activeWord, setActiveWord] = useState(null);
+
+  // ── Word Mastery modal (Part 4) ───────────────────────────────────────────
+  // Show once when ALL words in the list are mastered during this session.
+  // We compare the previous listProgress.status to detect the transition.
+  const [showMasteryModal, setShowMasteryModal] = useState(false);
+  // Ref stores the status from the PREVIOUS render cycle so we can detect
+  // a transition to 'completed' rather than re-showing on every render.
+  const prevListStatusRef = useRef(null);   // null = not yet initialised
 
   // Track which activities the child has started but not finished, so we can
   // flip the card CTA from "Play ▶" to "Continue ▶". Persisted per-list.
@@ -164,6 +175,37 @@ export default function ListHub({
   const masteryPct = listProgress.totalCount > 0
     ? Math.round((listProgress.masteredCount / listProgress.totalCount) * 100)
     : 0;
+
+  // ── Detect list completion transition and show mastery modal (Part 4) ────
+  // Fires once per session, only when the status CHANGES to 'completed'
+  // (not when the list was already complete on mount).
+  useEffect(() => {
+    const current = listProgress.status;
+    if (prevListStatusRef.current === null) {
+      // First render — record initial status so we can detect a future change.
+      prevListStatusRef.current = current;
+      return;
+    }
+    if (current === 'completed' && prevListStatusRef.current !== 'completed') {
+      // List just became fully mastered this session!
+      setShowMasteryModal(true);
+      // Celebration sequence: buddy cheer + confetti burst
+      setTimeout(() => fireBuddyCheer(), 200);
+      setTimeout(() => {
+        confetti({
+          particleCount: 160,
+          spread: 100,
+          origin: { y: 0.45 },
+          colors: ['#6bcb77', '#ffd93d', '#c77dff', '#ec4899', '#60a5fa', '#fff'],
+        });
+      }, 300);
+      // Tell AdventureMap to re-evaluate this list's stop state
+      window.dispatchEvent(new CustomEvent('spellify-list-mastered', {
+        detail: { listId: list.id },
+      }));
+    }
+    prevListStatusRef.current = current;
+  }, [listProgress.status, list.id]);
 
   // ── Practice Quest launch / completion ─────────────────────────────────
   const PRACTICE_QUEST_MAX = 5;
@@ -615,6 +657,44 @@ export default function ListHub({
             onPick={launchTestAll}
             onClose={() => setTestAllStage('idle')}
           />
+        )}
+
+        {/* ── Word Mastery modal (Part 4) ────────────────────────────────── */}
+        {showMasteryModal && (
+          <div
+            className="lh-mastery-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="lh-mastery-title"
+          >
+            <div className="lh-mastery-card">
+              <div className="lh-mastery-emoji" aria-hidden="true">🌟</div>
+              <h2 id="lh-mastery-title" className="lh-mastery-title">Word Master!</h2>
+              <p className="lh-mastery-sub">
+                You've mastered every word in <strong>{list.name}</strong>. Amazing work — keep going!
+              </p>
+
+              <div className="lh-mastery-actions">
+                {typeof onNextList === 'function' && (
+                  <button
+                    className="lh-mastery-btn lh-mastery-btn--primary"
+                    onClick={() => {
+                      setShowMasteryModal(false);
+                      onNextList();
+                    }}
+                  >
+                    Next word list →
+                  </button>
+                )}
+                <button
+                  className="lh-mastery-btn lh-mastery-btn--secondary"
+                  onClick={() => setShowMasteryModal(false)}
+                >
+                  Keep playing here
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
 

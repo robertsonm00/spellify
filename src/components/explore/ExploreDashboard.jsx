@@ -1002,6 +1002,22 @@ export default function ExploreDashboard({
         }
         setSelectedList(null);
       };
+
+      // "Next word list →" handler for the mastery modal (Part 4).
+      // Only wired for curriculum lists — custom lists have no natural
+      // sequence so the button is hidden when onNextList is null.
+      const handleNextList = selectedList.listType === 'curriculum' ? () => {
+        const yearLists = curriculumLists.filter(
+          l => Number(l.year) === Number(session?.year || 1)
+        );
+        const currentIdx = yearLists.findIndex(l => l.id === selectedList.list.id);
+        if (currentIdx >= 0 && currentIdx < yearLists.length - 1) {
+          openList(yearLists[currentIdx + 1], 'curriculum');
+        } else {
+          // Last list in the year — return to the list grid
+          setSelectedList(null);
+        }
+      } : null;
       const isCustom = selectedList.listType === 'custom';
       const meta = isCustom
         ? formatBannerDate(selectedList.list.created_at)
@@ -1031,6 +1047,7 @@ export default function ExploreDashboard({
             getListProgress={getListProgress}
             markComplete={handleMarkComplete}
             onBack={backHome}
+            onNextList={handleNextList}
             onCreateAccount={() => setShowSignIn(true)}
             listNamePanel={
               <div className="ed-listname-panel">

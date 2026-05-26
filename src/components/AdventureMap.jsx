@@ -1,5 +1,6 @@
 import React, { useMemo, useEffect, useState, useRef } from 'react';
-import BuddyAvatar from './BuddyAvatar';
+import confetti from 'canvas-confetti';
+import BuddyAvatar, { fireBuddyCheer } from './BuddyAvatar';
 import { curriculumLists } from '../data/curriculumLists';
 import { getMasteredWords } from '../utils/masteryEngine';
 import './AdventureMap.css';
@@ -97,6 +98,32 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
 
   const viewportRef = useRef(null);
 
+  // Bumped whenever we detect a list was just mastered (event or mount).
+  // Adding this to the `stops` memo dependency forces it to re-read
+  // mastery from localStorage so newly-completed stops show green.
+  const [masteryVersion, setMasteryVersion] = useState(0);
+  // IDs of stops currently playing the reveal animation (Part 6).
+  const [revealingIds, setRevealingIds] = useState(new Set());
+  // Snapshot of previous stop states — used to detect transitions.
+  const prevStopsSnap = useRef(null);
+
+  // Listen for the global 'spellify-list-mastered' event (fired by ListHub
+  // when the mastery modal first appears). Re-read mastery data and schedule
+  // the reveal animation for the now-completed stop + newly unlocked next stop.
+  useEffect(() => {
+    const onMastered = (e) => {
+      const masteredId = e.detail?.listId || null;
+      setMasteryVersion(v => v + 1);
+      if (masteredId) {
+        // Mark this stop for reveal; the actual reveal fires in the
+        // effect below once stops re-evaluates with the new mastery data.
+        setRevealingIds(prev => new Set([...prev, masteredId]));
+      }
+    };
+    window.addEventListener('spellify-list-mastered', onMastered);
+    return () => window.removeEventListener('spellify-list-mastered', onMastered);
+  }, []);
+
   useEffect(() => { setSelectedIsleId(isleForYear(sessionYear).id); }, [sessionYear]);
 
   const selectedIsle = SPELL_ISLES.find(i => i.id === selectedIsleId) || currentIsle;
@@ -146,6 +173,8 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
                       || isleChapters.length > 1;   // evergreen cycle
 
   // One stop per coord, mapped to its list in this chapter's slice.
+  // masteryVersion is in the dependency array so re-reads localStorage
+  // when a list is mastered (even if chapterLists reference hasn't changed).
   const { stops, activeIdx } = useMemo(() => {
     let activeAssigned = false;
     const built = coords.map((c, i) => {
@@ -168,7 +197,43 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
       built[aIdx + 1].state = 'next';
     }
     return { stops: built, activeIdx: aIdx };
-  }, [coords, chapterLists, landmarks]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [coords, chapterLists, landmarks, masteryVersion]);
+
+  // Detect stop state transitions (e.g. locked→completed, locked→active)
+  // and fire the map-return celebration + reveal animation (Part 6).
+  useEffect(() => {
+    const snap = stops.map(s => ({ id: s.list?.id || null, state: s.state }));
+    const prev = prevStopsSnap.current;
+    if (prev) {
+      const newlyCompleted = snap.filter((s, i) =>
+        s.state === 'completed' && prev[i]?.state !== 'completed'
+      );
+      const newlyUnlocked = snap.filter((s, i) =>
+        s.state === 'active' && (prev[i]?.state === 'locked' || prev[i]?.state === 'next')
+      );
+      if (newlyCompleted.length > 0) {
+        // Staggered celebration: buddy + confetti burst
+        setTimeout(() => fireBuddyCheer(), 200);
+        setTimeout(() => {
+          confetti({
+            particleCount: 130,
+            spread: 85,
+            origin: { y: 0.48 },
+            colors: ['#6bcb77', '#ffd93d', '#c77dff', '#ec4899', '#60a5fa', '#fff'],
+          });
+        }, 350);
+        // Reveal animation for newly-transitioned stops
+        const ids = new Set([
+          ...newlyCompleted.map(s => s.id),
+          ...newlyUnlocked.map(s => s.id),
+        ].filter(Boolean));
+        setRevealingIds(ids);
+        setTimeout(() => setRevealingIds(new Set()), 700);
+      }
+    }
+    prevStopsSnap.current = snap;
+  }, [stops]);
 
   const activeStop = activeIdx >= 0 ? stops[activeIdx] : null;
   const lastStop   = stops[stops.length - 1];
@@ -217,10 +282,10 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
     setSwitcherOpen(false);
   };
 
-  // Only the active stop is clickable. Tapping a locked stop flashes
-  // a brief tooltip; tapping the active one opens its game selection.
+  // Active and completed stops are both tappable. Completed lists can
+  // still be revisited for practice. Locked stops show a brief toast.
   const onStopActivate = (stop) => {
-    if (stop.state !== 'active') {
+    if (stop.state !== 'active' && stop.state !== 'completed') {
       setLockedMsg('Complete earlier stops to unlock');
       setTimeout(() => setLockedMsg(null), 1800);
       return;
@@ -372,19 +437,29 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
             </svg>
 
             {stops.map((stop, idx) => {
-              const labelSide = stop.x < 50 ? 'right' : 'left';
-              const isActive  = stop.state === 'active';
-              const renderState = isActive ? 'active' : 'locked';
-              const stars = renderState === 'completed' ? starsForList(stop.list) : 0;
+              const labelSide   = stop.x < 50 ? 'right' : 'left';
+              const isActive    = stop.state === 'active';
+              const isCompleted = stop.state === 'completed';
+              // Use the real stop state as the CSS modifier so colours are
+              // always driven by state (active/completed/locked/next/unassigned),
+              // never by hard-coded index.
+              const renderState = stop.state;
+              const stars = isCompleted ? starsForList(stop.list) : 0;
+              const isRevealing = stop.list?.id && revealingIds.has(stop.list.id);
               return (
                 <button
                   key={stop.list?.id || `slot-${stop.slotIdx}`}
                   type="button"
-                  className={`am-v2-node am-v2-node--${renderState}${stop.landmark ? ' am-v2-node--landmark' : ''}`}
+                  className={[
+                    'am-v2-node',
+                    `am-v2-node--${renderState}`,
+                    stop.landmark ? 'am-v2-node--landmark' : '',
+                    isRevealing   ? 'am-v2-node--revealing' : '',
+                  ].filter(Boolean).join(' ')}
                   onClick={(e) => { e.stopPropagation(); onStopActivate(stop); }}
                   aria-label={stop.list ? `${stop.list.name} — ${renderState}` : 'Locked stop'}
                   style={{ left: `${stop.x}%`, top: `${stop.y}%` }}
-                  disabled={!isActive}
+                  disabled={!isActive && !isCompleted}
                 >
                   <span className="am-v2-node__disc" aria-hidden="true">
                     <span className="am-v2-node__rim" />
@@ -392,7 +467,9 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
                     <span className="am-v2-node__face">
                       {isActive
                         ? <span className="am-v2-node__num">{idx + 1}</span>
-                        : <span className="am-v2-node__lock">🔒</span>}
+                        : isCompleted
+                          ? <span className="am-v2-node__tick">✓</span>
+                          : <span className="am-v2-node__lock">🔒</span>}
                     </span>
                     {isActive && (
                       <span className="am-v2-node__sparks" aria-hidden="true">
@@ -405,7 +482,7 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
                     )}
                   </span>
 
-                  {renderState === 'completed' && stars > 0 && (
+                  {isCompleted && stars > 0 && (
                     <span className="am-v2-node__stars" aria-label={`${stars} of 3 stars`}>
                       {Array.from({ length: 3 }, (_, i) => (
                         <span

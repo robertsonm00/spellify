@@ -585,8 +585,8 @@
   cursor: pointer;
   z-index: 3;
   font-family: 'Press Start 2P', monospace;
-  /* Soft idle bob for all nodes — feels alive but stays subtle for
-     locked stops (active stop gets a bigger pulse on top). */
+  /* Soft idle bob — only active / completed / next nodes bob.
+     Locked and unassigned are static (no motion, no pulse). */
   animation: am-v2-idle-bob 3.4s ease-in-out infinite;
 }
 .am-v2-node:disabled { cursor: not-allowed; }
@@ -677,39 +677,39 @@
     0 14px 22px rgba(0, 0, 0, 0.55);
 }
 .am-v2-node--active .am-v2-node__glow {
-  /* Layered halo — a wide violet outer aura behind a hot gold core.
-     The conic background adds a slowly rotating sparkly sheen. */
-  inset: -32px;
+  /* Warm light-source treatment — wide radial glow that breathes slowly,
+     like a lantern. No rotation, no mechanical ring — just warm light. */
+  inset: -28px;
   background:
-    radial-gradient(circle, rgba(255, 245, 184, 0.95) 0%, rgba(255, 217, 61, 0.7) 18%, rgba(255, 140, 60, 0.4) 38%, rgba(199, 125, 255, 0.4) 60%, rgba(120, 60, 220, 0.18) 78%, transparent 100%);
-  filter: blur(3px);
-  opacity: 1;
-  animation: am-v2-pulse-glow 1.7s ease-in-out infinite;
+    radial-gradient(circle,
+      rgba(255, 248, 200, 1)   0%,
+      rgba(255, 217, 61, 0.85) 16%,
+      rgba(255, 140, 60, 0.55) 36%,
+      rgba(255, 174, 61, 0.25) 58%,
+      rgba(199, 125, 255, 0.1) 74%,
+      transparent              88%
+    );
+  filter: blur(5px);
+  opacity: 0.9;
+  animation: am-v2-breathe 3.6s ease-in-out infinite;
 }
-/* Slow-rotating conic sparkle wash behind the disc face */
+/* Static warm inner highlight — fixed off-centre hotspot, no rotation */
 .am-v2-node--active .am-v2-node__glow::before {
   content: '';
   position: absolute;
   inset: 8px;
   border-radius: 50%;
-  background:
-    conic-gradient(
-      from 0deg,
-      rgba(255, 255, 255, 0.65) 0deg,
-      rgba(199, 125, 255, 0)   40deg,
-      rgba(255, 217, 61, 0.45) 90deg,
-      rgba(199, 125, 255, 0)   140deg,
-      rgba(255, 255, 255, 0.55) 200deg,
-      rgba(255, 174, 61, 0)    260deg,
-      rgba(199, 125, 255, 0.5) 320deg,
-      rgba(255, 255, 255, 0.65) 360deg
-    );
-  filter: blur(4px);
-  opacity: 0.7;
-  animation: am-v2-conic 6s linear infinite;
+  background: radial-gradient(circle at 44% 36%,
+    rgba(255, 255, 220, 0.75) 0%,
+    rgba(255, 217, 61, 0.4)   38%,
+    transparent               65%
+  );
+  filter: blur(3px);
+  opacity: 0.9;
 }
-@keyframes am-v2-conic {
-  to { transform: rotate(360deg); }
+@keyframes am-v2-breathe {
+  0%, 100% { opacity: 0.72; transform: scale(0.96); }
+  50%      { opacity: 1;    transform: scale(1.04); }
 }
 
 /* ── Active stop sparkle cluster ─────────────────────────────────── */
@@ -745,25 +745,79 @@
   background:
     radial-gradient(circle at 50% 30%, #fff8c8 0%, #ffe27a 25%, #ffae3d 65%, #c44a1a 100%);
 }
-@keyframes am-v2-pulse-glow {
-  0%, 100% { opacity: 0.85; transform: scale(1);    }
-  50%      { opacity: 1;    transform: scale(1.06); }
-}
+/* am-v2-pulse-glow removed — replaced by am-v2-breathe above */
 
-/* Completed — saturated ember, cooler centre + white tick */
+/* Completed — GREEN achievement state. Celebratory, permanently glowing,
+   still tappable. The slow green breathing makes it feel alive and earned,
+   not just a neutral state-change. */
 .am-v2-node--completed .am-v2-node__face {
   background:
-    radial-gradient(circle at 50% 32%, #ffd06b 0%, #ff8c3d 55%, #c44a1a 100%);
+    radial-gradient(circle at 50% 32%, #c8ffd8 0%, #6bcb77 35%, #3a9c4d 72%, #0e4a20 100%);
+  color: #fff;
+  box-shadow:
+    inset 0 5px 6px rgba(255, 255, 255, 0.35),
+    inset 0 -6px 10px rgba(0, 60, 20, 0.5);
+}
+.am-v2-node--completed .am-v2-node__rim {
+  background: #0a2214;
+  box-shadow:
+    0 6px 0 rgba(0, 0, 0, 0.5),
+    0 10px 18px rgba(0, 0, 0, 0.4),
+    0 0 18px 4px rgba(58, 156, 77, 0.28);
+}
+.am-v2-node--completed .am-v2-node__glow {
+  inset: -20px;
+  background: radial-gradient(circle,
+    rgba(107, 203, 119, 0.8) 0%,
+    rgba(58, 156, 77, 0.45)  38%,
+    rgba(30, 120, 55, 0.18)  62%,
+    transparent              80%
+  );
+  filter: blur(4px);
+  opacity: 0.85;
+  animation: am-v2-green-breathe 3s ease-in-out infinite;
+}
+@keyframes am-v2-green-breathe {
+  0%, 100% { opacity: 0.65; transform: scale(0.97); }
+  50%      { opacity: 1;    transform: scale(1.03); }
 }
 
-/* Next (unlocked, not mastered) — brighter ember + faster bob */
+/* Next (the stop right after active) — pink like locked but with a
+   slightly faster bob to signal "coming up next". */
 .am-v2-node--next {
   animation: am-v2-idle-bob 1.8s ease-in-out infinite;
 }
+.am-v2-node--next .am-v2-node__face {
+  background:
+    radial-gradient(circle at 50% 32%, #ffaccc 0%, #ff7aa8 35%, #c93a78 75%, #5a0a3a 100%);
+  color: #fff7e8;
+  box-shadow:
+    inset 0 5px 6px rgba(255, 255, 255, 0.22),
+    inset 0 -6px 10px rgba(0, 0, 0, 0.45);
+}
 .am-v2-node--next .am-v2-node__glow {
   inset: -16px;
-  background: radial-gradient(circle, rgba(255, 217, 61, 0.7) 0%, rgba(255, 174, 61, 0.4) 35%, transparent 65%);
+  background: radial-gradient(circle, rgba(255, 122, 168, 0.6) 0%, rgba(201, 58, 120, 0.3) 45%, transparent 70%);
   opacity: 0.9;
+}
+
+/* ── Reveal animation (Part 6) ────────────────────────────────────────
+   Applied for ~600 ms when a stop transitions state on map return.
+   The parent adds the class; it self-removes after the animation. */
+.am-v2-node--revealing {
+  animation: am-v2-reveal 0.55s ease-out forwards !important;
+}
+@keyframes am-v2-reveal {
+  0%   { transform: translate(-50%, -50%) scale(0.75); opacity: 0.4; }
+  55%  { transform: translate(-50%, -50%) scale(1.18); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1);    opacity: 1; }
+}
+
+/* Locked / unassigned — completely static. No bob, no pulse, no float.
+   Motion on non-playable stops wastes GPU and adds visual noise. */
+.am-v2-node--locked,
+.am-v2-node--unassigned {
+  animation: none;
 }
 
 /* Locked — uniform pink/rose so every locked stop reads the same.
