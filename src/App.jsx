@@ -17,7 +17,8 @@ import MobileBottomNav from './components/MobileBottomNav';
 import MobileTopBar from './components/MobileTopBar';
 import AuthModal      from './components/auth/AuthModal';
 import CreateChildProfile from './components/auth/CreateChildProfile';
-import MigratePrompt, { hasLocalMastery } from './components/auth/MigratePrompt';
+import MigratePrompt from './components/auth/MigratePrompt';
+import { hasGuestData } from './lib/migrationService';
 import ProfileSelector from './components/ProfileSelector/ProfileSelector';
 import PINEntry from './components/auth/PINEntry';
 import PINSetup from './components/auth/PINSetup';
@@ -369,10 +370,10 @@ function App() {
     const stats  = guestPrefill?._stats;
     const streak = guestPrefill?._streak;
     setSession(sessionFromChild(child, { stats, streak }));
-    if (hasLocalMastery() || stats || streak) {
+    if (hasGuestData(stats, streak)) {
       setMigrateChild(child);
     } else {
-      // Nothing to migrate — safe to wipe leftover guest keys now.
+      // Nothing to save — safe to wipe leftover guest keys now.
       finaliseGuestWipe();
     }
   };
@@ -577,9 +578,17 @@ function App() {
       localStorage.removeItem('spellify_session');                 // legacy
       localStorage.removeItem('spellify_explore_recent');
       localStorage.removeItem('spellify_explore_favourites');
-      // Mastery keys live under spellify_mastery_* — migrated to Supabase
+      // Custom lists — if migrated, already removed by migrationService;
+      // if skipped, remove now so stale guest lists don't bleed through
+      // to the signed-in useCustomLists hook.
+      localStorage.removeItem('spellify_custom_lists');
+      // Mastery keys — migrated to Supabase (or skipped)
       Object.keys(localStorage)
-        .filter((k) => k.startsWith('spellify_mastery_'))
+        .filter((k) =>
+          k.startsWith('spellify_mastery_') ||
+          k.startsWith('spellify_started_') ||
+          k.startsWith('spellify_locked_words_')
+        )
         .forEach((k) => localStorage.removeItem(k));
     } catch { /* ignore */ }
     setGuestPrefill(null);
@@ -994,6 +1003,7 @@ function App() {
       {migrateChild && (
         <MigratePrompt
           child={migrateChild}
+          user={user}
           guestStats={guestPrefill?._stats}
           guestStreak={guestPrefill?._streak}
           onDone={(result) => {
