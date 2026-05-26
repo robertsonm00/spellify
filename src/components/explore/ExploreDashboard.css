@@ -14,7 +14,7 @@
 .ed-sidebar {
   display: none;
   position: fixed;
-  top: 56px;
+  top: 0;
   left: 0;
   bottom: 68px; /* clear ArcadeFooter */
   width: 280px;
@@ -581,7 +581,7 @@
 .ed-shell:has(.ed-main--favourites),
 .ed-shell:has(.ed-main--recent),
 .ed-shell:has(.ed-main--assignments) {
-  height: calc(100vh - 56px - 68px);
+  height: calc(100vh - 68px);
   min-height: 0;
   overflow: hidden;
 }
@@ -595,7 +595,7 @@
 .ed-main--favourites,
 .ed-main--recent,
 .ed-main--assignments {
-  height: calc(100vh - 56px - 68px);
+  height: calc(100vh - 68px);
   overflow: hidden;
   /* Flush against the arcade footer below — zero bottom padding/margin
      so the cards/empty-state area extends all the way to the footer. */
@@ -888,67 +888,44 @@
    overflow. */
 .ed-main--list {
   /* TopNav is back — leave room for both it (56px) and the footer (68px). */
-  height: calc(100vh - 56px - 68px);
+  height: calc(100vh - 68px);
   overflow: hidden;
   padding: 0;
   display: flex;
   flex-direction: column;
 }
 
-/* Slim in-content back row — TopNav handles the top of the page; this is
-   just a small "← Back" affordance + list title above the split. */
-.ed-list-backbar {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 12px 1.25rem 8px;
-  position: relative;
-  z-index: 5;
-}
-.ed-list-back-btn {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 8px;
-  letter-spacing: 0.06em;
-  padding: 8px 12px;
-  background: linear-gradient(180deg, rgba(167, 139, 250, 0.12), rgba(46, 16, 101, 0.45));
-  border: 1.5px solid #c77dff;
-  border-radius: 8px;
-  color: #f9a8d4;
+/* ── Floating transparent back button — replaces the old backbar.
+   Fixed position so it stays visible as the hub content scrolls.
+   Transparent/ghost style that doesn't compete with game backgrounds.  */
+.ed-list-float-back {
+  position: fixed;
+  top: 18px;
+  left: 18px;
+  z-index: 120;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 800;
+  padding: 0.45rem 0.95rem;
+  background: rgba(10, 4, 24, 0.45);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border: 1.5px solid rgba(255, 255, 255, 0.22);
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.88);
   cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  text-shadow: 0 0 4px rgba(236, 72, 153, 0.4);
-  box-shadow: inset 0 0 6px rgba(199, 125, 255, 0.3);
-  transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
 }
-.ed-list-back-btn:hover {
-  background: linear-gradient(180deg, rgba(251, 191, 36, 0.18), rgba(46, 16, 101, 0.6));
-  color: #FFD700;
-  border-color: #FFD700;
-  box-shadow: 0 0 12px rgba(251, 191, 36, 0.45);
+.ed-list-float-back:hover {
+  background: rgba(199, 125, 255, 0.25);
+  border-color: rgba(199, 125, 255, 0.6);
+  color: #fff;
 }
-.ed-list-back-arrow {
-  font-size: 12px;
-  line-height: 1;
-}
-.ed-list-back-title {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  background: linear-gradient(
-    90deg,
-    #ec4899 0%, #fbbf24 25%, #4ade80 50%, #60a5fa 75%, #c77dff 100%
-  );
-  background-size: 200% 100%;
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  filter: drop-shadow(2px 2px 0 #2e1065)
-          drop-shadow(0 0 10px rgba(236, 72, 153, 0.45));
-  animation: ed-explore-title-shimmer 6s linear infinite;
-}
+/* Old backbar and sub-elements kept for reference but unused */
+.ed-list-backbar { display: none; }
 
 /* ── List name panel: sits inside the WORD LIST card, under the header ─ */
 
@@ -1154,7 +1131,7 @@
    The dashboard sidebar stays in place; the word list sits beside it and
    the games stretch to fill the rest of the viewport. */
 .ed-shell:has(.ed-main--list) {
-  height: calc(100vh - 56px - 68px);
+  height: calc(100vh - 68px);
   min-height: 0;
   overflow: hidden;
 }
@@ -3056,12 +3033,12 @@
       in here rather than picked up automatically. Keep this block in
       sync if more placeholder dashboard pages are added. */
 .ed-shell:has(.ed-main--alerts) {
-  height: calc(100vh - 56px - 68px);
+  height: calc(100vh - 68px);
   min-height: 0;
   overflow: hidden;
 }
 .ed-main--alerts {
-  height: calc(100vh - 56px - 68px);
+  height: calc(100vh - 68px);
   overflow: hidden;
   padding-bottom: 0;
   margin-bottom: 0;

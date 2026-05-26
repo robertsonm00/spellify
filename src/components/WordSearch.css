@@ -173,7 +173,7 @@
   flex: 1;
   display: flex;
   gap: 40px;
-  padding: 0.75rem 1rem 0.75rem;
+  padding: calc(0.75rem + 24px) 1rem 0.75rem;
   overflow: hidden;
   min-height: 0;
   align-items: stretch;
@@ -319,8 +319,10 @@
   min-height: 0;
 }
 
-/* .ws-word / .ws-word--done / .ws-word-check moved to GameHeader.css as
-   .game-word / .game-word--done / .game-word-check (shared with Crossword). */
+/* Words are tappable — cursor shows it */
+.ws-word-clickable {
+  cursor: pointer;
+}
 
 /* ── Completion overlay — floats over the game instead of replacing it ── */
 
@@ -511,14 +513,29 @@
   animation: ws-rainbow 6s linear infinite;
 }
 
-/* Progress strip — purple track, pink→gold fill. */
+/* Progress strip — transparent background blends with the star-field page. */
 .ws-wrap .ws-progress-strip {
-  background: rgba(0, 0, 0, 0.4);
-  border-bottom: 1.5px solid #c77dff;
+  background: transparent;
+  border-bottom: 1.5px solid rgba(199, 125, 255, 0.35);
 }
+
+/* Animated magical fill — purples / pinks / aqua shimmer. */
 .ws-wrap .ws-bar-fill {
-  background: linear-gradient(90deg, #c77dff 0%, #ec4899 50%, #FFD700 100%);
-  box-shadow: 0 0 12px rgba(251, 191, 36, 0.55);
+  background: linear-gradient(
+    90deg,
+    #c77dff 0%,
+    #ec4899 25%,
+    #06b6d4 50%,
+    #c77dff 75%,
+    #ec4899 100%
+  );
+  background-size: 300% 100%;
+  animation: ws-fill-shimmer 3s linear infinite;
+  box-shadow: 0 0 14px rgba(199, 125, 255, 0.55), 0 0 6px rgba(6, 182, 212, 0.4);
+}
+@keyframes ws-fill-shimmer {
+  0%   { background-position: 100% 50%; }
+  100% { background-position:   0% 50%; }
 }
 .ws-wrap .ws-count {
   color: #FFD700;
@@ -593,16 +610,13 @@
     0 0 12px rgba(251, 191, 36, 0.7);
 }
 
-/* Word list panel — violet glassy. */
+/* Word list panel — transparent, no chrome. Words float as pills. */
 .ws-wrap .ws-wordlist-panel {
-  background: linear-gradient(180deg, rgba(31, 13, 61, 0.85), rgba(26, 10, 46, 0.85));
-  border: 2px solid #c77dff;
-  border-radius: 10px;
-  color: #f9a8d4;
-  box-shadow:
-    0 0 0 1px rgba(199, 125, 255, 0.25),
-    0 4px 14px rgba(0, 0, 0, 0.35),
-    inset 0 0 18px rgba(167, 139, 250, 0.15);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
 }
 .ws-wrap .ws-side-btn {
   background: linear-gradient(180deg, rgba(167, 139, 250, 0.12), rgba(46, 16, 101, 0.45));
@@ -614,18 +628,70 @@
   color: #FFD700;
   box-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
 }
+
+/* Word pills — white background, dark purple text, subtle purple border.
+   These explicit values override the base .ws-wordlist-panel .game-word
+   which strips border/background — the higher-specificity ws-wrap context
+   restores the pill look. */
 .ws-wrap .ws-word-list .game-word {
-  color: #f9a8d4;
-  text-shadow: 0 0 4px rgba(236, 72, 153, 0.3);
+  background: rgba(255, 255, 255, 0.92);
+  border: 2px solid rgba(199, 125, 255, 0.35);
+  color: #3d0c6e;
+  text-shadow: none;
 }
+
+/* Found words — golden tint, strikethrough. */
 .ws-wrap .ws-word-list .game-word--done {
-  color: #FFD700;
-  text-shadow: 0 0 6px rgba(255, 215, 0, 0.5);
+  background: rgba(255, 215, 0, 0.14);
+  border-color: rgba(255, 215, 0, 0.45);
+  color: #5a4200;
+  text-shadow: none;
   text-decoration: line-through;
 }
+
+/* Checkmark on found words */
 .ws-wrap .ws-word-list .game-word-check {
-  color: #4ade80;
-  filter: drop-shadow(0 0 4px rgba(74, 222, 128, 0.7));
+  color: #16a34a;
+  filter: none;
+}
+
+/* Hover/focus on clickable pills — matches the Word List Hub treatment:
+   lift + soft shadow, no background inversion. */
+.ws-wrap .ws-wordlist-panel .ws-word-clickable:hover,
+.ws-wrap .ws-wordlist-panel .ws-word-clickable:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(199, 125, 255, 0.35);
+  border-color: rgba(199, 125, 255, 0.55);
+  outline: none;
+}
+.ws-wrap .ws-wordlist-panel .ws-word-clickable:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+}
+
+/* Found cell currently in the drag path — show the selection colour so the
+   trace is visually clear; golden found styling returns on release. */
+.ws-wrap .ws-cell--found.ws-cell--sel,
+.ws-wrap .ws-cell--found.ws-cell--sel:hover {
+  background: linear-gradient(180deg, #c77dff 0%, #ec4899 100%);
+  color: #fff;
+  border-color: rgba(199, 125, 255, 0.7);
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
+  box-shadow:
+    inset 0 0 8px rgba(255, 215, 0, 0.25),
+    0 0 12px rgba(236, 72, 153, 0.5);
+}
+
+/* Found cell in a correct-match drag — green pulse */
+.ws-wrap .ws-cell--found.ws-cell--sel.ws-cell--sel-correct,
+.ws-wrap .ws-cell--found.ws-cell--sel.ws-cell--sel-correct:hover {
+  background: linear-gradient(180deg, #4ade80 0%, #16a34a 100%);
+  color: #fff;
+  border-color: #fbbf24;
+  box-shadow:
+    inset 0 0 12px rgba(255, 255, 255, 0.4),
+    0 0 16px rgba(74, 222, 128, 0.85);
+  animation: ws-cell-correct-pulse 0.8s ease-in-out infinite;
 }
 
 /* Toast — magical pink pill above the grid. */
@@ -726,7 +792,7 @@
   .ws-body {
     flex-direction: column;
     gap: 0.5rem;
-    padding: 0.5rem 0.5rem;
+    padding: calc(0.5rem + 24px) 0.5rem 0.5rem;
   }
   /* Convert the sidebar into a compact horizontally-scrolling chip
      strip above the grid. Word chips wrap to one row, ws-side-btn

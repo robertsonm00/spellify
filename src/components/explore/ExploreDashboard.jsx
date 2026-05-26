@@ -573,6 +573,16 @@ function isListCompleted(list, progress) {
 
 // ── Main ─────────────────────────────────────────────────────────────────────
 
+// Hide the SpellifyLogo and any vestigial TopNav chrome while the
+// dashboard is mounted. Body class is restored on unmount so back-nav
+// to AdventureMap brings the floating wordmark back immediately.
+function useEdActive() {
+  useEffect(() => {
+    document.body.classList.add('ed-active');
+    return () => document.body.classList.remove('ed-active');
+  }, []);
+}
+
 export default function ExploreDashboard({
   page: pageProp = null,
   navTick = 0,
@@ -594,6 +604,7 @@ export default function ExploreDashboard({
   // behaviour (return to the explore list grid).
   onListExit = null,
 }) {
+  useEdActive();
   const [page,          setPage]          = useState(pageProp || 'home');   // 'home'|'assignments'|'mylists'|'explore'|'favourites'|'recent'
 
   // Sync the page state when the parent flips `pageProp` (top-nav tab click).
@@ -1017,21 +1028,17 @@ export default function ExploreDashboard({
         : (selectedList.list.category || '');
       return (
         <main className="ed-main ed-main--list">
-          {/* Page-level back button — replaces the TopNav while a list is
-              open. Returns to whichever dashboard page the user came from
-              because setSelectedList(null) leaves `page` state untouched. */}
-          <div className="ed-list-backbar">
-            <button
-              type="button"
-              className="ed-list-back-btn"
-              onClick={backHome}
-              aria-label="Back"
-            >
-              <span className="ed-list-back-arrow" aria-hidden="true">←</span>
-              Back
-            </button>
-            <span className="ed-list-back-title">{selectedList.list.name}</span>
-          </div>
+          {/* Floating transparent back button — matches the ghost-nav
+              style used on the home/adventure screen. Fixed so it stays
+              visible even when the user scrolls the hub content. */}
+          <button
+            type="button"
+            className="ed-list-float-back"
+            onClick={backHome}
+            aria-label="Back"
+          >
+            ← Back
+          </button>
           <ListHub
             list={selectedList.list}
             listType={selectedList.listType}

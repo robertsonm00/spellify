@@ -14,7 +14,7 @@ import {
   recordWordResult,
   getStrugglingWordEntries,
 } from '../../utils/masteryEngine';
-import { recordGameCompleted } from '../../utils/gamificationEngine';
+import { recordGameCompleted, getPlayerStats } from '../../utils/gamificationEngine';
 import { recordPlayToday } from '../../utils/streakEngine';
 import { fireBuddyCheer } from '../BuddyAvatar';
 import confetti from 'canvas-confetti';
@@ -26,6 +26,157 @@ import '../WordListHub.css';
 import './ListHub.css';
 
 const MASTERY_LABELS = { new: 'Not tried yet', learning: 'Keep practising', mastered: 'Mastered!' };
+
+// ── Animated reward counter — shown after game completion ────────────────────
+// Phase 1: points count up (with tick sound).
+// Phase 2: lumens count up (with cha-ching sound) ~0.5s after points settle.
+
+function playTickSound(ctx) {
+  try {
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'square';
+    osc.frequency.value = 1200;
+    gain.gain.setValueAtTime(0.06, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.04);
+    osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.05);
+  } catch { /* noop */ }
+}
+
+function playChaChing(ctx) {
+  try {
+    // Rising "ca-" note then falling "ching" — classic cash register feel
+    [[880, 0, 0.12, 0.14], [1320, 0.08, 0.18, 0.22], [660, 0.18, 0.22, 0.55]].forEach(([freq, start, peak, end]) => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'triangle';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, ctx.currentTime + start);
+      gain.gain.linearRampToValueAtTime(0.22, ctx.currentTime + peak);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + end);
+      osc.start(ctx.currentTime + start);
+      osc.stop(ctx.currentTime + end + 0.05);
+    });
+    // Sparkle top-notes
+    [1760, 2200].forEach((freq, i) => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      const t = ctx.currentTime + 0.1 + i * 0.06;
+      gain.gain.setValueAtTime(0.1, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+      osc.start(t); osc.stop(t + 0.3);
+    });
+  } catch { /* noop */ }
+}
+
+function RewardSequence({ fromPoints, toPoints, fromLumens, toLumens, onDone }) {
+  const [displayPoints, setDisplayPoints] = useState(fromPoints);
+  const [displayLumens, setDisplayLumens] = useState(fromLumens);
+  const [phase, setPhase] = useState('points'); // 'points' | 'lumens' | 'done'
+  const audioCtxRef = useRef(null);
+
+  // Points counter — ticks up over ~1.2s
+  useEffect(() => {
+    let cancelled = false;
+    const pointsDelta = toPoints - fromPoints;
+    if (pointsDelta <= 0) { setPhase('lumens'); return; }
+
+    try { audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)(); } catch { /* noop */ }
+
+    const duration = Math.min(1400, Math.max(600, pointsDelta * 8));
+    const start = performance.now();
+    let lastTick = -1;
+    const tick = (now) => {
+      if (cancelled) return;
+      const t = Math.min((now - start) / duration, 1);
+      const eased = 1 - (1 - t) ** 2;
+      const current = Math.round(fromPoints + eased * pointsDelta);
+      setDisplayPoints(current);
+      // Play a tick every ~50ms
+      const tickBucket = Math.floor(t * 20);
+      if (tickBucket !== lastTick && audioCtxRef.current) {
+        playTickSound(audioCtxRef.current);
+        lastTick = tickBucket;
+      }
+      if (t < 1) requestAnimationFrame(tick);
+      else setTimeout(() => { if (!cancelled) setPhase('lumens'); }, 500);
+    };
+    requestAnimationFrame(tick);
+    return () => { cancelled = true; };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Lumens counter — fires after points settle
+  useEffect(() => {
+    if (phase !== 'lumens') return;
+    let cancelled = false;
+    const lumensDelta = toLumens - fromLumens;
+    if (lumensDelta <= 0) { setPhase('done'); return; }
+
+    try {
+      const ctx = audioCtxRef.current || new (window.AudioContext || window.webkitAudioContext)();
+      audioCtxRef.current = ctx;
+      playChaChing(ctx);
+    } catch { /* noop */ }
+
+    const duration = Math.min(1200, Math.max(500, lumensDelta * 40));
+    const start = performance.now();
+    const tick = (now) => {
+      if (cancelled) return;
+      const t = Math.min((now - start) / duration, 1);
+      const eased = 1 - (1 - t) ** 2;
+      setDisplayLumens(Math.round(fromLumens + eased * lumensDelta));
+      if (t < 1) requestAnimationFrame(tick);
+      else setTimeout(() => { if (!cancelled) setPhase('done'); }, 900);
+    };
+    requestAnimationFrame(tick);
+    return () => { cancelled = true; };
+  }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-dismiss after 'done'
+  useEffect(() => {
+    if (phase !== 'done') return;
+    const t = setTimeout(onDone, 1400);
+    return () => clearTimeout(t);
+  }, [phase, onDone]);
+
+  const pointsGain = toPoints - fromPoints;
+  const lumensGain = toLumens  - fromLumens;
+
+  return (
+    <div className="lh-reward-overlay" role="status" aria-live="polite" onClick={onDone}>
+      <div className="lh-reward-card" onClick={e => e.stopPropagation()}>
+        <p className="lh-reward-heading">🎉 Game complete!</p>
+
+        {/* Points row */}
+        <div className={`lh-reward-row${phase === 'points' ? ' lh-reward-row--active' : ''}`}>
+          <span className="lh-reward-icon">⭐</span>
+          <span className="lh-reward-label">Spell Points</span>
+          <span className="lh-reward-num">{displayPoints.toLocaleString()}</span>
+          {phase !== 'points' && pointsGain > 0 && (
+            <span className="lh-reward-gain">+{pointsGain}</span>
+          )}
+        </div>
+
+        {/* Lumens row */}
+        <div className={`lh-reward-row${phase === 'lumens' ? ' lh-reward-row--active' : phase === 'done' && lumensGain > 0 ? ' lh-reward-row--settled' : ''}`}>
+          <span className="lh-reward-icon">💎</span>
+          <span className="lh-reward-label">Lumens</span>
+          <span className="lh-reward-num">{displayLumens.toLocaleString()}</span>
+          {phase === 'done' && lumensGain > 0 && (
+            <span className="lh-reward-gain">+{lumensGain}</span>
+          )}
+        </div>
+
+        <p className="lh-reward-dismiss">Tap anywhere to continue</p>
+      </div>
+    </div>
+  );
+}
 
 const WORD_CHIP_COLORS = [
   { bg: '#fff0f0', border: '#ff6b6b' },
@@ -95,6 +246,12 @@ export default function ListHub({
   // full unmastered list and isTestAll: true flows into recordGameCompleted.
   const [testAllStage, setTestAllStage] = useState('idle');
   const [activeWord, setActiveWord] = useState(null);
+  // ── Reward sequence — animated points + lumens counter after a game ───────
+  // null = hidden; object = { fromPoints, toPoints, fromLumens, toLumens }
+  const [rewardSequence, setRewardSequence] = useState(null);
+
+  // ── Mastery progress tooltip ──────────────────────────────────────────────
+  const [masteryTipOpen, setMasteryTipOpen] = useState(false);
 
   // ── Word Mastery modal (Part 4) ───────────────────────────────────────────
   // Show once when ALL words in the list are mastered during this session.
@@ -283,11 +440,12 @@ export default function ListHub({
       : null;
 
     // ── Mastery + points + badges via the new gamification engine ─────
-    // Game components don't know about the list — the hub layer is the
-    // only place that can wire this up. Safe even when results is empty
-    // (Word Search etc. that don't track per-word).
+    // Snapshot stats BEFORE the update so we know the starting values
+    // for the animated counter.
+    const statsBefore = getPlayerStats();
+    let rewardInfo = null;
     try {
-      recordGameCompleted(
+      rewardInfo = recordGameCompleted(
         list.id,
         activityId,
         accuracy ?? 0,
@@ -298,6 +456,18 @@ export default function ListHub({
     } catch (err) {
       // Engine is best-effort: a failure here must never block onComplete.
       console.error('[ListHub] gamification engine failed', err);
+    }
+
+    // Trigger animated reward counter ~1 s after the celebration fires
+    if (rewardInfo && (rewardInfo.pointsAwarded > 0 || rewardInfo.lumensAwarded > 0)) {
+      setTimeout(() => {
+        setRewardSequence({
+          fromPoints: statsBefore.totalPoints || 0,
+          toPoints:   (statsBefore.totalPoints || 0) + (rewardInfo.pointsAwarded || 0),
+          fromLumens: statsBefore.totalLumens  || 0,
+          toLumens:   (statsBefore.totalLumens  || 0) + (rewardInfo.lumensAwarded || 0),
+        });
+      }, 1000);
     }
     // Daily-streak tracker — idempotent. Fires its own milestone event
     // which App.jsx picks up to trigger the confetti celebration.
@@ -391,6 +561,7 @@ export default function ListHub({
 
   // ── List hub view ────────────────────────────────────────────────────────
   return (
+    <>
     <div className="hub-shell hub-shell--split">
     <div className="hub hub--split">
 
@@ -459,32 +630,66 @@ export default function ListHub({
             list is mastered the bar renders at 100% with a green-tint and
             a celebratory line appears above it. Crucially nothing locks:
             the child can keep playing every game to stay sharp. */}
-        <section className={`hub-mastery-pipeline${listProgress.status === 'completed' ? ' hub-mastery-pipeline--complete' : ''}`}>
-          {listProgress.status === 'completed' && (
-            <p className="hub-mastery-complete-msg">
-              🎉 You've mastered every word — well done! Keep practising to stay sharp.
-            </p>
-          )}
-          <div className="hub-mastery-row">
-            <span className="hub-mastery-text">
-              <strong>{listProgress.masteredCount}</strong>
-              <span className="hub-mastery-dim"> of {listProgress.totalCount} words mastered</span>
-            </span>
-            <span className="hub-mastery-pct">{masteryPct}%</span>
-          </div>
-          <div
-            className="hub-mastery-bar"
-            role="progressbar"
-            aria-valuenow={listProgress.masteredCount}
-            aria-valuemin={0}
-            aria-valuemax={listProgress.totalCount}
-          >
-            <div
-              className="hub-mastery-bar-fill"
-              style={{ width: `${masteryPct}%` }}
-            />
-          </div>
-        </section>
+        {(() => {
+          // Calculate how many more games are needed to reach full mastery.
+          // Each word needs totalCredit ≥ 2.0 from ≥ 2 game types. Each game
+          // earns roughly 1.0 credit per correct word, so estimate games
+          // remaining = sum of ceil(2.0 - credit) per unmastered word.
+          const gamesNeeded = listProgress.status === 'completed' ? 0
+            : fullWords.reduce((acc, w) => {
+                const entry = masteryState.words?.[w.toLowerCase()];
+                if (entry?.mastered) return acc;
+                const credit = entry?.totalCredit || 0;
+                return acc + Math.max(1, Math.ceil(2.0 - credit));
+              }, 0);
+
+          return (
+            <section
+              className={`hub-mastery-pipeline${listProgress.status === 'completed' ? ' hub-mastery-pipeline--complete' : ''}`}
+              onMouseEnter={() => setMasteryTipOpen(true)}
+              onMouseLeave={() => setMasteryTipOpen(false)}
+              onClick={() => setMasteryTipOpen(o => !o)}
+            >
+              {listProgress.status === 'completed' && (
+                <p className="hub-mastery-complete-msg">
+                  🎉 You've mastered every word — well done! Keep practising to stay sharp.
+                </p>
+              )}
+              <div className="hub-mastery-row">
+                <span className="hub-mastery-text">
+                  <strong>{listProgress.masteredCount}</strong>
+                  <span className="hub-mastery-dim"> of {listProgress.totalCount} words mastered</span>
+                </span>
+                <span className="hub-mastery-pct">{masteryPct}%</span>
+              </div>
+              <div
+                className="hub-mastery-bar"
+                role="progressbar"
+                aria-valuenow={listProgress.masteredCount}
+                aria-valuemin={0}
+                aria-valuemax={listProgress.totalCount}
+              >
+                <div
+                  className="hub-mastery-bar-fill"
+                  style={{ width: `${masteryPct}%` }}
+                />
+              </div>
+              {/* Tooltip — shown on hover (desktop) / tap (mobile) */}
+              {masteryTipOpen && (
+                <div className="hub-mastery-tip" role="tooltip">
+                  <p className="hub-mastery-tip-static">Complete games to achieve Word Mastery</p>
+                  {listProgress.status === 'completed' ? (
+                    <p className="hub-mastery-tip-dynamic">You've achieved Word Mastery on this list! 🌟</p>
+                  ) : (
+                    <p className="hub-mastery-tip-dynamic">
+                      Play {gamesNeeded} more game{gamesNeeded !== 1 ? 's' : ''} to reach Word Mastery
+                    </p>
+                  )}
+                </div>
+              )}
+            </section>
+          );
+        })()}
 
         {/* ── Practice Quest — list-level scope.
               Sits directly beneath the mastery progress bar so it
@@ -711,5 +916,17 @@ export default function ListHub({
     </div>
 
     </div>
+
+    {/* ── Animated reward sequence — points then lumens counter ─────────── */}
+    {rewardSequence && (
+      <RewardSequence
+        fromPoints={rewardSequence.fromPoints}
+        toPoints={rewardSequence.toPoints}
+        fromLumens={rewardSequence.fromLumens}
+        toLumens={rewardSequence.toLumens}
+        onDone={() => setRewardSequence(null)}
+      />
+    )}
+    </>
   );
 }

@@ -46,3 +46,11 @@
 @media (max-width: 540px) {
   .spellify-logo__letter { font-size: 0.85rem; }
 }
+
+/* Hide the floating wordmark while the Word List Hub (ed-active) or a
+   game (game-active) is mounted — the Back button / Exit button take its
+   slot, and the logo would overlap them. */
+body.ed-active .spellify-logo,
+body.game-active .spellify-logo {
+  display: none;
+}

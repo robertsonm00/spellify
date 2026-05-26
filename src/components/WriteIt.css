@@ -189,11 +189,17 @@
 .wi-table-outer {
   overflow-x: auto;
   padding: 0 1rem;
-  /* Narrower than before so the table sits visually centred in the viewport
-     rather than left-aligned with a wide empty gutter on the right. */
-  max-width: 760px;
+  /* Allow the table to be as wide as it needs to — all four practice
+     boxes are fully visible. The previous 760px cap clipped the 4th
+     column when the active input expanded. Using 100% lets the flex
+     container decide the width; overflow-x: auto adds a scrollbar only
+     if the table exceeds the viewport, which is the correct fallback. */
+  max-width: 100%;
   width: 100%;
   margin: 0 auto;
+  /* Ensure horizontal overflow can escape — the parent .wi-wrap must
+     not clip it (it has no overflow:hidden, so this is safe). */
+  box-sizing: border-box;
 }
 
 /* ── Table inner ──────────────────────────────────────────────────────────── */
@@ -543,7 +549,11 @@
 .wi-add-practice-wrap {
   display: flex;
   justify-content: center;
-  padding: 0.75rem 1rem 0;
+  padding: 1.25rem 1rem 0.5rem;
+  /* Align with the table container so the button sits visually centred
+     below the practice columns, not centred across the full viewport. */
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .wi-add-practice-btn {

@@ -5,6 +5,7 @@ import { speakWord } from '../utils/speech';
 import GameHeader from './GameHeader';
 import GameProgressStrip from './GameProgressStrip';
 import RestartButton from './RestartButton';
+import { WordDetailModal, preSeedWordInfoCache } from './WordListHub';
 import './WordSearch.css';
 
 // ── Word-found celebration (same as Crossword / Hangman) ─────────────────────
@@ -115,7 +116,7 @@ function getCellsBetween(start, end) {
   }));
 }
 
-export default function WordSearch({ words, year = null, savedProgress = null, onSaveProgress, onComplete, onExit, dyslexiaMode = false }) {
+export default function WordSearch({ words, wordObjects = [], year = null, savedProgress = null, onSaveProgress, onComplete, onExit, dyslexiaMode = false }) {
   const GRID_SIZE = gridSizeForYear(year);
   const [gameState,      setGameState]      = useState(() => savedProgress?.gameState ?? generateWordSearch(words, GRID_SIZE, { dyslexiaMode }));
   const [selectionAnchor, setSelectionAnchor] = useState(null); // click-mode anchor
@@ -127,6 +128,11 @@ export default function WordSearch({ words, year = null, savedProgress = null, o
   // Magical celebration overlay — appears for ~1.2s after a word is correctly
   // found. Carries the matched word so we can show it inside the burst.
   const [celebration,     setCelebration]     = useState(null);
+  // Word detail modal — opened when any word in the sidebar list is tapped
+  const [activeWord,      setActiveWord]      = useState(null); // string | null
+
+  // Pre-seed word info cache with list definitions so the modal resolves instantly
+  useEffect(() => { preSeedWordInfoCache(wordObjects); }, [words]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Drag state in refs to avoid stale closures inside event handlers
   const isDraggingRef = useRef(false);
@@ -366,7 +372,7 @@ export default function WordSearch({ words, year = null, savedProgress = null, o
                   return (
                     <div
                       key={`${ri}-${ci}`}
-                      className={`ws-cell${found ? ' ws-cell--found' : cellSelClass}`}
+                      className={`ws-cell${found ? ' ws-cell--found' : ''}${cellSelClass}`}
                       onMouseDown={e  => handleMouseDown(ri, ci, e)}
                       onMouseEnter={() => handleMouseEnter(ri, ci)}
                       onMouseUp={()   => handleMouseUp(ri, ci)}
@@ -394,7 +400,15 @@ export default function WordSearch({ words, year = null, savedProgress = null, o
             {placedWords.map(({ word }) => {
               const done = foundWords.includes(word);
               return (
-                <li key={word} className={`game-word${done ? ' game-word--done' : ''}`}>
+                <li
+                  key={word}
+                  className={`game-word ws-word-clickable${done ? ' game-word--done' : ''}`}
+                  onClick={() => setActiveWord(word)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setActiveWord(word); }}
+                  title="Tap to see definition"
+                >
                   {done && <span className="game-word-check">✓</span>}
                   {word.toLowerCase()}
                 </li>
@@ -435,6 +449,16 @@ export default function WordSearch({ words, year = null, savedProgress = null, o
             </div>
           </div>
         </div>
+      )}
+
+      {/* Word detail modal — opened by tapping any word in the sidebar list */}
+      {activeWord && (
+        <WordDetailModal
+          word={activeWord}
+          userAge={year ? (year + 4) : 8}
+          chipColor="#c77dff"
+          onClose={() => setActiveWord(null)}
+        />
       )}
 
       {/* DEV-only: instant complete — stripped by webpack in production builds */}

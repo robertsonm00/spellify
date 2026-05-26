@@ -14,7 +14,7 @@ import ExploreDashboard from './components/explore/ExploreDashboard';
 import AdventureMap from './components/AdventureMap';
 import ArcadeFooter from './components/ArcadeFooter';
 import MobileBottomNav from './components/MobileBottomNav';
-import MobileTopBar from './components/MobileTopBar';
+// MobileTopBar removed — SpellifyLogo is the single floating wordmark.
 import AuthModal      from './components/auth/AuthModal';
 import CreateChildProfile from './components/auth/CreateChildProfile';
 import MigratePrompt from './components/auth/MigratePrompt';
@@ -1016,8 +1016,15 @@ function App() {
             }
             // If the migration wrote new totals back to the child row,
             // refresh the in-memory session so the footer points/lumens
-            // reflect them.
+            // reflect them, AND update childrenRows so that selecting this
+            // card from ProfileSelector reads the migrated values rather
+            // than the zero-value row that was appended at creation time.
             if (result?.refreshChild) {
+              setChildrenRows((prev) =>
+                prev.map((c) =>
+                  c.id === result.refreshChild.id ? result.refreshChild : c
+                )
+              );
               setSession(sessionFromChild(result.refreshChild, {
                 stats: guestPrefill?._stats,
                 streak: guestPrefill?._streak,
@@ -1203,7 +1210,6 @@ function App() {
           <SpellifyLogo
             onHomeClick={() => { setSection('home'); setNavTick(t => t + 1); }}
           />
-          <MobileTopBar />
           {section === 'home' ? (
             <AdventureMap
               session={session}
@@ -1275,12 +1281,6 @@ function App() {
       {/* ── Top navigation (minimal — logo only, clicks → Home) ── */}
       <SpellifyLogo
         onHomeClick={() => { setSection('home'); setNavTick(t => t + 1); }}
-      />
-      <MobileTopBar
-        onSignInClick={() => setShowSignIn(true)}
-        onSignUpClick={() => setShowSignIn(true)}
-        onSettingsClick={() => setSettingsOpen(true)}
-        onNavigate={(key) => { setSection(key); setNavTick(t => t + 1); }}
       />
 
       {/* ── Dashboard pages (home / assignments / mylists / explore /

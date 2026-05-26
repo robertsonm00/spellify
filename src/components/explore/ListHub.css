@@ -187,3 +187,162 @@
   border: 1.5px solid rgba(107, 203, 119, 0.45);
   color: #a8e8b0;
 }
+
+/* ── Mastery progress tooltip ────────────────────────────────────────────── */
+
+.hub-mastery-pipeline {
+  position: relative; /* anchor for tooltip */
+  cursor: pointer;
+}
+
+.hub-mastery-tip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  width: max-content;
+  max-width: min(300px, 90vw);
+  background: #1a1030;
+  border: 1.5px solid rgba(199, 125, 255, 0.45);
+  border-radius: 10px;
+  padding: 10px 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55), 0 0 16px rgba(199, 125, 255, 0.18);
+  pointer-events: none;
+}
+/* Caret */
+.hub-mastery-tip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: rgba(199, 125, 255, 0.45);
+}
+
+.hub-mastery-tip-static {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.65);
+  margin: 0 0 4px;
+  line-height: 1.4;
+}
+
+.hub-mastery-tip-dynamic {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #c77dff;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* ── Animated reward sequence ────────────────────────────────────────────── */
+
+.lh-reward-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 4, 18, 0.7);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  animation: lh-reward-fadein 0.3s ease-out;
+  padding: 16px;
+}
+@keyframes lh-reward-fadein {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.lh-reward-card {
+  background: linear-gradient(165deg, #1a1a2e 0%, #0f1c3a 100%);
+  border: 2px solid rgba(255, 217, 61, 0.4);
+  border-radius: 20px;
+  padding: 28px 32px 20px;
+  width: min(360px, 100%);
+  text-align: center;
+  box-shadow:
+    0 0 0 6px rgba(255, 217, 61, 0.07),
+    0 0 40px rgba(255, 217, 61, 0.2),
+    0 24px 60px rgba(0, 0, 0, 0.7);
+  animation: lh-reward-pop 0.4s cubic-bezier(0.22, 1.3, 0.46, 1);
+}
+@keyframes lh-reward-pop {
+  0%   { transform: scale(0.78); opacity: 0; }
+  100% { transform: scale(1);    opacity: 1; }
+}
+
+.lh-reward-heading {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.75rem;
+  color: #ffd93d;
+  margin: 0 0 20px;
+  letter-spacing: 0.06em;
+  text-shadow: 0 0 16px rgba(255, 217, 61, 0.5);
+}
+
+.lh-reward-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+.lh-reward-row--active {
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.06);
+}
+.lh-reward-row--settled {
+  background: rgba(107, 203, 119, 0.08);
+}
+
+.lh-reward-icon {
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+
+.lh-reward-label {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.65);
+  flex: 1;
+  text-align: left;
+}
+
+.lh-reward-num {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 1.15rem;
+  color: #fff;
+  letter-spacing: 0.04em;
+  min-width: 80px;
+  text-align: right;
+  transition: color 0.15s;
+}
+.lh-reward-row--active .lh-reward-num { color: #ffd93d; }
+.lh-reward-row--settled .lh-reward-num { color: #6bcb77; }
+
+.lh-reward-gain {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.6rem;
+  color: #6bcb77;
+  padding: 2px 6px;
+  background: rgba(107, 203, 119, 0.15);
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+.lh-reward-dismiss {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.3);
+  margin: 14px 0 0;
+}

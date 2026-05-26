@@ -73,7 +73,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 0.6rem;
+  margin-bottom: 0.3rem; /* reduced by ~50% — tighter gap below the list title */
 }
 
 .hub-section-label {
@@ -1659,7 +1659,7 @@
 }
 .hub-list-title {
   font-family: 'Nunito', sans-serif;
-  font-size: 0.85rem;
+  font-size: 1.06rem; /* was 0.85rem — ×1.25 */
   font-weight: 800;
   color: #5a5a5a;
   text-transform: capitalize;
@@ -1670,7 +1670,7 @@
 }
 .hub--split .hub-list-title {
   color: #2a2a2a;
-  font-size: 0.78rem;
+  font-size: 0.97rem; /* was 0.78rem — ×1.25 */
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
