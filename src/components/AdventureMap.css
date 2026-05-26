@@ -842,22 +842,10 @@
 }
 .am-v2-node--unassigned .am-v2-node__glow { opacity: 0.3; }
 
-/* Landmarks — a different ember tone (warm rose/coral) so they read as
-   distinctive jewel-stops along the path without the magenta icon
-   variant. The shape and lock icon match every other locked stop. */
-.am-v2-node--landmark .am-v2-node__face {
-  background:
-    radial-gradient(circle at 50% 32%, #ffd0e0 0%, #ff7aa8 35%, #c93a78 70%, #5a0a3a 100%);
-  color: #fff7e8;
-}
-.am-v2-node--landmark .am-v2-node__glow {
-  background: radial-gradient(circle, rgba(255, 122, 168, 0.55) 0%, rgba(201, 58, 120, 0.3) 40%, transparent 70%);
-  opacity: 0.85;
-}
-.am-v2-node--landmark.am-v2-node--locked .am-v2-node__face {
-  background:
-    radial-gradient(circle at 50% 32%, #ffaccc 0%, #ff7aa8 35%, #c93a78 75%, #5a0a3a 100%);
-}
+/* Landmarks — face/glow colours are intentionally NOT overridden here.
+   All stops use the same state-based colour system regardless of whether
+   they are landmark stops: yellow = active, pink = locked/next,
+   green = completed. The landmark class only affects label styling below. */
 
 /* ── Stars under completed nodes ─────────────────────────────────── */
 .am-v2-node__stars {
