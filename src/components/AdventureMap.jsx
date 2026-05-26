@@ -369,12 +369,19 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
     requestAnimationFrame(() => {
       const scene = vp.querySelector('.am-v2-scene');
       if (!scene) return;
-      const focusY = activeStop?.y ?? 5;
+      // Browsing a previous chapter (no active stop here) → land at the
+      // bottom so the last completed stop is in view, not the top.
+      // Browsing the active chapter or advancing forward → centre on buddy.
+      const focusY = activeStop?.y
+        ?? (chapterIdx < naturalChapter ? (lastStop?.y ?? 95) : 5);
       const yPx = (focusY / 100) * scene.clientHeight;
-      const targetY = yPx - vp.clientHeight * 0.42;
+      // For previous-chapter landings push the target toward the bottom
+      // of the viewport so the last orb sits comfortably in view.
+      const viewportFraction = (chapterIdx < naturalChapter && !activeStop) ? 0.7 : 0.42;
+      const targetY = yPx - vp.clientHeight * viewportFraction;
       vp.scrollTo({ top: Math.max(0, targetY), behavior: 'auto' });
     });
-  }, [activeStop?.x, activeStop?.y, selectedIsleId, chapterIdx]);
+  }, [activeStop?.x, activeStop?.y, selectedIsleId, chapterIdx]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isleStatus = (isle) => {
     const isleMin = Math.min(...isle.years);
@@ -517,9 +524,18 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
               {(() => {
                 if (stops.length < 2) return null;
 
-                // Split the path at the active stop:
-                //   dActive — stops 0 → active (animated magical trail)
-                //   dFuture — active → end      (static muted trail)
+                // ── Past trail: curves off the top of the scene on chapters 2+ ──
+                // Gives the visual sense that the path continues upward into the
+                // previous chapter, mirroring the bottom extension for next chapter.
+                let dPast = null;
+                if (chapterIdx > 0) {
+                  const f = stops[0];
+                  const topX = f.x < 50 ? f.x + 9 : f.x - 9;
+                  const midY = (f.y + 2) / 2;
+                  dPast = `M ${f.x} ${f.y} C ${f.x} ${midY} ${topX} ${midY} ${topX} 2`;
+                }
+
+                // ── Active / future split ──────────────────────────────────────
                 // Extend the animated path one stop beyond the active orb
                 // so the magic trail reaches the next stage, not just the current one.
                 const splitIdx = activeIdx >= 0
@@ -541,7 +557,6 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
                     const midY = (a.y + b.y) / 2;
                     dFuture += ` C ${a.x} ${midY} ${b.x} ${midY} ${b.x} ${b.y}`;
                   }
-                  // Extend future path past the last stop
                   if (lastStop && hasNextChapter) {
                     const exitX = lastStop.x < 50 ? lastStop.x + 12 : lastStop.x - 12;
                     const exitY = 96;
@@ -549,7 +564,6 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
                     dFuture += ` C ${lastStop.x} ${mY} ${exitX} ${mY} ${exitX} ${exitY}`;
                   }
                 } else {
-                  // Active is the last stop — give extension to active path
                   if (lastStop && hasNextChapter) {
                     const exitX = lastStop.x < 50 ? lastStop.x + 12 : lastStop.x - 12;
                     const exitY = 96;
@@ -560,6 +574,8 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
 
                 return (
                   <>
+                    {/* ── Past trail — curves off the top edge to previous chapter ── */}
+                    {dPast && <path d={dPast} className="am-v2-magic-path__past" />}
                     {/* ── Completed / active path — full magical animated trail ── */}
                     <path d={dActive} className="am-v2-magic-path__aura" />
                     <path d={dActive} className="am-v2-magic-path__halo" />
@@ -584,7 +600,6 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
               // always driven by state (active/completed/locked/next/unassigned),
               // never by hard-coded index.
               const renderState = stop.state;
-              const stars = isCompleted ? starsForList(stop.list) : 0;
               const isRevealing = stop.list?.id && revealingIds.has(stop.list.id);
               return (
                 <button
@@ -605,9 +620,9 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
                     <span className="am-v2-node__rim" />
                     <span className="am-v2-node__face">
                       {isActive
-                        ? <span className="am-v2-node__num">{idx + 1}</span>
+                        ? <span className="am-v2-node__num">{chapterIdx * STOPS_PER_CHAPTER + idx + 1}</span>
                         : isCompleted
-                          ? <span className="am-v2-node__tick">✓</span>
+                          ? <span className="am-v2-node__num am-v2-node__num--done">{chapterIdx * STOPS_PER_CHAPTER + idx + 1}</span>
                           : <span className="am-v2-node__lock" aria-label="Locked">
                               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                                 <rect x="5" y="11" width="14" height="10" rx="2" fill="rgba(230,210,255,0.9)" />
@@ -616,6 +631,9 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
                               </svg>
                             </span>}
                     </span>
+                    {isCompleted && (
+                      <span className="am-v2-node__done-pill" aria-hidden="true">MASTERED</span>
+                    )}
                     {isActive && (
                       <span className="am-v2-node__sparks" aria-hidden="true">
                         <span className="am-v2-node__spark am-v2-node__spark--1">✦</span>
@@ -627,16 +645,6 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
                     )}
                   </span>
 
-                  {isCompleted && stars > 0 && (
-                    <span className="am-v2-node__stars" aria-label={`${stars} of 3 stars`}>
-                      {Array.from({ length: 3 }, (_, i) => (
-                        <span
-                          key={i}
-                          className={`am-v2-node__star${i < stars ? ' am-v2-node__star--on' : ''}`}
-                        >★</span>
-                      ))}
-                    </span>
-                  )}
 
                   {(stop.list || stop.landmark) && (
                     <span
@@ -649,10 +657,11 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
               );
             })}
 
-            {/* Buddy sits on the active disc; hops to it after a stage advance.
-                buddyHopFrom overrides activeStop while the pre-hop pause plays
-                so the very first paint shows buddy at the correct "from" orb. */}
-            {(activeStop || buddyHopFrom) && (() => {
+            {/* Buddy sits on the active disc — only rendered on the chapter
+                where the child's active stop lives. When browsing a previous
+                chapter Buddy is hidden (those stops are all completed, so
+                activeStop is null, and we also gate on chapterIdx). */}
+            {chapterIdx === naturalChapter && (activeStop || buddyHopFrom) && (() => {
               const bPos = buddyHopFrom || { x: activeStop.x, y: activeStop.y };
               return (
               <div
@@ -684,16 +693,25 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
               <button
                 type="button"
                 className={`am-v2-next-chapter${chapterAllComplete ? ' am-v2-next-chapter--ready' : ''}`}
-                onClick={advanceChapter}
-                disabled={!chapterAllComplete}
+                onClick={() => {
+                  if (chapterAllComplete) {
+                    advanceChapter();
+                  } else if (viewportRef.current && activeStop) {
+                    // Scroll smoothly back up to the active stop
+                    const vp = viewportRef.current;
+                    const scene = vp.querySelector('.am-v2-scene');
+                    if (scene) {
+                      const yPx = (activeStop.y / 100) * scene.clientHeight;
+                      vp.scrollTo({ top: Math.max(0, yPx - vp.clientHeight * 0.42), behavior: 'smooth' });
+                    }
+                  }
+                }}
                 aria-label={chapterAllComplete
                   ? `Continue to Chapter ${chapterIdx + 2}`
-                  : `Finish this chapter to unlock Chapter ${chapterIdx + 2}`}
+                  : `Go to current level`}
                 style={{ left: `${(lastStop?.x ?? 50) < 50 ? (lastStop?.x ?? 50) + 12 : (lastStop?.x ?? 50) - 12}%` }}
               >
-                <span className="am-v2-next-chapter__icon" aria-hidden="true">
-                  {chapterAllComplete ? '✦' : '🔒'}
-                </span>
+                <span className="am-v2-next-chapter__icon" aria-hidden="true">✦</span>
                 <span className="am-v2-next-chapter__label">
                   {chapterAllComplete
                     ? `Continue to Chapter ${chapterIdx + 2}`
@@ -702,7 +720,7 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
               </button>
             )}
 
-            {/* ── Previous chapter pill — top-right of the scene ── */}
+            {/* ── Previous chapter button — top-centre of the scene ── */}
             {chapterIdx > 0 && (
               <button
                 type="button"
@@ -710,7 +728,8 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
                 onClick={previousChapter}
                 aria-label={`Back to Chapter ${chapterIdx}`}
               >
-                <span aria-hidden="true">↑</span> Chapter {chapterIdx}
+                <span className="am-v2-prev-chapter__arrow" aria-hidden="true">↑</span>
+                Back to Chapter {chapterIdx}
               </button>
             )}
           </div>
@@ -724,6 +743,22 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
 
       {lockedMsg && (
         <div className="am-locked-msg" role="status">{lockedMsg}</div>
+      )}
+
+      {/* ── "Back to Latest Level" widget ───────────────────────────────────
+          Floats at the bottom of the screen whenever the child is browsing
+          a chapter that isn't their current active one. Tapping it jumps
+          straight to the chapter where Buddy is. */}
+      {chapterIdx !== naturalChapter && (
+        <button
+          type="button"
+          className="am-v2-back-to-latest"
+          onClick={() => setChapterIdx(naturalChapter)}
+          aria-label="Return to your current chapter"
+        >
+          <span className="am-v2-back-to-latest__icon" aria-hidden="true">🗺️</span>
+          <span className="am-v2-back-to-latest__label">Back to Latest Level</span>
+        </button>
       )}
 
       {switcherOpen && (

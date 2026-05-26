@@ -437,20 +437,20 @@
 }
 .am-viewport--v2::-webkit-scrollbar { display: none; }
 
-/* Scene = the panoramic image at a FIXED width matching a typical
-   desktop "full-width" view. Zoom never shrinks; narrower browsers
-   simply clip the sides (viewport overflow-x: hidden does the work).
-   Centred via negative margin so when the viewport is narrower than
-   the scene the CENTRE of the image (where the painted path lives)
-   stays in the visible window — not the left edge. */
+/* Scene = the panoramic canvas the path lives on.
+   On viewports narrower than 1280 px the scene is capped at 1280 px and
+   centred so the painted path stays on-screen (sides clip via the
+   overflow-x:hidden on the viewport wrapper).
+   On viewports wider than 1280 px the scene expands to 100 % so the
+   image bleeds edge-to-edge — no black gutters. Because the image is
+   the same height (driven by the inline aspect-ratio) the apparent zoom
+   is unchanged; you simply see more of the image's left and right edges. */
 .am-v2-scene {
   position: relative;
-  width: 1280px;
-  /* Equal-clip centring at any viewport width. When parent ≥ 1280
-     this is positive margin (centred with side gutters). When parent
-     < 1280 it goes negative and pulls the scene left so the painted
-     middle path stays on-screen. */
-  margin-left: calc((100% - 1280px) / 2);
+  width: max(1280px, 100%);
+  /* When width = 1280px this centres the scene with equal side clips.
+     When width = 100% this collapses to 0 (no extra margin needed). */
+  margin-left: calc((100% - max(1280px, 100%)) / 2);
   /* aspect-ratio set inline per isle */
 }
 
@@ -566,6 +566,18 @@
 @keyframes am-v2-flow-b { to { stroke-dashoffset: -23; } }
 @keyframes am-v2-flow-c { to { stroke-dashoffset: -35.4; } }   /* keep -8 offset */
 
+/* Past trail — curves off the top of the scene on chapters 2+.
+   Muted lavender dashes with a faint glow, signalling "completed territory
+   behind you." Deliberately quieter than the active trail. */
+.am-v2-magic-path__past {
+  fill: none;
+  stroke: rgba(180, 130, 255, 0.38);
+  stroke-width: 4;
+  stroke-dasharray: 4 7;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 3px rgba(160, 100, 255, 0.22));
+}
+
 /* Future / locked path — static, muted purple dashes with a soft white halo.
    No animation — signals "uncharted territory ahead". */
 .am-v2-magic-path__future {
@@ -672,6 +684,12 @@
   z-index: 1;
   text-shadow: 0 2px 2px rgba(0, 0, 0, 0.7);
 }
+/* Completed state — slightly smaller so the number sits comfortably
+   inside the green disc alongside the done pill below it. */
+.am-v2-node__num--done {
+  font-size: 0.75rem;
+  opacity: 0.92;
+}
 .am-v2-node__lock {
   position: relative;
   z-index: 1;
@@ -689,6 +707,30 @@
   width: 100%;
   height: 100%;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+
+/* ── MASTERED pill — overlaps the bottom of the completed orb ───── */
+.am-v2-node__done-pill {
+  position: absolute;
+  bottom: -17px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-7deg);
+  background: linear-gradient(160deg, #1c5c2a 0%, #2d8c40 45%, #1a5226 100%);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  color: #c8ffd6;
+  padding: 6px 16px;
+  border-radius: 999px;
+  white-space: nowrap;
+  z-index: 8;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  box-shadow:
+    0 3px 10px rgba(0, 0, 0, 0.65),
+    0 0 14px rgba(107, 203, 119, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
 }
 
 /* Active — bigger disc, hotter glow, slow pulse on the halo */
@@ -869,21 +911,6 @@
    they are landmark stops: yellow = active, pink = locked/next,
    green = completed. The landmark class only affects label styling below. */
 
-/* ── Stars under completed nodes ─────────────────────────────────── */
-.am-v2-node__stars {
-  position: absolute;
-  left: 50%;
-  top: calc(100% + 4px);
-  transform: translateX(-50%);
-  display: inline-flex;
-  gap: 1px;
-  font-size: 0.72rem;
-  line-height: 1;
-  pointer-events: none;
-  text-shadow: 0 2px 3px rgba(0, 0, 0, 0.85);
-}
-.am-v2-node__star      { color: rgba(60, 40, 80, 0.85); }
-.am-v2-node__star--on  { color: #ffd93d; text-shadow: 0 0 6px rgba(255, 217, 61, 0.8); }
 
 /* ── Labels (pixel chip) ─────────────────────────────────────────────
    Hidden by default. The active stop label gets `--always` and stays
@@ -1056,6 +1083,12 @@
   transition: transform 0.18s, border-color 0.18s, color 0.18s, box-shadow 0.18s;
 }
 .am-v2-next-chapter__icon { font-size: 0.95rem; }
+/* Locked state: highlight to yellow on hover so it feels interactive */
+.am-v2-next-chapter:not(.am-v2-next-chapter--ready):hover {
+  border-color: #ffd93d;
+  color: #ffd93d;
+  background: rgba(30, 12, 40, 0.95);
+}
 .am-v2-next-chapter--ready {
   cursor: pointer;
   border-color: #ffd93d;
@@ -1079,31 +1112,78 @@
   50%      { filter: brightness(1.15); }
 }
 
-/* ── Previous chapter pill (top-right corner of the scene) ──────── */
+/* ── Previous chapter button — centred halfway between top edge and
+   the first stop (which sits at y ≈ 19%), so it sits visually in the
+   middle of the past-trail curve rather than jammed against the top. */
 .am-v2-prev-chapter {
   position: absolute;
-  top: 14px;
-  right: 14px;
+  top: 9.5%;
+  left: 50%;
+  transform: translateX(-50%);
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
+  padding: 7px 14px;
   border-radius: 999px;
-  border: 1.5px solid rgba(199, 125, 255, 0.5);
-  background: rgba(20, 8, 32, 0.88);
+  border: 1.5px solid rgba(199, 125, 255, 0.55);
+  background: rgba(20, 8, 32, 0.9);
   color: #cdb4ff;
   font-family: 'Press Start 2P', monospace;
   font-size: 0.55rem;
   letter-spacing: 0.05em;
+  white-space: nowrap;
   cursor: pointer;
   z-index: 7;
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
+  transition: border-color 0.18s, color 0.18s;
 }
 .am-v2-prev-chapter:hover {
   border-color: #ffd93d;
   color: #ffd93d;
 }
+.am-v2-prev-chapter__arrow {
+  font-size: 0.75rem;
+}
+
+/* ── "Back to Latest Level" floating widget ─────────────────────── */
+/* Shown whenever the child is browsing a chapter that isn't their
+   current active one. Fixed centre-bottom so it's always reachable. */
+.am-v2-back-to-latest {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 999px;
+  border: 2px solid #ffd93d;
+  background: linear-gradient(180deg, rgba(55, 25, 5, 0.97), rgba(35, 10, 48, 0.97));
+  color: #ffd93d;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow:
+    0 0 18px rgba(255, 217, 61, 0.45),
+    0 4px 16px rgba(0, 0, 0, 0.6);
+  animation: am-v2-cta-pulse 1.8s ease-in-out infinite;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  transition: transform 0.18s, box-shadow 0.18s;
+}
+.am-v2-back-to-latest:hover {
+  transform: translateX(-50%) translateY(-2px);
+  box-shadow:
+    0 0 26px rgba(255, 217, 61, 0.65),
+    0 6px 20px rgba(0, 0, 0, 0.65);
+}
+.am-v2-back-to-latest__icon { font-size: 1rem; }
+.am-v2-back-to-latest__label { line-height: 1; }
 
 /* ── Chapter badge (next to the isle pill in the topbar) ────────── */
 .am-v2-chapter-badge {
