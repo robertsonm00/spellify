@@ -701,3 +701,19 @@
      it stays full-width and stacks neatly. */
   .cw-clue-bar { width: 100%; }
 }
+
+
+/* ── Themed background — Crossword Castle ─────────────────────────────── */
+/* Image URL is injected at runtime via --bg-image-url (set as an inline
+   style on the wrap). This avoids css-loader trying to resolve a public/
+   path at build time. */
+.cw-wrap {
+  background-color: #07030f;
+  background-image:
+    linear-gradient(rgba(7, 3, 15, 0.45), rgba(7, 3, 15, 0.45)),
+    var(--bg-image-url, none);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}

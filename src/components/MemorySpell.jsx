@@ -8,6 +8,11 @@ import BuddyAvatar from './BuddyAvatar';
 import './MemorySpell.css';
 import { speakWord as speak } from '../utils/speech';
 
+// Themed background — see Crossword.jsx for the rationale.
+const BG_STYLE = {
+  '--bg-image-url': `url("${process.env.PUBLIC_URL || ''}/adventure/Memory%20spell%20background%20.png")`,
+};
+
 // ── Success fanfare ───────────────────────────────────────────────────────────
 
 // Three-note trumpet fanfare via Web Audio API (no external file needed).
@@ -349,7 +354,7 @@ export default function MemorySpell({
     const perfect      = score === words.length;
 
     return (
-      <div className={wrapClass}>
+      <div className={wrapClass} style={BG_STYLE}>
         {topbar}
         {progressBar}
         <div className="ms-results">
@@ -397,7 +402,7 @@ export default function MemorySpell({
   // ── Per-word phases ────────────────────────────────────────────────────────
 
   return (
-    <div className={wrapClass}>
+    <div className={wrapClass} style={BG_STYLE}>
       {topbar}
       {progressBar}
 

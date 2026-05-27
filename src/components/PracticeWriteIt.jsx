@@ -37,6 +37,11 @@ import GameProgressStrip from './GameProgressStrip';
 import { speakWord as speak } from '../utils/speech';
 import { chunkWord } from '../utils/wordChunking';
 
+// Themed background — injected via CSS custom property at runtime.
+const BG_STYLE = {
+  '--bg-image-url': `url("${process.env.PUBLIC_URL || ''}/adventure/Write%20it%20background.png")`,
+};
+
 const FEEDBACK_DELAY_MS = 1400;
 
 export default function PracticeWriteIt({ items = [], onComplete, onExit, onBack }) {
@@ -109,7 +114,7 @@ export default function PracticeWriteIt({ items = [], onComplete, onExit, onBack
   // ── Render — empty / done states ───────────────────────────────────────
   if (total === 0) {
     return (
-      <div className="pq-wrap">
+      <div className="pq-wrap" style={BG_STYLE}>
         <GameHeader title="Spells to Master" onExit={onExit} />
         <p className="pq-empty">No words to practise right now — well done!</p>
         <div className="pq-summary-actions">
@@ -123,7 +128,7 @@ export default function PracticeWriteIt({ items = [], onComplete, onExit, onBack
     const correct = results.filter(r => r.correct).map(r => r.word);
     const wrong   = results.filter(r => !r.correct).map(r => r.word);
     return (
-      <div className="pq-wrap pq-wrap--summary">
+      <div className="pq-wrap pq-wrap--summary" style={BG_STYLE}>
         <GameHeader title="Spells to Master" onExit={onExit} />
         <div className="pq-summary">
           <h2 className="pq-summary-title">Well done for practising!</h2>
@@ -169,7 +174,7 @@ export default function PracticeWriteIt({ items = [], onComplete, onExit, onBack
     (feedback === 'wrong'   ? ' pq-input--wrong'   : '');
 
   return (
-    <div className="pq-wrap">
+    <div className="pq-wrap" style={BG_STYLE}>
       <GameHeader title="Spells to Master" onExit={onExit} />
 
       <GameProgressStrip percent={(idx / total) * 100}>

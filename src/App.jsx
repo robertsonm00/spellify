@@ -13,6 +13,7 @@ import { fireBuddyCheer } from './components/BuddyAvatar';
 import ExploreDashboard from './components/explore/ExploreDashboard';
 import AdventureMap from './components/AdventureMap';
 import HFWIsland from './components/HFWIsland';
+import SpellShop from './components/SpellShop';
 import ArcadeFooter from './components/ArcadeFooter';
 import MobileBottomNav from './components/MobileBottomNav';
 // MobileTopBar removed — SpellifyLogo is the single floating wordmark.
@@ -1212,7 +1213,7 @@ function App() {
   if (!session || !session.words || session.words.length === 0) {
     // No session: render the dashboard so guests can browse Home / Explore /
     // Favourites etc. Onboarding is launched from inside those flows.
-    const dashboardSections = ['home', 'hfwIsland', 'assignments', 'mylists', 'exploreDashboard', 'favourites', 'recent', 'alerts'];
+    const dashboardSections = ['home', 'hfwIsland', 'assignments', 'mylists', 'exploreDashboard', 'spellShop', 'favourites', 'recent', 'alerts'];
     if (dashboardSections.includes(section)) {
       const dashboardPage = section === 'exploreDashboard' ? 'explore' : section;
       return (
@@ -1235,6 +1236,12 @@ function App() {
               onOpenList={handleAdventureOpenList}
               onGoToHFW={(isleId) => { setHfwFromIsleId(isleId); setSection('hfwIsland'); setNavTick(t => t + 1); }}
               initialIsleId={hfwFromIsleId}
+            />
+          ) : section === 'spellShop' ? (
+            <SpellShop
+              session={session}
+              lumens={liveLumens}
+              onSectionChange={(s) => { setSection(s); setNavTick(t => t + 1); }}
             />
           ) : (
             <ExploreDashboard
@@ -1322,6 +1329,12 @@ function App() {
           onOpenList={handleAdventureOpenList}
           onGoToHFW={(isleId) => { setHfwFromIsleId(isleId); setSection('hfwIsland'); setNavTick(t => t + 1); }}
           initialIsleId={hfwFromIsleId}
+        />
+      ) : section === 'spellShop' ? (
+        <SpellShop
+          session={session}
+          lumens={liveLumens}
+          onSectionChange={(s) => { setSection(s); setNavTick(t => t + 1); }}
         />
       ) : (
         <ExploreDashboard

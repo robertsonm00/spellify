@@ -9,6 +9,11 @@ import { getSupportTip } from '../data/spelling/dyslexiaPatterns';
 import { resolveDefinition } from '../utils/wordDefinitions';
 import { generateSpellDuelKeyboard } from '../utils/generateSpellDuelKeyboard';
 
+// Themed background — injected via CSS custom property at runtime.
+const BG_STYLE = {
+  '--bg-image-url': `url("${process.env.PUBLIC_URL || ''}/adventure/Spell%20Duel%20background%20.png")`,
+};
+
 function playWordChime() {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -357,7 +362,7 @@ function SpellDuel({
     const encouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
 
     return (
-      <div className="hm-wrap game-magical-bg">
+      <div className="hm-wrap game-magical-bg" style={BG_STYLE}>
         {topbar}
         <GameProgressStrip percent={100}>
           {wordResults.filter(r => r.won).length} of {wordResults.length} words guessed
@@ -420,7 +425,7 @@ function SpellDuel({
   );
 
   return (
-    <div className="hm-wrap game-magical-bg">
+    <div className="hm-wrap game-magical-bg" style={BG_STYLE}>
       {topbar}
       <GameProgressStrip percent={queue.length > 0 ? (wordResults.length / queue.length) * 100 : 0}>
         {wordResults.length} of {queue.length} words done

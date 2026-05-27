@@ -8,6 +8,12 @@ import RestartButton from './RestartButton';
 import './Crossword.css';
 import { speakWord } from '../utils/speech';
 
+// Themed background — injected via a CSS custom property so css-loader
+// doesn't try to resolve a public/ path at build time.
+const BG_STYLE = {
+  '--bg-image-url': `url("${process.env.PUBLIC_URL || ''}/adventure/Crossword%20Castle%20background%20.png")`,
+};
+
 function playWordChime() {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -494,7 +500,7 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', year = null, onC
 
   if (validation === null) {
     return (
-      <div className="cw-wrap">
+      <div className="cw-wrap" style={BG_STYLE}>
         {topbar()}
         <p className="cw-loading">📖 Checking the dictionary…</p>
       </div>
@@ -504,7 +510,7 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', year = null, onC
   if (!layout) {
     const skipped = validation?.skipped ?? [];
     return (
-      <div className="cw-wrap">
+      <div className="cw-wrap" style={BG_STYLE}>
         {topbar()}
         <p className="cw-error">
           Couldn't build a crossword — need at least 2 dictionary words.
@@ -596,7 +602,7 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', year = null, onC
     const inputLocked = retryFeedback === 'correct' || retryFeedback === 'wrong-2';
 
     return (
-      <div className="cw-wrap cw-wrap--complete">
+      <div className="cw-wrap cw-wrap--complete" style={BG_STYLE}>
         <div className="cw-complete cw-retry">
           <div className="cw-complete-emoji">🎯</div>
           <h2 className="cw-complete-title">One more go!</h2>
@@ -664,7 +670,7 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', year = null, onC
     const mins    = Math.floor(elapsed / 60);
     const secs    = elapsed % 60;
     return (
-      <div className="cw-wrap cw-wrap--complete">
+      <div className="cw-wrap cw-wrap--complete" style={BG_STYLE}>
         <div className="cw-complete">
           <div className="cw-complete-emoji">🎉</div>
           <h2 className="cw-complete-title">Crossword Complete!</h2>
@@ -751,6 +757,7 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', year = null, onC
   return (
     <div
       className="cw-wrap"
+      style={BG_STYLE}
       ref={containerRef}
       tabIndex={-1}
       onKeyDown={handleKeyDown}

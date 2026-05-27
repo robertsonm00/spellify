@@ -81,9 +81,18 @@ const IconMenu = (props) => (
   </svg>
 );
 
+const IconShop = (props) => (
+  <svg {...ICON_PROPS} {...props}>
+    {/* Shopping bag — handle arcs + bag body */}
+    <path d="M6 8 V7 a3 3 0 0 1 12 0 V8" />
+    <path d="M4.5 8 H19.5 L18 20 H6 Z" />
+  </svg>
+);
+
 const TABS = [
   { key: 'home',             Icon: IconHome,     label: 'Home',         kind: 'nav' },
   { key: 'exploreDashboard', Icon: IconExplore,  label: 'Explore',      kind: 'nav' },
+  { key: 'spellShop',        Icon: IconShop,     label: 'Shop',         kind: 'nav' },
   { key: 'mylists',          Icon: IconNotebook, label: 'My Lists',     kind: 'nav' },
   { key: 'alerts',           Icon: IconBell,     label: 'Alerts',       kind: 'nav' },
   { key: '__menu__',         Icon: IconMenu,     label: 'Account menu', kind: 'menu' },

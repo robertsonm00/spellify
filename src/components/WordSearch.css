@@ -1135,3 +1135,24 @@
   opacity: 0.55;
   transition: opacity 0.3s ease;
 }
+
+
+/* ── Themed background — Word Search Forest ───────────────────────────── */
+.ws-wrap {
+  background-color: #07030f;
+  background-image:
+    linear-gradient(rgba(7, 3, 15, 0.4), rgba(7, 3, 15, 0.4)),
+    var(--bg-image-url, none);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+/* ── Themed background — Word List panel (sidebar) ────────────────────── */
+.ws-wordlist-panel {
+  background-image: var(--bg-image-url-wordlist, none);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}

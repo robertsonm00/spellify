@@ -10,6 +10,11 @@ import BuddyAvatar from './BuddyAvatar';
 import './QuizQuest.css';
 import { speakWord as speak } from '../utils/speech';
 
+// Themed background — injected via CSS custom property at runtime.
+const BG_STYLE = {
+  '--bg-image-url': `url("${process.env.PUBLIC_URL || ''}/adventure/Quiz%20quest%20background.png")`,
+};
+
 const QUESTION_H1 = {
   choose_spelling:  'Which is the right spelling?',
   hear_and_choose:  'Which word did you hear?',
@@ -552,7 +557,7 @@ export default function QuizQuest({
   // word was too short for any question type to build.
   if (questions.length === 0) {
     return (
-      <div className={wrapClass}>
+      <div className={wrapClass} style={BG_STYLE}>
         {topbar}
         <div className="qq-stage">
           <div className="qq-card">
@@ -568,7 +573,7 @@ export default function QuizQuest({
 
   if (phase === 'start') {
     return (
-      <div className={wrapClass}>
+      <div className={wrapClass} style={BG_STYLE}>
         {topbar}
         <div className="qq-stage">
           <div className="qq-phase">
@@ -607,7 +612,7 @@ export default function QuizQuest({
     else if (pct >= 50)   { summary = 'Nice progress!';   emoji = '👍'; }
 
     return (
-      <div className={wrapClass}>
+      <div className={wrapClass} style={BG_STYLE}>
         {topbar}
         <div className="qq-results">
           <div className="qq-results-score">
@@ -639,7 +644,7 @@ export default function QuizQuest({
   // ── Question / feedback ────────────────────────────────────────────────────
 
   return (
-    <div className={wrapClass}>
+    <div className={wrapClass} style={BG_STYLE}>
       {topbar}
 
       <div className="qq-stage">

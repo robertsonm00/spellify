@@ -1,0 +1,258 @@
+/* SpellShop — placeholder framework styling.
+   Themed background image sits on .spellshop-root with a dark scrim so
+   the content stays legible. Layout is a single column at narrow widths,
+   widening into a header-row + featured + grid layout on tablet/desktop. */
+
+.spellshop-root {
+  position: fixed;
+  /* Match other dashboard pages — clear of top safe-area, room for mobile
+     bottom nav (96px) + safe-area. */
+  top: env(safe-area-inset-top, 0px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 96px);
+  left: 0;
+  right: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  color: #f5ecff;
+  font-family: 'Nunito', 'Segoe UI', sans-serif;
+  /* Scrim over the themed background keeps text readable regardless of
+     what's in the artwork. The background image is injected at runtime via
+     --bg-image-url so css-loader doesn't try to resolve a public/ path. */
+  background-color: #07030f;
+  background-image:
+    linear-gradient(rgba(7, 3, 15, 0.55), rgba(7, 3, 15, 0.55)),
+    var(--bg-image-url, none);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  padding: 24px clamp(12px, 4vw, 40px) 32px;
+}
+@media (min-width: 769px) {
+  .spellshop-root {
+    top: 0;
+    bottom: 80px;     /* desktop arcade footer height */
+  }
+}
+
+/* ── Header ─────────────────────────────────────────────────────────── */
+.spellshop-header {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 28px;
+  /* Leave room top-left for the floating Spellify wordmark. */
+  padding-left: clamp(150px, 16vw, 200px);
+  min-height: 64px;
+}
+@media (min-width: 769px) {
+  .spellshop-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+  }
+}
+
+.spellshop-header__inner { flex: 1 1 auto; min-width: 0; }
+
+.spellshop-title {
+  margin: 0;
+  font-family: 'Press Start 2P', 'Nunito', monospace;
+  font-size: clamp(1.1rem, 3vw, 1.6rem);
+  color: #ffffff;
+  letter-spacing: 0.04em;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 12px;
+  text-shadow:
+    0 0 8px #c77dff,
+    0 0 18px rgba(199, 125, 255, 0.65),
+    2px 2px 0 rgba(0, 0, 0, 0.55);
+}
+.spellshop-subtitle {
+  margin: 8px 0 0;
+  font-size: clamp(0.82rem, 2vw, 0.95rem);
+  color: #d8b4fe;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* Lumens chip — top-right. */
+.spellshop-lumens {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(46, 16, 101, 0.85), rgba(15, 6, 32, 0.85));
+  border: 2px solid rgba(165, 243, 252, 0.5);
+  box-shadow:
+    0 4px 18px rgba(0, 0, 0, 0.45),
+    0 0 22px rgba(165, 243, 252, 0.25);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font-weight: 800;
+  align-self: flex-start;
+}
+.spellshop-lumens__icon { font-size: 1.2rem; filter: drop-shadow(0 0 6px rgba(165, 243, 252, 0.6)); }
+.spellshop-lumens__value {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.95rem;
+  color: #a5f3fc;
+  text-shadow: 0 0 6px rgba(165, 243, 252, 0.6);
+}
+.spellshop-lumens__label {
+  font-size: 0.72rem;
+  color: #d8b4fe;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ── Featured hero ──────────────────────────────────────────────────── */
+.spellshop-featured {
+  margin-bottom: 28px;
+}
+.spellshop-featured__card {
+  position: relative;
+  padding: 28px 28px 24px;
+  border-radius: 20px;
+  background: linear-gradient(
+    135deg,
+    rgba(120, 53, 15, 0.6),
+    rgba(46, 16, 101, 0.7) 50%,
+    rgba(15, 6, 32, 0.7)
+  );
+  border: 2px solid rgba(253, 230, 138, 0.55);
+  box-shadow:
+    0 12px 38px rgba(0, 0, 0, 0.55),
+    0 0 28px rgba(253, 230, 138, 0.3);
+  text-align: center;
+}
+.spellshop-featured__badge {
+  position: absolute;
+  top: 12px;
+  left: 16px;
+  padding: 4px 10px;
+  background: #fde68a;
+  color: #451a03;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  border-radius: 6px;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.4);
+}
+.spellshop-featured__icon {
+  font-size: 2.4rem;
+  margin-bottom: 8px;
+  filter: drop-shadow(0 0 12px rgba(253, 230, 138, 0.6));
+}
+.spellshop-featured__title {
+  margin: 0 0 6px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 1.1rem;
+  color: #fde68a;
+  text-shadow: 0 0 10px rgba(253, 230, 138, 0.6), 2px 2px 0 rgba(0, 0, 0, 0.5);
+}
+.spellshop-featured__copy {
+  margin: 0;
+  color: #f5ecff;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+/* ── Category grid ──────────────────────────────────────────────────── */
+.spellshop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.spellshop-card {
+  --spellshop-card-accent: #c77dff;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 22px 18px 18px;
+  border-radius: 18px;
+  background: linear-gradient(160deg, rgba(46, 16, 101, 0.75), rgba(15, 6, 32, 0.85));
+  border: 2px solid color-mix(in srgb, var(--spellshop-card-accent) 55%, transparent);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.5),
+    0 0 18px color-mix(in srgb, var(--spellshop-card-accent) 28%, transparent);
+  color: inherit;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.18s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+.spellshop-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--spellshop-card-accent);
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.55),
+    0 0 30px color-mix(in srgb, var(--spellshop-card-accent) 55%, transparent);
+}
+.spellshop-card:focus-visible {
+  outline: 2px solid #ffd93d;
+  outline-offset: 3px;
+}
+.spellshop-card__icon {
+  font-size: 2.4rem;
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--spellshop-card-accent) 60%, transparent));
+}
+.spellshop-card__title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.85rem;
+  color: #fff;
+  text-shadow: 0 0 6px color-mix(in srgb, var(--spellshop-card-accent) 60%, transparent);
+  letter-spacing: 0.03em;
+}
+.spellshop-card__blurb {
+  font-size: 0.82rem;
+  color: #d8b4fe;
+  font-weight: 600;
+  line-height: 1.35;
+  min-height: 2.6em;        /* keep card heights consistent */
+}
+.spellshop-card__cta {
+  margin-top: auto;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid color-mix(in srgb, var(--spellshop-card-accent) 50%, transparent);
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: color-mix(in srgb, var(--spellshop-card-accent) 70%, white);
+  font-weight: 800;
+}
+
+/* ── Footnote ───────────────────────────────────────────────────────── */
+.spellshop-footnote {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  padding: 12px;
+  font-size: 0.85rem;
+  color: #d8b4fe;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+@media (max-width: 540px) {
+  .spellshop-header { padding-left: clamp(120px, 18vw, 150px); }
+  .spellshop-lumens { padding: 8px 14px; gap: 8px; }
+  .spellshop-lumens__value { font-size: 0.8rem; }
+  .spellshop-lumens__label { font-size: 0.62rem; }
+  .spellshop-featured__card { padding: 22px 18px 18px; }
+  .spellshop-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+  .spellshop-card { padding: 16px 12px 14px; }
+  .spellshop-card__icon { font-size: 2rem; }
+  .spellshop-card__title { font-size: 0.72rem; }
+  .spellshop-card__blurb { font-size: 0.74rem; min-height: 2.4em; }
+}

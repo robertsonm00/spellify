@@ -8,6 +8,13 @@ import RestartButton from './RestartButton';
 import { WordDetailModal, preSeedWordInfoCache } from './WordListHub';
 import './WordSearch.css';
 
+// Themed backgrounds — injected via CSS custom properties at runtime so
+// css-loader doesn't have to resolve public/ paths at build time.
+const BG_STYLE = {
+  '--bg-image-url': `url("${process.env.PUBLIC_URL || ''}/adventure/Word%20search%20forest%20background.png")`,
+  '--bg-image-url-wordlist': `url("${process.env.PUBLIC_URL || ''}/adventure/Word%20list%20background.png")`,
+};
+
 // ── Word-found celebration (same as Crossword / Hangman) ─────────────────────
 
 function playWordChime() {
@@ -417,7 +424,7 @@ export default function WordSearch({ words, wordObjects = [], year = null, saved
   const coachActive = coachPhase === 'guide';
 
   return (
-    <div className={`ws-wrap${coachActive ? ' ws-wrap--coach-active' : ''}`} onContextMenu={cancelSelection}>
+    <div className={`ws-wrap${coachActive ? ' ws-wrap--coach-active' : ''}`} style={BG_STYLE} onContextMenu={cancelSelection}>
 
       {/* Full-viewport shield — sits behind the coach card; absorbs all
           clicks so the child can't tap the footer / nav / hub while the

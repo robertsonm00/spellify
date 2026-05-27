@@ -674,3 +674,17 @@
 .ms-wrap--es .ms-hint-btn    { font-size: 0.95rem; padding: 0.55rem 1rem; }
 .ms-wrap--es .ms-card        { gap: 1.35rem; }
 .ms-wrap--es .ms-h1          { font-size: 2rem; line-height: 1.4; }
+
+
+/* ── Themed background — Memory Spell (overrides game-magical-bg) ─────── */
+.ms-wrap.game-magical-bg,
+.ms-wrap {
+  background-color: #07030f;
+  background-image:
+    linear-gradient(rgba(7, 3, 15, 0.4), rgba(7, 3, 15, 0.4)),
+    var(--bg-image-url, none);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}

@@ -36,6 +36,13 @@ import '../WordListHub.css';
 import './ExplorePage.css';
 import './ExploreDashboard.css';
 
+// Themed background for the word list page — applied to .ed-main--list,
+// the actual visible container (an earlier attempt on .hub-shell was killed
+// by a higher-specificity override inside ExploreDashboard.css).
+const WORDLIST_BG_STYLE = {
+  '--bg-image-url': `url("${process.env.PUBLIC_URL || ''}/adventure/Word%20list%20background.png")`,
+};
+
 const CATEGORY_COLOURS = {
   'Statutory':   '#6b7280',
   'Phonics':     '#a855f7',
@@ -1410,14 +1417,7 @@ export default function ExploreDashboard({
   }
 
   return (
-    <div className="ed-shell">
-      {/* Decorative shooting stars — three independent paths with staggered
-          timing so they fire roughly every 4-6 seconds, never together. */}
-      <div className="ed-shooting-stars" aria-hidden="true">
-        <span className="ed-shooting-star ed-shooting-star--1" />
-        <span className="ed-shooting-star ed-shooting-star--2" />
-        <span className="ed-shooting-star ed-shooting-star--3" />
-      </div>
+    <div className="ed-shell" style={WORDLIST_BG_STYLE}>
       <aside className="ed-sidebar">
         <div className="ed-sidebar-inner">
           <div className="ed-playercard">

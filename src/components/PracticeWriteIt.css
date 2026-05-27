@@ -415,3 +415,16 @@
   width: 100%;
   box-sizing: border-box;
 }
+
+
+/* ── Themed background — Write It ─────────────────────────────────────── */
+.pq-wrap {
+  background-color: #07030f;
+  background-image:
+    linear-gradient(rgba(7, 3, 15, 0.4), rgba(7, 3, 15, 0.4)),
+    var(--bg-image-url, none);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}

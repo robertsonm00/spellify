@@ -55,6 +55,22 @@
   padding: 0;
 }
 
+/* Themed word-list background — applied to the full-viewport .ed-shell
+   only when the list page is active, so the artwork fills the page (not
+   just the centred 1100-px content column). The image URL is injected at
+   runtime via the --bg-image-url custom property (set as an inline style
+   on .ed-shell). A dark scrim keeps the cards/tiles legible. */
+.ed-shell:has(.ed-main--list) {
+  background-color: #07030f;
+  background-image:
+    linear-gradient(rgba(7, 3, 15, 0.55), rgba(7, 3, 15, 0.55)),
+    var(--bg-image-url, none);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
 /* ── Player card — always expanded inside the dashboard sidebar ────────── */
 
 .ed-playercard .hub-player-card {
@@ -1888,8 +1904,9 @@
 .ed-shell:has(.ed-main--explore),
 .ed-shell:has(.ed-main--assignments),
 .ed-shell:has(.ed-main--favourites),
-.ed-shell:has(.ed-main--recent),
-.ed-shell:has(.ed-main--list) {
+.ed-shell:has(.ed-main--recent) {
+  /* Word list page (.ed-main--list) intentionally excluded — that page
+     gets its own painted artwork via the rule at the top of this file. */
   background-color: var(--app-bg-base-color);
   background-image: var(--app-bg-stars), var(--app-bg-gradient);
   background-size: var(--app-bg-stars-size);
@@ -1911,14 +1928,14 @@
 .ed-shell:has(.ed-main--assignments)::before,
 .ed-shell:has(.ed-main--favourites)::before,
 .ed-shell:has(.ed-main--recent)::before,
-.ed-shell:has(.ed-main--list)::before,
 .ed-shell:has(.ed-main--home)::after,
 .ed-shell:has(.ed-main--mylists)::after,
 .ed-shell:has(.ed-main--explore)::after,
 .ed-shell:has(.ed-main--assignments)::after,
 .ed-shell:has(.ed-main--favourites)::after,
-.ed-shell:has(.ed-main--recent)::after,
-.ed-shell:has(.ed-main--list)::after {
+.ed-shell:has(.ed-main--recent)::after {
+  /* Word list page (.ed-main--list) intentionally excluded so the painted
+     word-list artwork isn't covered by the magical twinkle layer. */
   content: '';
   position: fixed;
   top: 0; left: 0;
@@ -1973,88 +1990,13 @@
   50%      { opacity: 1;    filter: blur(0); }
 }
 
-/* ── Shooting stars ───────────────────────────────────────────────────
-   Three independent streaks, each on its own long cycle with a brief
-   "active" window. Stagger via animation-delay so they never fire in
-   sync; one shoots roughly every 4-6 seconds on average. */
-.ed-shooting-stars {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  overflow: hidden;
-  /* Sit behind every dashboard card/control — just above the bg star-field
-     and below all the dashboard content (which renders at z-index auto). */
-  z-index: -1;
-}
-.ed-shooting-star {
-  position: absolute;
-  width: 140px;
-  height: 2px;
-  border-radius: 999px;
-  opacity: 0;
-  /* The trail uses currentColor so each variant just sets its own colour. */
-  background: linear-gradient(90deg, transparent 0%, currentColor 70%, currentColor 100%);
-  filter: drop-shadow(0 0 6px currentColor);
-}
+/* (Removed: .ed-shooting-star* was rendered at z-index: -1 behind the
+   opaque .ed-shell background, so it was never visible. Deleted as
+   dead code — no JSX references remain.) */
 
-/* All three paths share the same 45s cycle. Active window is 0% → 5.5%
-   (~2.5s on screen), and the delays (0s / 15s / 30s) rotate them so a
-   star fires every 15s and two are never visible at the same time. */
-
-/* Path 1 — pink, top-right → bottom-left. */
-.ed-shooting-star--1 {
-  color: #ec4899;
-  top: 12%;
-  right: 0;
-  animation: ed-shooting-star-1 45s linear infinite;
-}
-@keyframes ed-shooting-star-1 {
-  0%      { transform: translate(140px, 0) rotate(155deg); opacity: 0; }
-  1%      { opacity: 1; }
-  5%      { opacity: 1; }
-  5.5%    { transform: translate(-110vw, 55vh) rotate(155deg); opacity: 0; }
-  100%    { transform: translate(-110vw, 55vh) rotate(155deg); opacity: 0; }
-}
-
-/* Path 2 — gold, top-left → bottom-right. Fires 15s after Path 1. */
-.ed-shooting-star--2 {
-  color: #FFD700;
-  top: 6%;
-  left: 0;
-  animation: ed-shooting-star-2 45s linear infinite;
-  animation-delay: 15s;
-}
-@keyframes ed-shooting-star-2 {
-  0%      { transform: translate(-140px, 0) rotate(25deg); opacity: 0; }
-  1%      { opacity: 1; }
-  5%      { opacity: 1; }
-  5.5%    { transform: translate(115vw, 70vh) rotate(25deg); opacity: 0; }
-  100%    { transform: translate(115vw, 70vh) rotate(25deg); opacity: 0; }
-}
-
-/* Path 3 — white, top-centre → bottom-right. Fires 30s after Path 1. */
-.ed-shooting-star--3 {
-  color: #fff;
-  top: 0;
-  left: 38%;
-  animation: ed-shooting-star-3 45s linear infinite;
-  animation-delay: 30s;
-}
-@keyframes ed-shooting-star-3 {
-  0%      { transform: translate(0, -140px) rotate(45deg); opacity: 0; }
-  1%      { opacity: 1; }
-  5%      { opacity: 1; }
-  5.5%    { transform: translate(55vw, 100vh) rotate(45deg); opacity: 0; }
-  100%    { transform: translate(55vw, 100vh) rotate(45deg); opacity: 0; }
-}
-
-/* Respect reduced motion — disable the shooting stars (and the twinkle
-   pulses) for users who've opted out of motion. */
+/* Respect reduced motion — disable the dashboard twinkle pulses for
+   users who've opted out of motion. */
 @media (prefers-reduced-motion: reduce) {
-  .ed-shooting-star {
-    animation: none !important;
-    opacity: 0;
-  }
   .ed-shell::before,
   .ed-shell::after {
     animation: none !important;

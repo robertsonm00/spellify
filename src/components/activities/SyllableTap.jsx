@@ -6,6 +6,11 @@ import GameHeader from '../GameHeader';
 import GameProgressStrip from '../GameProgressStrip';
 import './SyllableTap.css';
 
+// Themed background — injected via CSS custom property at runtime.
+const BG_STYLE = {
+  '--bg-image-url': `url("${process.env.PUBLIC_URL || ''}/adventure/Sylaball%20tap%20background.png")`,
+};
+
 // ── Correct-guess celebration (matches Hangman / Crossword feel) ─────────
 function playWordChime() {
   try {
@@ -166,7 +171,7 @@ function SyllableTap({ words, onComplete, onExit, savedProgress = null, onSavePr
   if (phase === 'complete') {
     const wins = results.filter((r) => r.correct).length;
     return (
-      <div className="st-wrap game-magical-bg">
+      <div className="st-wrap game-magical-bg" style={BG_STYLE}>
         <GameHeader title="Syllable Tap" onExit={onExit} />
         <GameProgressStrip percent={100}>
           {results.length} of {queue.length} words done
@@ -194,7 +199,7 @@ function SyllableTap({ words, onComplete, onExit, savedProgress = null, onSavePr
 
   if (!word) {
     return (
-      <div className="st-wrap game-magical-bg">
+      <div className="st-wrap game-magical-bg" style={BG_STYLE}>
         <GameHeader title="Syllable Tap" onExit={onExit} />
         <div className="st-shell">
           <p>No words available.</p>
@@ -204,7 +209,7 @@ function SyllableTap({ words, onComplete, onExit, savedProgress = null, onSavePr
   }
 
   return (
-    <div className="st-wrap game-magical-bg">
+    <div className="st-wrap game-magical-bg" style={BG_STYLE}>
       <GameHeader title="Syllable Tap" onExit={onExit} />
       <GameProgressStrip percent={(wordIndex / queue.length) * 100}>
         Word {wordIndex + 1} of {queue.length}

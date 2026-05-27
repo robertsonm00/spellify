@@ -12,6 +12,7 @@ const NAV_TABS = [
   { key: 'assignments',      label: 'ASSIGN' },
   { key: 'mylists',          label: 'MY LISTS' },
   { key: 'exploreDashboard', label: 'EXPLORE' },
+  { key: 'spellShop',        label: 'SHOP' },
 ];
 
 export default function ArcadeFooter({
