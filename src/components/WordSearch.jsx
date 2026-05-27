@@ -101,6 +101,26 @@ function playVictorySound() {
 // Year 5+ get a roomier 16x16 grid; younger ages stay on the cosier 10x10.
 const gridSizeForYear = (year) => (year != null && year >= 5 ? 16 : 10);
 
+// ── Coach (onboarding) helpers ───────────────────────────────────────────────
+// localStorage key — bumped suffix invalidates older "seen" flags if we revamp.
+const COACH_SEEN_KEY = 'spellify.ws.onboarding.v1';
+// We coach through the first N words then step aside.
+const COACH_WORDS = 2;
+// Direction index → {dx, dy} (mirrors wordSearchEngine.js).
+const COACH_DIRS = [
+  { dx: 1, dy: 0 }, { dx: 0, dy: 1 }, { dx: 1, dy: 1 }, { dx: -1, dy: 1 },
+];
+// Expand a placedWord {startRow, startCol, direction, length} into its cells.
+function coachCellsForPlacedWord(pw) {
+  if (!pw) return [];
+  const { dx, dy } = COACH_DIRS[pw.direction] || COACH_DIRS[0];
+  const cells = [];
+  for (let i = 0; i < pw.length; i++) {
+    cells.push({ row: pw.startRow + dy * i, col: pw.startCol + dx * i });
+  }
+  return cells;
+}
+
 function getCellsBetween(start, end) {
   const rowDiff = end.row - start.row;
   const colDiff = end.col - start.col;
@@ -130,6 +150,25 @@ export default function WordSearch({ words, wordObjects = [], year = null, saved
   const [celebration,     setCelebration]     = useState(null);
   // Word detail modal — opened when any word in the sidebar list is tapped
   const [activeWord,      setActiveWord]      = useState(null); // string | null
+
+  // ── Coach (onboarding) state ───────────────────────────────────────────
+  // Active on a first-time play (no saved progress, no "seen" flag in
+  // localStorage). Walks the child through the first COACH_WORDS finds,
+  // highlighting the target cells and pointing to the word in the list.
+  // `coachStep` is the index into placedWords of the current target.
+  // `coachPhase` is one of: 'guide' | 'done' | 'off'.
+  const [coachStep,  setCoachStep]  = useState(0);
+  const [coachPhase, setCoachPhase] = useState(() => {
+    // Don't coach if they already have progress in this list, or if they've
+    // played Word Search before on this device.
+    if (savedProgress?.foundWords?.length) return 'off';
+    try {
+      if (typeof window !== 'undefined' && window.localStorage.getItem(COACH_SEEN_KEY)) {
+        return 'off';
+      }
+    } catch { /* private mode etc. — coach is fine to show */ }
+    return 'guide';
+  });
 
   // Pre-seed word info cache with list definitions so the modal resolves instantly
   useEffect(() => { preSeedWordInfoCache(wordObjects); }, [words]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -218,6 +257,42 @@ export default function WordSearch({ words, wordObjects = [], year = null, saved
     return false;
   }, [gameState, foundWords]);
 
+  // ── Coach — advance to next target when current is found, finish after
+  // COACH_WORDS words. Hook lives up here (above any early return) so it
+  // runs unconditionally per React's rules-of-hooks. ────────────────────
+  useEffect(() => {
+    if (coachPhase !== 'guide') return;
+    const placed = gameState?.placedWords;
+    if (!placed) return;
+    const target = placed[coachStep];
+    if (!target) return;
+    if (foundWords.includes(target.word)) {
+      if (coachStep + 1 >= Math.min(COACH_WORDS, placed.length)) {
+        setCoachPhase('done');
+        try {
+          if (typeof window !== 'undefined') window.localStorage.setItem(COACH_SEEN_KEY, '1');
+        } catch { /* ignore */ }
+        const t = setTimeout(() => setCoachPhase('off'), 2800);
+        return () => clearTimeout(t);
+      }
+      setCoachStep(s => s + 1);
+    }
+  }, [foundWords, coachStep, coachPhase, gameState]);
+
+  const dismissCoach = useCallback(() => {
+    setCoachPhase('off');
+    try {
+      if (typeof window !== 'undefined') window.localStorage.setItem(COACH_SEEN_KEY, '1');
+    } catch { /* ignore */ }
+  }, []);
+
+  // Manual coach activation — fired by the floating Help button. Reactivates
+  // the onboarding flow from word 1, independent of the localStorage gate.
+  const activateCoach = useCallback(() => {
+    setCoachStep(0);
+    setCoachPhase('guide');
+  }, []);
+
   // ── Global mouseup — cancels drag if pointer released outside grid ──────────
 
   useEffect(() => {
@@ -299,6 +374,17 @@ export default function WordSearch({ words, wordObjects = [], year = null, saved
   if (!gameState) return null;
 
   const placedWords = gameState.placedWords;
+
+  // ── Coach — derive target + advance when the target word is found ─────
+  const coachTarget = (coachPhase === 'guide' && placedWords[coachStep])
+    ? placedWords[coachStep]
+    : null;
+  const coachCellSet = (() => {
+    if (!coachTarget) return null;
+    const cells = coachCellsForPlacedWord(coachTarget);
+    return new Set(cells.map(c => `${c.row},${c.col}`));
+  })();
+
   const progress    = placedWords.length > 0
     ? Math.round((foundWords.length / placedWords.length) * 100)
     : 0;
@@ -317,8 +403,40 @@ export default function WordSearch({ words, wordObjects = [], year = null, saved
   const isComplete = foundWords.length > 0 && foundWords.length === placedWords.length;
   const gridSize   = gameState.grid.length;
 
+  // Help button is only offered before the child has begun. Once a word is
+  // found we hide it — they're clearly underway. Hidden while the coach is
+  // already running so it can't double-trigger. Later we'll likely gate
+  // this on play-count / time-since-first-game from the session.
+  const showHelpButton = foundWords.length === 0 && coachPhase === 'off';
+
+  // When the coach is actively guiding, lock out everything except the
+  // target cells and the coach card itself. Two layers:
+  //   • full-viewport shield catches clicks outside the wrap (footer / nav)
+  //   • the wrap gets a modifier class that disables pointer-events on its
+  //     children, with re-enabling rules for coach cells and the card.
+  const coachActive = coachPhase === 'guide';
+
   return (
-    <div className="ws-wrap" onContextMenu={cancelSelection}>
+    <div className={`ws-wrap${coachActive ? ' ws-wrap--coach-active' : ''}`} onContextMenu={cancelSelection}>
+
+      {/* Full-viewport shield — sits behind the coach card; absorbs all
+          clicks so the child can't tap the footer / nav / hub while the
+          coach is running. Cells + card sit on higher z-indexes. */}
+      {coachActive && <div className="ws-coach-shield" aria-hidden="true" />}
+
+      {/* ── Floating Help button (top-right) — manually activates the
+            onboarding coach. Visible only before the game has started. */}
+      {showHelpButton && (
+        <button
+          type="button"
+          className="ws-help-btn"
+          onClick={activateCoach}
+          aria-label="Show help and tutorial"
+        >
+          <span className="ws-help-btn__icon" aria-hidden="true">?</span>
+          <span className="ws-help-btn__label">Help</span>
+        </button>
+      )}
 
       {/* ── Header ── */}
       <GameHeader
@@ -339,6 +457,54 @@ export default function WordSearch({ words, wordObjects = [], year = null, saved
         {/* Grid area */}
         <div className="ws-grid-wrap">
           {toast && <div className="ws-toast">{toast}</div>}
+
+          {/* ── Coach card ── first-time onboarding overlay */}
+          {coachPhase !== 'off' && (
+            <div
+              className={`ws-coach ws-coach--${coachPhase}`}
+              role="status"
+              aria-live="polite"
+            >
+              {coachPhase === 'guide' && coachTarget && (
+                <>
+                  <span className="ws-coach__icon" aria-hidden="true">
+                    {coachStep === 0 ? '👀' : '✨'}
+                  </span>
+                  <div className="ws-coach__body">
+                    <div className="ws-coach__title">
+                      {coachStep === 0
+                        ? <>Find the word <strong>{coachTarget.word.toLowerCase()}</strong></>
+                        : <>Great! Now find <strong>{coachTarget.word.toLowerCase()}</strong></>}
+                    </div>
+                    <div className="ws-coach__hint">
+                      {coachStep === 0
+                        ? 'Click and drag across the glowing letters.'
+                        : 'Look for the glowing letters in the grid.'}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="ws-coach__skip"
+                    onClick={dismissCoach}
+                    aria-label="Skip the tutorial"
+                  >
+                    Skip
+                  </button>
+                </>
+              )}
+              {coachPhase === 'done' && (
+                <>
+                  <span className="ws-coach__icon" aria-hidden="true">🌟</span>
+                  <div className="ws-coach__body">
+                    <div className="ws-coach__title">You've got it!</div>
+                    <div className="ws-coach__hint">Find the rest on your own.</div>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+
           {celebration && (
             <div
               key={celebration.id}
@@ -369,10 +535,12 @@ export default function WordSearch({ words, wordObjects = [], year = null, saved
                   const cellSelClass = sel
                     ? (selectionIsMatch ? ' ws-cell--sel ws-cell--sel-correct' : ' ws-cell--sel')
                     : '';
+                  const coachClass = (coachCellSet && coachCellSet.has(`${ri},${ci}`) && !found)
+                    ? ' ws-cell--coach' : '';
                   return (
                     <div
                       key={`${ri}-${ci}`}
-                      className={`ws-cell${found ? ' ws-cell--found' : ''}${cellSelClass}`}
+                      className={`ws-cell${found ? ' ws-cell--found' : ''}${cellSelClass}${coachClass}`}
                       onMouseDown={e  => handleMouseDown(ri, ci, e)}
                       onMouseEnter={() => handleMouseEnter(ri, ci)}
                       onMouseUp={()   => handleMouseUp(ri, ci)}
@@ -399,10 +567,11 @@ export default function WordSearch({ words, wordObjects = [], year = null, saved
           <ul className="ws-word-list">
             {placedWords.map(({ word }) => {
               const done = foundWords.includes(word);
+              const isCoachTarget = coachTarget && coachTarget.word === word;
               return (
                 <li
                   key={word}
-                  className={`game-word ws-word-clickable${done ? ' game-word--done' : ''}`}
+                  className={`game-word ws-word-clickable${done ? ' game-word--done' : ''}${isCoachTarget ? ' game-word--coach' : ''}`}
                   onClick={() => setActiveWord(word)}
                   role="button"
                   tabIndex={0}

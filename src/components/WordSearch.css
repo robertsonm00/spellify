@@ -839,3 +839,299 @@
     content: none; /* placeholder hook in case we want to inject later */
   }
 }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Coach (first-time onboarding) — guides the child through finding their
+   first words. Glows the target letters in the grid, highlights the word
+   in the sidebar, and shows a friendly speech-card above the grid.
+   ──────────────────────────────────────────────────────────────────────── */
+
+/* Cells in the current coach target — soft white-aqua pulse so the path
+   reads even before the child knows where to look. */
+.ws-cell--coach {
+  position: relative;
+  z-index: 2;
+  background: linear-gradient(
+    135deg,
+    rgba(165, 243, 252, 0.45),
+    rgba(199, 125, 255, 0.45)
+  );
+  color: #0a0414;
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.9),
+    0 0 14px rgba(165, 243, 252, 0.85),
+    0 0 28px rgba(199, 125, 255, 0.6);
+  animation: ws-coach-cell-pulse 1.6s ease-in-out infinite;
+}
+@keyframes ws-coach-cell-pulse {
+  0%, 100% {
+    box-shadow:
+      inset 0 0 0 2px rgba(255, 255, 255, 0.9),
+      0 0 10px rgba(165, 243, 252, 0.75),
+      0 0 20px rgba(199, 125, 255, 0.45);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow:
+      inset 0 0 0 2px rgba(255, 255, 255, 1),
+      0 0 18px rgba(165, 243, 252, 1),
+      0 0 36px rgba(199, 125, 255, 0.8);
+    transform: scale(1.06);
+  }
+}
+
+/* Active drag-selection should still feel responsive over the coach glow. */
+.ws-cell--coach.ws-cell--sel {
+  animation: none;
+}
+
+/* Target word in the sidebar list — gentle pulsing chip so the child can
+   cross-reference what they're hunting. */
+.game-word--coach {
+  background: linear-gradient(
+    135deg,
+    rgba(199, 125, 255, 0.35),
+    rgba(249, 168, 212, 0.35)
+  );
+  box-shadow: 0 0 0 2px rgba(199, 125, 255, 0.7), 0 0 16px rgba(199, 125, 255, 0.45);
+  border-radius: 8px;
+  color: #fff;
+  animation: ws-coach-word-pulse 1.6s ease-in-out infinite;
+}
+@keyframes ws-coach-word-pulse {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(199, 125, 255, 0.7), 0 0 14px rgba(199, 125, 255, 0.4); }
+  50%      { box-shadow: 0 0 0 2px rgba(199, 125, 255, 1),   0 0 26px rgba(199, 125, 255, 0.85); }
+}
+
+/* Coach speech-card — floats above the grid. Compact, dismissible. */
+.ws-coach {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(440px, calc(100% - 16px));
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(46, 16, 101, 0.92), rgba(15, 6, 32, 0.92));
+  border: 1.5px solid rgba(199, 125, 255, 0.55);
+  box-shadow:
+    0 6px 24px rgba(0, 0, 0, 0.45),
+    0 0 24px rgba(199, 125, 255, 0.25);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #f5ecff;
+  font-family: 'Nunito', 'Segoe UI', sans-serif;
+  animation: ws-coach-card-in 0.32s ease-out;
+  pointer-events: auto;
+}
+.ws-coach--done {
+  border-color: rgba(255, 217, 61, 0.7);
+  background: linear-gradient(135deg, rgba(46, 16, 101, 0.95), rgba(120, 53, 15, 0.6));
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45), 0 0 28px rgba(255, 217, 61, 0.45);
+  animation: ws-coach-card-in 0.32s ease-out, ws-coach-card-out 0.5s ease-in 2.3s forwards;
+}
+@keyframes ws-coach-card-in {
+  from { opacity: 0; transform: translate(-50%, -8px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+@keyframes ws-coach-card-out {
+  to { opacity: 0; transform: translate(-50%, -8px); }
+}
+
+.ws-coach__icon {
+  font-size: 1.6rem;
+  line-height: 1;
+  flex: 0 0 auto;
+  filter: drop-shadow(0 0 8px rgba(199, 125, 255, 0.6));
+}
+.ws-coach__body { flex: 1 1 auto; min-width: 0; }
+.ws-coach__title {
+  font-size: 0.98rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: #ffffff;
+  margin-bottom: 2px;
+}
+.ws-coach__title strong {
+  color: #fde68a;
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+}
+.ws-coach__hint {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #d8b4fe;
+  opacity: 0.95;
+}
+.ws-coach__skip {
+  flex: 0 0 auto;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #d8b4fe;
+  font-family: inherit;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 5px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.ws-coach__skip:hover {
+  background: rgba(199, 125, 255, 0.18);
+  border-color: rgba(199, 125, 255, 0.45);
+  color: #fff;
+}
+
+@media (max-width: 540px) {
+  .ws-coach { top: 4px; padding: 8px 10px; gap: 8px; }
+  .ws-coach__icon  { font-size: 1.3rem; }
+  .ws-coach__title { font-size: 0.88rem; }
+  .ws-coach__hint  { font-size: 0.74rem; }
+  .ws-coach__skip  { font-size: 0.66rem; padding: 4px 7px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ws-cell--coach,
+  .game-word--coach,
+  .ws-coach { animation: none !important; }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Floating "Help" button — top-right of the Word Search screen. Manual
+   trigger for the onboarding coach during the early-learning phase. Visible
+   only while no word has been found (foundWords.length === 0) and the coach
+   isn't already running. Later we'll add play-count / time-based gating.
+   ──────────────────────────────────────────────────────────────────────── */
+
+.ws-help-btn {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 64px);
+  right: 16px;
+  z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px 8px 10px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(46, 16, 101, 0.92), rgba(15, 6, 32, 0.92));
+  border: 1.5px solid rgba(199, 125, 255, 0.6);
+  color: #f5ecff;
+  font-family: 'Nunito', 'Segoe UI', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.45),
+    0 0 18px rgba(199, 125, 255, 0.35);
+  transition: transform 0.15s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  animation: ws-help-btn-pulse 2.4s ease-in-out infinite;
+}
+.ws-help-btn:hover {
+  transform: translateY(-2px);
+  border-color: rgba(199, 125, 255, 0.9);
+  box-shadow:
+    0 6px 22px rgba(0, 0, 0, 0.5),
+    0 0 28px rgba(199, 125, 255, 0.6);
+}
+.ws-help-btn:active { transform: translateY(0); }
+.ws-help-btn:focus-visible {
+  outline: 2px solid #ffd93d;
+  outline-offset: 3px;
+}
+
+.ws-help-btn__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(199, 125, 255, 0.28);
+  border: 1.5px solid rgba(199, 125, 255, 0.7);
+  font-size: 0.92rem;
+  font-weight: 900;
+  line-height: 1;
+  color: #fde68a;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.ws-help-btn__label { line-height: 1; }
+
+@keyframes ws-help-btn-pulse {
+  0%, 100% { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45), 0 0 14px rgba(199, 125, 255, 0.3); }
+  50%      { box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5),  0 0 26px rgba(199, 125, 255, 0.6); }
+}
+
+@media (max-width: 540px) {
+  .ws-help-btn {
+    top: calc(env(safe-area-inset-top, 0px) + 56px);
+    right: 10px;
+    padding: 6px 11px 6px 7px;
+    font-size: 0.72rem;
+  }
+  .ws-help-btn__icon { width: 18px; height: 18px; font-size: 0.78rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ws-help-btn { animation: none; }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Coach lockout — while the onboarding coach is guiding, nothing on the
+   screen is clickable except the target letters and the coach card itself.
+   Achieved with two layers:
+     • full-viewport shield (.ws-coach-shield) absorbs clicks outside the
+       game wrap (bottom nav, arcade footer, etc.)
+     • the wrap itself drops pointer-events on its children, then re-enables
+       them only for the coach target cells and the coach card.
+   ──────────────────────────────────────────────────────────────────────── */
+
+.ws-coach-shield {
+  position: fixed;
+  inset: 0;
+  z-index: 25;            /* below coach card (30), below coach cells (26) */
+  background: rgba(7, 3, 15, 0.35);
+  backdrop-filter: blur(1px);
+  -webkit-backdrop-filter: blur(1px);
+  cursor: not-allowed;
+}
+
+/* Disable interaction across the whole game wrap … */
+.ws-wrap--coach-active .ws-help-btn,
+.ws-wrap--coach-active .ws-wordlist-panel,
+.ws-wrap--coach-active .ws-side-btn,
+.ws-wrap--coach-active .ws-cell {
+  pointer-events: none;
+}
+/* The GameHeader sits inside the wrap — kill its taps too. */
+.ws-wrap--coach-active > :first-child {
+  pointer-events: none;
+}
+
+/* … then selectively re-enable just the coach surfaces. Coach cells need
+   to be raised above the shield's z-index so clicks land on them. */
+.ws-wrap--coach-active .ws-cell--coach {
+  pointer-events: auto;
+  position: relative;
+  z-index: 26;
+}
+.ws-wrap--coach-active .ws-coach,
+.ws-wrap--coach-active .ws-coach * {
+  pointer-events: auto;
+}
+
+/* Soft dim of non-target cells so the eye lands on the glowing path. */
+.ws-wrap--coach-active .ws-cell:not(.ws-cell--coach):not(.ws-cell--found) {
+  opacity: 0.55;
+  transition: opacity 0.3s ease;
+}
