@@ -12,6 +12,7 @@ import SpellifyLogo   from './components/SpellifyLogo';
 import { fireBuddyCheer } from './components/BuddyAvatar';
 import ExploreDashboard from './components/explore/ExploreDashboard';
 import AdventureMap from './components/AdventureMap';
+import HFWIsland from './components/HFWIsland';
 import ArcadeFooter from './components/ArcadeFooter';
 import MobileBottomNav from './components/MobileBottomNav';
 // MobileTopBar removed — SpellifyLogo is the single floating wordmark.
@@ -61,6 +62,7 @@ function App() {
   // Increments on every top-nav tab click so ExploreDashboard can clear its
   // internal selectedList even when the user clicks the tab they're already on.
   const [navTick,        setNavTick]        = useState(0);
+  const [hfwFromIsleId,  setHfwFromIsleId]  = useState(null);
   const [showSignIn,     setShowSignIn]     = useState(false);
   const [signInView,     setSignInView]     = useState('signin'); // 'signin' | 'signup'
   const openAuth = (view = 'signin') => { setSignInView(view); setShowSignIn(true); };
@@ -1188,7 +1190,15 @@ function App() {
         <ParentDashboard
           authUser={authUser}
           hasPin={!!parentProfile?.parent_pin_hash}
-          childrenCount={childrenRows.length}
+          children={childrenRows}
+          onEditChild={(updated) => {
+            setChildrenRows((prev) =>
+              prev.map((c) => (c.id === updated.id ? updated : c))
+            );
+          }}
+          onDeleteChild={(id) => {
+            setChildrenRows((prev) => prev.filter((c) => c.id !== id));
+          }}
           onChangePin={handleChangePin}
           onRemovePin={handleRemovePin}
           onSignOut={signOut}
@@ -1202,19 +1212,29 @@ function App() {
   if (!session || !session.words || session.words.length === 0) {
     // No session: render the dashboard so guests can browse Home / Explore /
     // Favourites etc. Onboarding is launched from inside those flows.
-    const dashboardSections = ['home', 'assignments', 'mylists', 'exploreDashboard', 'favourites', 'recent', 'alerts'];
+    const dashboardSections = ['home', 'hfwIsland', 'assignments', 'mylists', 'exploreDashboard', 'favourites', 'recent', 'alerts'];
     if (dashboardSections.includes(section)) {
       const dashboardPage = section === 'exploreDashboard' ? 'explore' : section;
       return (
         <>
           <SpellifyLogo
             onHomeClick={() => { setSection('home'); setNavTick(t => t + 1); }}
+            variant={(section === 'home' || section === 'hfwIsland') ? 'adventure' : undefined}
           />
-          {section === 'home' ? (
+          {section === 'hfwIsland' ? (
+            <HFWIsland
+              session={session}
+              fromIsleId={hfwFromIsleId}
+              onBack={(isleId) => { setSection('home'); setNavTick(t => t + 1); }}
+              onOpenList={handleAdventureOpenList}
+            />
+          ) : section === 'home' ? (
             <AdventureMap
               session={session}
               onSectionChange={(s) => { setSection(s); setNavTick(t => t + 1); }}
               onOpenList={handleAdventureOpenList}
+              onGoToHFW={(isleId) => { setHfwFromIsleId(isleId); setSection('hfwIsland'); setNavTick(t => t + 1); }}
+              initialIsleId={hfwFromIsleId}
             />
           ) : (
             <ExploreDashboard
@@ -1281,17 +1301,27 @@ function App() {
       {/* ── Top navigation (minimal — logo only, clicks → Home) ── */}
       <SpellifyLogo
         onHomeClick={() => { setSection('home'); setNavTick(t => t + 1); }}
+        variant={(section === 'home' || section === 'hfwIsland') ? 'adventure' : undefined}
       />
 
       {/* ── Dashboard pages (home / assignments / mylists / explore /
             favourites / recent / alerts) ─ All routed through
             ExploreDashboard so they share the same purple starfield
             chrome + arcade-style headings on every viewport. */}
-      {section === 'home' ? (
+      {section === 'hfwIsland' ? (
+        <HFWIsland
+          session={session}
+          fromIsleId={hfwFromIsleId}
+          onBack={(isleId) => { setSection('home'); setNavTick(t => t + 1); }}
+          onOpenList={handleAdventureOpenList}
+        />
+      ) : section === 'home' ? (
         <AdventureMap
           session={session}
           onSectionChange={(s) => { setSection(s); setNavTick(t => t + 1); }}
           onOpenList={handleAdventureOpenList}
+          onGoToHFW={(isleId) => { setHfwFromIsleId(isleId); setSection('hfwIsland'); setNavTick(t => t + 1); }}
+          initialIsleId={hfwFromIsleId}
         />
       ) : (
         <ExploreDashboard

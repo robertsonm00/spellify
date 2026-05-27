@@ -1,4 +1,4 @@
-/* CreateChildProfile — full-screen overlay, same purple aesthetic. */
+/* CreateChildProfile / EditChildProfile — full-screen overlay, same purple aesthetic. */
 
 .ccp-overlay {
   position: fixed;
@@ -322,3 +322,65 @@
 .mp-summary__label strong {
   color: #ffd93d;
 }
+
+/* ── EditChildProfile: delete zone ─────────────────────────────────── */
+
+.ccp-delete-zone {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px dashed rgba(255, 100, 120, 0.3);
+  text-align: center;
+}
+
+.ccp-delete-trigger {
+  background: none;
+  border: none;
+  color: rgba(255, 120, 140, 0.7);
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.15s;
+  padding: 4px 0;
+}
+.ccp-delete-trigger:hover { color: #ff6b85; }
+.ccp-delete-trigger:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.ccp-delete-confirm {
+  background: rgba(60, 12, 24, 0.6);
+  border: 1.5px solid rgba(255, 100, 120, 0.5);
+  border-radius: 12px;
+  padding: 16px;
+  text-align: left;
+}
+.ccp-delete-confirm__msg {
+  font-size: 0.9rem;
+  color: #ffb3bf;
+  margin: 0 0 14px;
+  line-height: 1.5;
+}
+.ccp-delete-confirm__msg strong { color: #fff; }
+.ccp-delete-confirm__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ccp-delete-btn {
+  flex: 1;
+  padding: 10px 16px;
+  background: linear-gradient(180deg, #ff6b85 0%, #c93a55 100%);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(201, 58, 85, 0.4);
+  transition: filter 0.15s;
+}
+.ccp-delete-btn:hover { filter: brightness(1.1); }
+.ccp-delete-btn:disabled { opacity: 0.5; cursor: not-allowed; }

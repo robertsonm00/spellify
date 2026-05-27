@@ -116,3 +116,72 @@
   color: #cdb4ff;
   font-size: 0.92rem;
 }
+
+/* ── Children list ───────────────────────────────────────────────── */
+.pd-child-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.pd-child-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: rgba(20, 8, 32, 0.5);
+  border: 1.5px solid rgba(199, 125, 255, 0.25);
+  border-radius: 12px;
+  transition: border-color 0.12s;
+}
+.pd-child-row:hover { border-color: rgba(199, 125, 255, 0.5); }
+
+.pd-child-avatar {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pd-child-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.pd-child-name {
+  font-weight: 800;
+  font-size: 1rem;
+  color: #f5ecff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pd-child-year {
+  font-size: 0.8rem;
+  color: #cdb4ff;
+  font-weight: 600;
+}
+
+.pd-edit-btn {
+  flex-shrink: 0;
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1.5px solid rgba(255, 217, 61, 0.5);
+  background: rgba(255, 217, 61, 0.1);
+  color: #ffd93d;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.pd-edit-btn:hover {
+  background: rgba(255, 217, 61, 0.2);
+  border-color: #ffd93d;
+}

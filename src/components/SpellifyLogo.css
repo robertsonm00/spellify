@@ -133,6 +133,36 @@
   .spellify-logo__letter { font-size: 1.105rem; }
 }
 
+/* ── Adventure variant: white wordmark, magical glow, 10% bigger, no backdrop ── */
+.spellify-logo--adventure {
+  background: none;
+  border: none;
+  padding: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.spellify-logo--adventure .spellify-logo__letter {
+  font-size: 1.5015rem; /* 1.365rem * 1.10 */
+  color: #ffffff !important;
+  text-shadow:
+    0 0 6px #2e1065,
+    0 0 14px #c77dff,
+    0 0 28px #1a1a2e,
+    0 0 44px #6b21a8,
+    0 2px 0 rgba(0, 0, 0, 0.55);
+}
+.spellify-logo--adventure:hover .spellify-logo__letter {
+  text-shadow:
+    0 0 8px #ffffff,
+    0 0 20px #ffffff,
+    0 0 40px rgba(199, 125, 255, 0.95),
+    0 0 60px rgba(165, 243, 252, 0.75);
+}
+@media (max-width: 540px) {
+  .spellify-logo--adventure .spellify-logo__letter { font-size: 1.2155rem; /* 1.105 * 1.10 */ }
+}
+
 /* ── Hide during hub (ed-active) or in-game (game-active) ── */
 body.ed-active .spellify-logo,
 body.game-active .spellify-logo {

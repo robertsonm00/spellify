@@ -106,10 +106,10 @@ function isListComplete(list) {
   return mastered / total >= 0.8;
 }
 
-export default function AdventureMap({ session, onSectionChange, onOpenList }) {
+export default function AdventureMap({ session, onSectionChange, onOpenList, onGoToHFW, initialIsleId }) {
   const sessionYear = Number(session?.year) || 1;
   const currentIsle = isleForYear(sessionYear);
-  const [selectedIsleId, setSelectedIsleId] = useState(currentIsle.id);
+  const [selectedIsleId, setSelectedIsleId] = useState(initialIsleId || currentIsle.id);
   const [switcherOpen,   setSwitcherOpen]   = useState(false);
   const [lockedMsg,      setLockedMsg]      = useState(null);
 
@@ -430,11 +430,14 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
     else onSectionChange?.('exploreDashboard');
   };
 
-  // Vertical click-and-drag scrolling for desktop (touch is native).
+  // Vertical click-and-drag scrolling for desktop (touch uses native pan-y
+  // so momentum scrolling and the OS-native scroll-wheel both work).
   const dragRef = useRef(null);
   const dragMovedRef = useRef(false);
   const onViewportPointerDown = (e) => {
-    if (e.button !== 0 && e.pointerType !== 'touch') return;
+    // Only initiate JS drag for primary mouse button. Touch + pen rely on
+    // `touch-action: pan-y` for native, momentum-preserving scrolling.
+    if (e.pointerType !== 'mouse' || e.button !== 0) return;
     if (e.target.closest('.am-v2-node')) return;
     if (!viewportRef.current) return;
     dragRef.current = {
@@ -450,6 +453,53 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
     if (Math.abs(dy) > 4) dragMovedRef.current = true;
     viewportRef.current.scrollTop = dragRef.current.scrollTop - dy;
   };
+  // Smoothed wheel scrolling: accumulate deltaY into a target scrollTop
+  // and ease current → target each rAF tick. Gives trackpads a buttery
+  // feel instead of the snap-per-event jank of native overflow scrolling.
+  const wheelTargetRef = useRef(null);
+  const wheelRafRef = useRef(0);
+  useEffect(() => {
+    const vp = viewportRef.current;
+    if (!vp) return;
+    const onWheel = (e) => {
+      if (e.deltaY === 0) return;
+      // Normalise line/page deltas to pixels.
+      const px = e.deltaMode === 1 ? e.deltaY * 16
+               : e.deltaMode === 2 ? e.deltaY * vp.clientHeight
+               : e.deltaY;
+      e.preventDefault();
+      const max = vp.scrollHeight - vp.clientHeight;
+      const current = wheelTargetRef.current == null ? vp.scrollTop : wheelTargetRef.current;
+      wheelTargetRef.current = Math.max(0, Math.min(max, current + px));
+      if (!wheelRafRef.current) {
+        const step = () => {
+          if (!viewportRef.current || wheelTargetRef.current == null) {
+            wheelRafRef.current = 0;
+            return;
+          }
+          const v = viewportRef.current;
+          const target = wheelTargetRef.current;
+          const diff = target - v.scrollTop;
+          if (Math.abs(diff) < 0.5) {
+            v.scrollTop = target;
+            wheelTargetRef.current = null;
+            wheelRafRef.current = 0;
+            return;
+          }
+          v.scrollTop += diff * 0.24;
+          wheelRafRef.current = requestAnimationFrame(step);
+        };
+        wheelRafRef.current = requestAnimationFrame(step);
+      }
+    };
+    vp.addEventListener('wheel', onWheel, { passive: false });
+    return () => {
+      vp.removeEventListener('wheel', onWheel);
+      if (wheelRafRef.current) cancelAnimationFrame(wheelRafRef.current);
+      wheelRafRef.current = 0;
+      wheelTargetRef.current = null;
+    };
+  }, []);
   const onViewportPointerUp = () => {
     if (!dragRef.current) return;
     dragRef.current = null;
@@ -775,7 +825,7 @@ export default function AdventureMap({ session, onSectionChange, onOpenList }) {
       <button
         type="button"
         className="am-hfw-sign"
-        onClick={() => onSectionChange?.('exploreDashboard')}
+        onClick={() => onGoToHFW?.(selectedIsleId)}
         aria-label="Go to High-Frequency Island"
       >
         <img src={HFW_SIGN} alt="High-Frequency Island sign" />
