@@ -3,6 +3,7 @@ import confetti from 'canvas-confetti';
 import BuddyAvatar, { fireBuddyCheer } from './BuddyAvatar';
 import { curriculumLists } from '../data/curriculumLists';
 import { getMasteredWords } from '../utils/masteryEngine';
+import { getStreak } from '../utils/streakEngine';
 import './AdventureMap.css';
 
 const SPELL_ISLES = [
@@ -112,6 +113,8 @@ export default function AdventureMap({ session, onSectionChange, onOpenList, onG
   const [selectedIsleId, setSelectedIsleId] = useState(initialIsleId || currentIsle.id);
   const [switcherOpen,   setSwitcherOpen]   = useState(false);
   const [lockedMsg,      setLockedMsg]      = useState(null);
+  const [streakDevTick,  setStreakDevTick]  = useState(0);
+  const [streakPreview,  setStreakPreview]  = useState(() => getStreak());
 
   const viewportRef = useRef(null);
 
@@ -866,6 +869,40 @@ export default function AdventureMap({ session, onSectionChange, onOpenList, onG
           </div>
         </div>
       )}
+
+      {/* DEV-only: streak setter — lets you preview streak 1/2/3/7/14 without playing */}
+      {process.env.NODE_ENV === 'development' && (() => {
+        const devSet = (n) => {
+          const d = new Date();
+          const iso = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+          const next = { currentStreak: n, longestStreak: Math.max(n, 1), lastPlayedDate: iso, graceUsed: false, lastUpdated: Date.now() };
+          localStorage.setItem('spellify_streak', JSON.stringify(next));
+          setStreakPreview(next);
+          setStreakDevTick(t => t + 1);
+        };
+        const devReset = () => {
+          localStorage.removeItem('spellify_streak');
+          setStreakPreview(getStreak());
+          setStreakDevTick(t => t + 1);
+        };
+        return (
+          <div style={{ position: 'fixed', bottom: 16, right: 16, zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5 }}>
+            <span style={{ color: '#fbbf24', fontFamily: 'monospace', fontSize: 10 }}>
+              DEV STREAK {streakPreview.currentStreak > 0 ? `(now: ${streakPreview.currentStreak})` : '(none)'}
+            </span>
+            <div style={{ display: 'flex', gap: 5 }}>
+              {[1, 2, 3, 7, 14].map(n => (
+                <button key={n} onClick={() => devSet(n)} style={{ background: '#1a1a2e', color: '#fde68a', border: '1px dashed #fbbf24', borderRadius: 6, padding: '5px 9px', fontSize: 12, cursor: 'pointer', fontFamily: 'monospace' }}>
+                  🔥{n}
+                </button>
+              ))}
+              <button onClick={devReset} style={{ background: '#1a1a2e', color: '#f87171', border: '1px dashed #f87171', borderRadius: 6, padding: '5px 9px', fontSize: 12, cursor: 'pointer', fontFamily: 'monospace' }}>
+                ✕
+              </button>
+            </div>
+          </div>
+        );
+      })()}
     </main>
   );
 }

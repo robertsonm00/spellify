@@ -673,18 +673,18 @@
   transform: translateY(0);
 }
 
-/* ── Word detail overlay & modal ──────────────────────────────────── */
+/* ── Word detail overlay & modal — Spell Shop dark theme ──────────── */
 
 .hub-word-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(0, 0, 0, 0.40);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
   z-index: 1200;
-  backdrop-filter: blur(3px);
+  backdrop-filter: blur(4px);
   animation: hub-fade-in 0.15s ease;
 }
 
@@ -695,29 +695,38 @@
 
 .hub-word-modal {
   position: relative;
-  background: #fff;
-  border: 3px solid #1a1a2e;
-  border-radius: 6px;
-  box-shadow: 6px 6px 0 var(--modal-color, #1a1a2e);
+  background: linear-gradient(160deg, rgba(46, 16, 101, 0.97) 0%, rgba(15, 6, 32, 0.99) 100%);
+  border: 2px solid rgba(199, 125, 255, 0.35);
+  border-radius: 14px;
+  box-shadow:
+    0 0 0 1px rgba(199, 125, 255, 0.12),
+    0 8px 32px rgba(0, 0, 0, 0.55),
+    0 0 40px rgba(124, 58, 237, 0.25);
   width: 100%;
-  max-width: 360px;
+  max-width: 380px;
   font-family: 'Nunito', sans-serif;
-  animation: hub-modal-pop 0.18s cubic-bezier(0.34, 1.4, 0.64, 1);
+  animation: hub-modal-pop 0.22s cubic-bezier(0.34, 1.4, 0.64, 1);
   overflow: hidden;
+  color: #f5ecff;
 }
 
 @keyframes hub-modal-pop {
-  from { opacity: 0; transform: scale(0.9) translateY(6px); }
-  to   { opacity: 1; transform: scale(1)   translateY(0); }
+  from { opacity: 0; transform: scale(0.88) translateY(10px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0); }
 }
 
-/* Coloured header band — same pattern as hub-card-header */
+/* Header — accent strip uses the chipColor as a tinted glow, not a solid fill */
 .hub-word-modal-header {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  padding: 0.75rem 1rem;
-  border-bottom: 3px solid #1a1a2e;
+  gap: 0.65rem;
+  padding: 0.9rem 1rem 0.85rem;
+  background: linear-gradient(135deg,
+    rgba(124, 58, 237, 0.45) 0%,
+    rgba(46, 16, 101, 0.55) 100%);
+  border-bottom: 1.5px solid rgba(199, 125, 255, 0.22);
+  /* Let inline chipColor show as a left accent bar */
+  border-left: 4px solid var(--modal-color, #c77dff);
 }
 
 .hub-word-modal-icon {
@@ -729,32 +738,36 @@
 .hub-word-modal-name {
   flex: 1;
   margin: 0;
-  font-family: 'Press Start 2P', monospace;
-  font-size: 0.65rem;
-  color: #1a1a2e;
-  line-height: 1.5;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  font-family: 'Nunito', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: #f5ecff;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  text-transform: none;
 }
 
-/* Close button lives inside the header on the right */
+/* Close button */
 .hub-word-modal-close {
   flex-shrink: 0;
-  width: 26px;
-  height: 26px;
-  border-radius: 4px;
-  border: 2px solid #1a1a2e;
-  background: rgba(0, 0, 0, 0.08);
-  color: #1a1a2e;
-  font-size: 0.75rem;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(199, 125, 255, 0.4);
+  background: rgba(199, 125, 255, 0.12);
+  color: #d8b4fe;
+  font-size: 0.8rem;
   font-weight: 900;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.1s;
+  transition: background 0.15s, color 0.15s;
 }
-.hub-word-modal-close:hover { background: rgba(0, 0, 0, 0.16); }
+.hub-word-modal-close:hover {
+  background: rgba(199, 125, 255, 0.28);
+  color: #fff;
+}
 
 /* Phonetic + part-of-speech strip */
 .hub-word-modal-meta {
@@ -762,13 +775,13 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.55rem 1rem;
-  border-bottom: 1.5px solid #f0f0f0;
+  border-bottom: 1px solid rgba(199, 125, 255, 0.12);
   flex-wrap: wrap;
 }
 
 .hub-word-modal-phonetic {
-  font-size: 0.85rem;
-  color: #666;
+  font-size: 0.88rem;
+  color: #c4b5fd;
   font-weight: 600;
   font-style: italic;
   margin: 0;
@@ -776,13 +789,15 @@
 
 .hub-word-modal-pos {
   display: inline-block;
-  padding: 0.1rem 0.5rem;
-  border-radius: 3px;
-  background: #1a1a2e;
-  color: #fff;
-  font-family: 'Press Start 2P', monospace;
-  font-size: 0.42rem;
-  letter-spacing: 0.04em;
+  padding: 0.15rem 0.55rem;
+  border-radius: 20px;
+  background: rgba(124, 58, 237, 0.45);
+  border: 1px solid rgba(199, 125, 255, 0.3);
+  color: #e9d5ff;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
   text-transform: lowercase;
 }
 
@@ -790,61 +805,66 @@
 .hub-word-modal-actions {
   display: flex;
   gap: 0.6rem;
-  padding: 0.75rem 1rem;
-  border-bottom: 1.5px solid #f0f0f0;
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid rgba(199, 125, 255, 0.12);
 }
 
 .hub-word-modal-speak,
 .hub-word-modal-teacher {
   font-family: 'Nunito', sans-serif;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   font-weight: 800;
-  padding: 0.45rem 0.9rem;
-  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background 0.1s, transform 0.08s;
+  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
   white-space: nowrap;
 }
 
 .hub-word-modal-speak {
-  background: #e8f4ff;
-  border: 2px solid #4d96ff;
-  color: #1a5cbf;
-  box-shadow: 2px 2px 0 #1a5cbf;
+  background: linear-gradient(135deg, #7c3aed, #5b21b6);
+  border: 1.5px solid rgba(199, 125, 255, 0.5);
+  color: #f5ecff;
+  box-shadow: 0 0 12px rgba(124, 58, 237, 0.45);
 }
-.hub-word-modal-speak:hover  { background: #d0e8ff; }
-.hub-word-modal-speak:active { transform: translate(2px, 2px); box-shadow: none; }
+.hub-word-modal-speak:hover  {
+  background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+  box-shadow: 0 0 18px rgba(139, 92, 246, 0.6);
+  transform: translateY(-1px);
+}
+.hub-word-modal-speak:active { transform: translateY(0); }
 
 .hub-word-modal-teacher {
-  background: #f5f5f5;
-  border: 2px solid #ddd;
-  color: #999;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1.5px solid rgba(199, 125, 255, 0.15);
+  color: rgba(245, 236, 255, 0.35);
   cursor: not-allowed;
-  opacity: 0.6;
 }
 
 /* Locked badge (used inside LockedActivityModal body) */
 .hub-word-modal-badge {
   display: inline-block;
   margin: 0 0 0.6rem;
-  padding: 0.15rem 0.55rem;
-  border-radius: 3px;
-  background: #1a1a2e;
-  color: #fff;
-  font-family: 'Press Start 2P', monospace;
-  font-size: 0.42rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 20px;
+  background: rgba(124, 58, 237, 0.5);
+  border: 1px solid rgba(199, 125, 255, 0.4);
+  color: #e9d5ff;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
 /* Body */
 .hub-word-modal-body {
-  padding: 1rem 1.5rem 1.5rem;
+  padding: 1rem 1.25rem 1.5rem;
 }
 
 .hub-word-modal-loading {
   margin: 0;
-  color: #aaa;
+  color: #a78bfa;
   font-size: 0.9rem;
   font-weight: 600;
   font-style: italic;
@@ -854,30 +874,30 @@
   margin: 0 0 0.75rem;
   font-size: 1rem;
   font-weight: 600;
-  color: #1a1a2e;
-  line-height: 1.55;
+  color: #ede9fe;
+  line-height: 1.6;
 }
 
 .hub-word-modal-example {
   margin: 0;
-  font-size: 0.88rem;
-  color: #777;
+  font-size: 0.9rem;
+  color: #c4b5fd;
   font-weight: 600;
   font-style: italic;
-  line-height: 1.4;
-  padding-left: 0.75rem;
-  border-left: 3px solid #e0e0e0;
+  line-height: 1.45;
+  padding-left: 0.85rem;
+  border-left: 3px solid rgba(199, 125, 255, 0.35);
 }
 
 .hub-word-modal-example-label {
   font-style: normal;
   font-weight: 800;
-  color: #aaa;
+  color: #a78bfa;
 }
 
 .hub-word-modal-nodef {
   margin: 0;
-  color: #bbb;
+  color: #a78bfa;
   font-size: 0.9rem;
   font-weight: 600;
   font-style: italic;

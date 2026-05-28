@@ -883,6 +883,21 @@ export default function ListHub({
             onClose={() => setActiveWord(null)}
           />
         )}
+
+        {/* DEV-only: force all words in this list to mastered state */}
+        {process.env.NODE_ENV === 'development' && (
+          <button
+            onClick={handleDevForceMastery}
+            style={{
+              position: 'fixed', bottom: 16, left: 16, zIndex: 9999,
+              background: '#6c3fc5', color: 'white', border: 'none',
+              borderRadius: 8, padding: '8px 14px', fontSize: 13,
+              cursor: 'pointer', fontFamily: 'monospace',
+            }}
+          >
+            ⚡ DEV: Master all words
+          </button>
+        )}
       </>
     );
   }
@@ -1168,21 +1183,6 @@ export default function ListHub({
             chipColor={activeWord.chipColor}
             onClose={() => setActiveWord(null)}
           />
-        )}
-
-        {/* DEV-only: force all words in this list to mastered state */}
-        {process.env.NODE_ENV === 'development' && (
-          <button
-            onClick={handleDevForceMastery}
-            style={{
-              position: 'fixed', bottom: 16, left: 16, zIndex: 9999,
-              background: '#6c3fc5', color: 'white', border: 'none',
-              borderRadius: 8, padding: '8px 14px', fontSize: 13,
-              cursor: 'pointer', fontFamily: 'monospace',
-            }}
-          >
-            ⚡ DEV: Master all words
-          </button>
         )}
 
         {/* Test All game picker modal */}

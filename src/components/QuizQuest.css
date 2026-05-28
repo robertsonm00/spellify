@@ -163,17 +163,18 @@
   padding: 1rem 1rem 2rem;
 }
 
-/* ── Phase wrapper — mirrors ms-phase ───────────────────────────────────── */
+/* ── Phase wrapper — the single styled outer card ───────────────────────── */
 
 .qq-phase {
   width: 100%;
-  max-width: 540px;
+  max-width: 560px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 1rem;
   text-align: center;
-  padding: 0.5rem 1rem;
+  padding: 1.75rem 1.75rem 2rem;
+  border-radius: 22px;
 }
 
 /* Buddy avatar */
@@ -297,13 +298,13 @@
 /* ── Card ────────────────────────────────────────────────────────────────── */
 
 .qq-card {
-  background: #fff;
-  border: 2px solid #1a1a2e;
-  border-radius: 16px;
-  box-shadow: 4px 4px 0 #1a1a2e;
-  padding: 1.5rem 1.75rem;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+  padding: 0;
   width: 100%;
-  max-width: 540px;
+  max-width: 520px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -311,12 +312,14 @@
   text-align: center;
 }
 
-.qq-card--correct { border-color: #6bcb77; box-shadow: 4px 4px 0 #6bcb77; }
-.qq-card--wrong   { border-color: #f59e0b; box-shadow: 4px 4px 0 #f59e0b; }
+/* State modifiers now have no visual effect since the card is transparent;
+   kept so the JS class-switching doesn't throw errors. */
+.qq-card--correct,
+.qq-card--wrong   { border: none; box-shadow: none; }
 
 /* ── Start card ──────────────────────────────────────────────────────────── */
 
-.qq-card--start { padding: 2rem 1.75rem; }
+.qq-card--start { padding: 0; }
 
 .qq-buddy-emoji { font-size: 3.5rem; line-height: 1; }
 
@@ -781,9 +784,8 @@
    text-shadows, color-mixed borders. Layout + game logic untouched —
    only chrome.                                                              */
 
-/* Main phase card (mirrors .ms-phase). */
-.qq-phase,
-.qq-card {
+/* Main phase card — single outer rounded container (mirrors .ms-phase). */
+.qq-phase {
   background: linear-gradient(160deg, rgba(46, 16, 101, 0.78), rgba(15, 6, 32, 0.92));
   border: 2px solid rgba(199, 125, 255, 0.55);
   box-shadow:
@@ -793,18 +795,6 @@
   color: #f5ecff;
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-}
-.qq-card--correct {
-  border-color: #6bcb77;
-  box-shadow:
-    0 12px 38px rgba(0, 0, 0, 0.55),
-    0 0 28px rgba(34, 197, 94, 0.4);
-}
-.qq-card--wrong {
-  border-color: #f59e0b;
-  box-shadow:
-    0 12px 38px rgba(0, 0, 0, 0.55),
-    0 0 28px rgba(245, 158, 11, 0.4);
 }
 
 /* Headings — amber Press Start 2P (the H1 itself is set to white above;

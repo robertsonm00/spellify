@@ -6,87 +6,39 @@ import RestartButton from './RestartButton';
 import './WriteIt.css';
 import './WordListHub.css';
 import { speakWord as speak } from '../utils/speech';
-import { getWordInfo, preSeedClueCache } from '../utils/clueResolver';
-
+import { preSeedClueCache } from '../utils/clueResolver';
+import { WordDetailModal } from './WordListHub';
 
 // Word info is delegated to the central clueResolver.
-
-// ── Word detail modal ─────────────────────────────────────────────────────────
-
-function WordDetailModal({ word, userAge, onClose }) {
-  const [info, setInfo] = useState({ loading: true, definition: null, phonetic: null, partOfSpeech: null, example: null });
-
-  useEffect(() => {
-    let cancelled = false;
-    setInfo({ loading: true, definition: null, phonetic: null, partOfSpeech: null, example: null });
-    getWordInfo(word, userAge).then(r => { if (!cancelled) setInfo({ loading: false, ...r }); });
-    return () => { cancelled = true; };
-  }, [word, userAge]);
-
-  useEffect(() => {
-    const h = (e) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', h);
-    return () => window.removeEventListener('keydown', h);
-  }, [onClose]);
-
-  const ACCENT = '#c77dff';
-
-  return (
-    <div className="hub-word-overlay" onClick={onClose} role="dialog" aria-modal="true">
-      <div className="hub-word-modal" onClick={e => e.stopPropagation()}>
-        <button className="hub-word-modal-close" onClick={onClose} aria-label="Close">✕</button>
-        <div className="hub-word-modal-header" style={{ borderBottomColor: ACCENT }}>
-          <h2 className="hub-word-modal-word" style={{ color: ACCENT }}>{word}</h2>
-          {!info.loading && info.phonetic     && <p className="hub-word-modal-phonetic">{info.phonetic}</p>}
-          {!info.loading && info.partOfSpeech && <span className="hub-word-modal-pos">{info.partOfSpeech}</span>}
-        </div>
-        <div className="hub-word-modal-actions">
-          <button className="hub-word-modal-speak" onClick={() => speak(word)}>🔊 Hear it</button>
-          <button className="hub-word-modal-teacher" disabled title="Coming in a future update">🎤 Teacher's Recording</button>
-        </div>
-        <div className="hub-word-modal-body">
-          {info.loading ? (
-            <p className="hub-word-modal-loading">Looking it up…</p>
-          ) : info.definition ? (
-            <>
-              <p className="hub-word-modal-def">{info.definition}</p>
-              {info.example && (
-                <p className="hub-word-modal-example">
-                  <em className="hub-word-modal-example-label">e.g. </em>"{info.example}"
-                </p>
-              )}
-            </>
-          ) : (
-            <p className="hub-word-modal-nodef">No definition available</p>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
+// Word detail modal is the shared WordDetailModal from WordListHub.
 
 // Themed background — same pattern as the other adventure screens.
 const BG_STYLE = {
-  '--bg-image-url': `url("${process.env.PUBLIC_URL || ''}/adventure/Write%20it%20background%20.png")`,
+  '--bg-image-url': `url("${process.env.PUBLIC_URL || ''}/adventure/Write%20it%20background.png")`,
 };
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-// Crisp inline SVG icons for the Look→Say→Cover→Write→Check method banner.
-// (We don't ship Lottie in the codebase yet — see the note in the PR. These
-//  scale cleanly and inherit currentColor so each step can be tinted.)
+// Inline SVG icons for the Look→Say→Cover→Write→Check method banner.
+// "look" and "say" are CSS-animated (blink / speaker-pulse) to give the same
+// looping effect as a Lottie animation without adding a new library dependency.
 const STEP_ICONS = {
   look: (
+    /* Eye blink: the eyelid arc animates via wi-icon-lid,
+       the pupil gently scales via wi-icon-pupil */
     <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M1.5 12s4-7 10.5-7 10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z" />
-      <circle cx="12" cy="12" r="3.2" />
+      {/* eyelid — closes down on blink */}
+      <path className="wi-icon-lid" d="M1.5 12s4-7 10.5-7 10.5 7 10.5 7" strokeWidth="2.4" />
+      <circle className="wi-icon-pupil" cx="12" cy="12" r="3.2" />
     </svg>
   ),
   say: (
+    /* Speaker: cone stays static, wave arcs pulse in/out */
     <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M11 5 6 9H3v6h3l5 4z" />
-      <path d="M15.5 8.5a5 5 0 0 1 0 7" />
-      <path d="M18.5 5.5a9 9 0 0 1 0 13" />
+      <path className="wi-icon-wave wi-icon-wave--1" d="M15.5 8.5a5 5 0 0 1 0 7" />
+      <path className="wi-icon-wave wi-icon-wave--2" d="M18.5 5.5a9 9 0 0 1 0 13" />
     </svg>
   ),
   cover: (
@@ -213,7 +165,7 @@ function WriteIt({
     'minmax(200px, 260px)',
     ...Array.from({ length: numPractices }, (_, i) => {
       if (i < currentRound || currentRound >= numPractices) return '80px';
-      if (i === currentRound) return 'minmax(260px, 1.6fr)';
+      if (i === currentRound) return 'minmax(156px, 1fr)';
       return '72px';
     }),
   ].join(' ');
@@ -665,11 +617,12 @@ function WriteIt({
         </div>
       )}
 
-      {/* Word definition modal */}
+      {/* Word definition modal — shared component from WordListHub */}
       {activeWord && (
         <WordDetailModal
           word={activeWord}
           userAge={7}
+          chipColor="#c77dff"
           onClose={() => setActiveWord(null)}
         />
       )}
