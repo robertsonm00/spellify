@@ -1,7 +1,7 @@
 /**
  * wordLookup — single source of truth for rich per-word DATA.
  *
- * Merges Y1 + Y2 (from ks1WordData_v14) and Y3/4 + Y5/6 (from ks2WordData_v27)
+ * Merges Y1 + Y2 (from ks1WordData_v14) and KS2 (from ks2WordData_v28)
  * into a single case-insensitive Map keyed on word.toLowerCase(). Built once
  * at module load.
  *
@@ -16,7 +16,7 @@
  */
 
 import { Y1_WORD_DATA, Y2_WORD_DATA, KS1_GAP_WORDS } from '../data/ks1WordData_v14.js';
-import { Y34_WORD_DATA, Y56_WORD_DATA, KS2_GAP_WORDS } from '../data/ks2WordData_v27.js';
+import { ks2WordData } from '../data/ks2WordData_v28.js';
 
 const WORD_MAP = (() => {
   const map = new Map();
@@ -30,30 +30,31 @@ const WORD_MAP = (() => {
   ingest(Y1_WORD_DATA);
   ingest(Y2_WORD_DATA);
   ingest(KS1_GAP_WORDS);
-  ingest(Y34_WORD_DATA);
-  ingest(Y56_WORD_DATA);
-  ingest(KS2_GAP_WORDS);
+  ingest(ks2WordData);
   return map;
 })();
 
 const norm = (w) => (typeof w === 'string' ? w.toLowerCase() : '');
 
-/** Return the full v13/v26 entry, or null. */
+/** Return the full entry, or null. */
 export function getWordData(word) {
   return WORD_MAP.get(norm(word)) || null;
 }
 
 /**
  * Return the appropriate definition for the caller's age band.
- *   Y1 / Y2 (year <= 2) → ages5to7 (fallback ages7to10 if empty)
- *   Y3+                 → ages7to10
- * If no year is supplied, defaults to ages7to10.
+ *   Y1 / Y2 (year <= 2) → definition_7to10 (the simpler form; fallback to 10to12)
+ *   Y3+                 → definition_10to12 (fallback to 7to10)
+ * v28 entries use flat fields; v14 KS1 entries may still carry the legacy
+ * definitions object — we fall back to that transparently.
+ * If no year is supplied, defaults to the older/richer definition.
  */
 export function getDefinition(word, { year } = {}) {
   const entry = getWordData(word);
-  if (!entry?.definitions) return '';
-  const young = entry.definitions.ages5to7 || '';
-  const older = entry.definitions.ages7to10 || '';
+  if (!entry) return '';
+  // v28 flat fields
+  const young = entry.definition_7to10  || entry.definitions?.ages5to7  || '';
+  const older = entry.definition_10to12 || entry.definitions?.ages7to10 || '';
   if (typeof year === 'number' && year <= 2) {
     return young || older;
   }
