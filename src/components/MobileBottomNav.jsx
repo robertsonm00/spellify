@@ -63,21 +63,20 @@ const IconNotebook = (props) => (
   </svg>
 );
 
-const IconBell = (props) => (
-  <svg {...ICON_PROPS} {...props}>
-    {/* Bell — dome + base bar + clapper, all rounded */}
-    <path d="M6 16 V12 a6 6 0 0 1 12 0 V16" />
-    <line x1="4" y1="17" x2="20" y2="17" />
-    <path d="M10.5 20 a1.5 1.5 0 0 0 3 0" />
-  </svg>
-);
-
 const IconMenu = (props) => (
   <svg {...ICON_PROPS} {...props}>
     {/* 3 lines, slightly inset from the edges */}
     <line x1="4" y1="7"  x2="20" y2="7"  />
     <line x1="4" y1="12" x2="20" y2="12" />
     <line x1="4" y1="17" x2="20" y2="17" />
+  </svg>
+);
+
+const IconAvatar = (props) => (
+  <svg {...ICON_PROPS} {...props}>
+    {/* Person bust — head circle + shoulders arc */}
+    <circle cx="12" cy="8" r="4" />
+    <path d="M4 20c1.5-4 5-6 8-6s6.5 2 8 6" />
   </svg>
 );
 
@@ -94,7 +93,7 @@ const TABS = [
   { key: 'exploreDashboard', Icon: IconExplore,  label: 'Explore',      kind: 'nav' },
   { key: 'spellShop',        Icon: IconShop,     label: 'Shop',         kind: 'nav' },
   { key: 'mylists',          Icon: IconNotebook, label: 'My Lists',     kind: 'nav' },
-  { key: 'alerts',           Icon: IconBell,     label: 'Alerts',       kind: 'nav' },
+  { key: 'avatar',           Icon: IconAvatar,   label: 'Avatar',       kind: 'nav' },
   { key: '__menu__',         Icon: IconMenu,     label: 'Account menu', kind: 'menu' },
 ];
 

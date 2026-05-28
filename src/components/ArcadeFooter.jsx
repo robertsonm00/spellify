@@ -13,6 +13,8 @@ const NAV_TABS = [
   { key: 'mylists',          label: 'MY LISTS' },
   { key: 'exploreDashboard', label: 'EXPLORE' },
   { key: 'spellShop',        label: 'SHOP' },
+  // Temporary entry point — Avatar Builder page (Prompt: avatar builder)
+  { key: 'avatar',           label: 'AVATAR' },
 ];
 
 export default function ArcadeFooter({

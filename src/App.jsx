@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import './App.css';
 import Welcome        from './components/Welcome';
 import OnboardingFlow from './components/OnboardingFlow';
@@ -14,6 +15,7 @@ import ExploreDashboard from './components/explore/ExploreDashboard';
 import AdventureMap from './components/AdventureMap';
 import HFWIsland from './components/HFWIsland';
 import SpellShop from './components/SpellShop';
+import AvatarBuilder from './components/AvatarBuilder';
 import ArcadeFooter from './components/ArcadeFooter';
 import MobileBottomNav from './components/MobileBottomNav';
 // MobileTopBar removed — SpellifyLogo is the single floating wordmark.
@@ -962,6 +964,21 @@ function App() {
     </button>
   ) : null;
 
+  // ── Global streak popup ──────────────────────────────────────────
+  // Same hoist as the auth modals: previously the <StreakPopup> was
+  // only mounted in the session-with-words branch, so a dev-streak
+  // click (or a real milestone) in the dashboard / guest branch set
+  // `streakPopup` state but had nothing to render it. Now every render
+  // branch mounts it from this shared fragment.
+  const globalStreakPopup = streakPopup ? (
+    <StreakPopup
+      kind={streakPopup.kind}
+      streak={streakPopup.streak}
+      dismissAt={streakPopup.dismissAt}
+      onDismissRef={dismissPopupRef}
+    />
+  ) : null;
+
   // ── Global auth modals (rendered in every branch that needs them) ──
   // Previously these were nested inside the main return only — meaning
   // the no-session dashboard branch couldn't show CreateChildProfile
@@ -1144,6 +1161,7 @@ function App() {
           onCreateAccount={() => openAuth('signup')}
         />
         {globalAuthModals}
+        {globalStreakPopup}
       </>
     );
   }
@@ -1172,6 +1190,7 @@ function App() {
           onSignOut={signOut}
         />
         {globalAuthModals}
+        {globalStreakPopup}
       </>
     );
   }
@@ -1180,6 +1199,7 @@ function App() {
       <>
         <OnboardingFlow onComplete={handleOnboardingComplete} />
         {globalAuthModals}
+        {globalStreakPopup}
       </>
     );
   }
@@ -1210,6 +1230,7 @@ function App() {
           onBackToSelector={handleExitToSelector}
         />
         {globalAuthModals}
+        {globalStreakPopup}
       </>
     );
   }
@@ -1217,7 +1238,7 @@ function App() {
   if (!session || !session.words || session.words.length === 0) {
     // No session: render the dashboard so guests can browse Home / Explore /
     // Favourites etc. Onboarding is launched from inside those flows.
-    const dashboardSections = ['home', 'hfwIsland', 'assignments', 'mylists', 'exploreDashboard', 'spellShop', 'favourites', 'recent', 'alerts'];
+    const dashboardSections = ['home', 'hfwIsland', 'assignments', 'mylists', 'exploreDashboard', 'spellShop', 'favourites', 'recent', 'alerts', 'avatar'];
     if (dashboardSections.includes(section)) {
       const dashboardPage = section === 'exploreDashboard' ? 'explore' : section;
       return (
@@ -1247,6 +1268,8 @@ function App() {
               lumens={liveLumens}
               onSectionChange={(s) => { setSection(s); setNavTick(t => t + 1); }}
             />
+          ) : section === 'avatar' ? (
+            <AvatarBuilder lumens={liveLumens} />
           ) : (
             <ExploreDashboard
               page={dashboardPage}
@@ -1296,6 +1319,7 @@ function App() {
           />
           {exitToSelectorBtn}
           {globalAuthModals}
+        {globalStreakPopup}
         </>
       );
     }
@@ -1303,6 +1327,7 @@ function App() {
       <>
         <OnboardingFlow onComplete={handleOnboardingComplete} />
         {globalAuthModals}
+        {globalStreakPopup}
       </>
     );
   }
@@ -1340,6 +1365,8 @@ function App() {
           lumens={liveLumens}
           onSectionChange={(s) => { setSection(s); setNavTick(t => t + 1); }}
         />
+      ) : section === 'avatar' ? (
+        <AvatarBuilder lumens={liveLumens} />
       ) : (
         <ExploreDashboard
           page={section === 'exploreDashboard' ? 'explore' : section}
@@ -1381,16 +1408,7 @@ function App() {
       {/* Auth + child-profile + migration modals (shared via
           `globalAuthModals` so every render branch mounts them) */}
       {globalAuthModals}
-
-      {/* ── Streak popup — once per app open, plus milestones ── */}
-      {streakPopup && (
-        <StreakPopup
-          kind={streakPopup.kind}
-          streak={streakPopup.streak}
-          dismissAt={streakPopup.dismissAt}
-          onDismissRef={dismissPopupRef}
-        />
-      )}
+      {globalStreakPopup}
 
       {/* ── Arcade footer (nav + stats) ── */}
       <ArcadeFooter
@@ -1434,51 +1452,60 @@ function App() {
 // (`at_risk`) it stays until the user taps it or starts a game.
 
 function StreakPopup({ kind, streak, dismissAt, onDismissRef }) {
-  // Use an absolute deadline (epoch ms) — if the parent re-renders
-  // and this effect re-runs, it computes `remaining` from `dismissAt`
-  // and schedules a SHORTER timer, not a fresh full-length one. That
-  // means the popup can't be kept alive forever by parent churn, and
-  // also can't be dismissed early by StrictMode's mount-unmount-mount
-  // in dev. `dismissAt == null` → sticky (at_risk).
-  // onDismissRef is a stable ref; reading .current inside the timer
-  // avoids the dep-array thrash that the old `onDismiss` prop caused.
+  // The React render path (both inline and via ReactDOM.createPortal)
+  // was committing the popup to the DOM but never producing a visible
+  // paint in the dashboard branch — the element existed at opacity:1
+  // with a high z-index but was never rasterized. Imperative DOM
+  // injection bypasses the React reconciler for the visible node and
+  // paints immediately (verified by cloning the element into body
+  // during debugging — the clone was always visible, the React node
+  // never was).
+  //
+  // The hook below builds a plain DIV in document.body on mount,
+  // attaches the click + auto-dismiss timer to it, and removes it on
+  // unmount. The component returns null so React's reconciler has
+  // nothing to manage.
   useEffect(() => {
-    if (!dismissAt) return;
-    const remaining = dismissAt - Date.now();
-    if (remaining <= 0) {
-      onDismissRef?.current?.();
-      return;
+    let icon = '🔥';
+    let msg  = '';
+    if (kind === 'milestone') {
+      icon = '🎉';
+      msg  = `${streak}-day streak! You're incredible!`;
+    } else if (kind === 'played') {
+      msg = `${streak}-day streak! You've already played today — amazing!`;
+    } else if (kind === 'at_risk') {
+      icon = '⚠️';
+      msg  = `Your streak is at risk! Play today to save your ${streak}-day streak.`;
+    } else if (kind === 'active') {
+      msg = `${streak}-day streak! Play today to keep it going.`;
     }
-    const t = setTimeout(() => onDismissRef?.current?.(), remaining);
-    return () => clearTimeout(t);
-  }, [dismissAt, onDismissRef]);
 
-  const handleTap = () => { onDismissRef?.current?.(); };
+    const el = document.createElement('div');
+    el.className = `streak-popup streak-popup--${kind}`;
+    el.setAttribute('role', 'status');
+    el.innerHTML =
+      `<span class="streak-popup__icon" aria-hidden="true">${icon}</span>` +
+      `<span class="streak-popup__msg">${msg.replace(/[<>&]/g, (c) => ({ '<':'&lt;', '>':'&gt;', '&':'&amp;' }[c]))}</span>`;
+    el.addEventListener('click', () => onDismissRef?.current?.());
+    document.body.appendChild(el);
 
-  let icon = '🔥';
-  let msg  = '';
-  if (kind === 'milestone') {
-    icon = '🎉';
-    msg  = `${streak}-day streak! You're incredible!`;
-  } else if (kind === 'played') {
-    msg = `${streak}-day streak! You've already played today — amazing!`;
-  } else if (kind === 'at_risk') {
-    icon = '⚠️';
-    msg  = `Your streak is at risk! Play today to save your ${streak}-day streak.`;
-  } else if (kind === 'active') {
-    msg = `${streak}-day streak! Play today to keep it going.`;
-  }
+    let timer = null;
+    if (dismissAt) {
+      const remaining = dismissAt - Date.now();
+      if (remaining <= 0) {
+        onDismissRef?.current?.();
+      } else {
+        timer = setTimeout(() => onDismissRef?.current?.(), remaining);
+      }
+    }
 
-  return (
-    <div
-      className={`streak-popup streak-popup--${kind}`}
-      role="status"
-      onClick={handleTap}
-    >
-      <span className="streak-popup__icon" aria-hidden="true">{icon}</span>
-      <span className="streak-popup__msg">{msg}</span>
-    </div>
-  );
+    return () => {
+      if (timer) clearTimeout(timer);
+      el.remove();
+    };
+  }, [kind, streak, dismissAt, onDismissRef]);
+
+  return null;
 }
 
 function ExitConfirmModal({ onConfirm, onCancel }) {

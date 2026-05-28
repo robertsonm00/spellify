@@ -113,7 +113,9 @@ export default function AdventureMap({ session, onSectionChange, onOpenList, onG
   const [selectedIsleId, setSelectedIsleId] = useState(initialIsleId || currentIsle.id);
   const [switcherOpen,   setSwitcherOpen]   = useState(false);
   const [lockedMsg,      setLockedMsg]      = useState(null);
-  const [streakDevTick,  setStreakDevTick]  = useState(0);
+  // Dev-only mirror of the current streak so the floating panel can
+  // show the live value after a click. Production reads come from
+  // streakEngine.getStreak() directly elsewhere.
   const [streakPreview,  setStreakPreview]  = useState(() => getStreak());
 
   const viewportRef = useRef(null);
@@ -870,34 +872,102 @@ export default function AdventureMap({ session, onSectionChange, onOpenList, onG
         </div>
       )}
 
-      {/* DEV-only: streak setter — lets you preview streak 1/2/3/7/14 without playing */}
+      {/* DEV-only: streak setter — lets you preview streak 1/2/3/7/14 without playing.
+          Writes spellify_streak in localStorage AND fires the same window events
+          that the streakEngine normally fires after a real play, so the
+          ArcadeFooter / MobileBottomNav / streak popup in App.jsx all re-read
+          straight away — otherwise the click looked like a no-op. */}
       {process.env.NODE_ENV === 'development' && (() => {
+        const broadcastStreak = (next) => {
+          // Footer / nav read points+streak together off this event.
+          try { window.dispatchEvent(new CustomEvent('spellify-points-update')); } catch { /* ignore */ }
+          // App-level streak popup + milestone confetti listen here.
+          // We always fire the milestone event for the dev path so the
+          // popup re-opens regardless of whether `n` is a milestone
+          // value — this is dev tooling, not production behaviour.
+          try {
+            window.dispatchEvent(new CustomEvent('spellify-streak-milestone', {
+              detail: { milestone: next.currentStreak, streak: next },
+            }));
+          } catch { /* ignore */ }
+        };
         const devSet = (n) => {
           const d = new Date();
           const iso = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
           const next = { currentStreak: n, longestStreak: Math.max(n, 1), lastPlayedDate: iso, graceUsed: false, lastUpdated: Date.now() };
           localStorage.setItem('spellify_streak', JSON.stringify(next));
           setStreakPreview(next);
-          setStreakDevTick(t => t + 1);
+          broadcastStreak(next);
         };
         const devReset = () => {
           localStorage.removeItem('spellify_streak');
-          setStreakPreview(getStreak());
-          setStreakDevTick(t => t + 1);
+          const fresh = getStreak();
+          setStreakPreview(fresh);
+          broadcastStreak(fresh);
         };
+        // Pinned to the LEFT EDGE, vertically centred. The bottom-right
+        // corner is owned by the ArcadeFooter + Exit pill + MobileBottomNav
+        // and gets covered; putting the panel up the side keeps it visible
+        // on every chapter / island. zIndex is set above everything else
+        // in the app so the floating logo / footer can't bury it.
         return (
-          <div style={{ position: 'fixed', bottom: 16, right: 16, zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5 }}>
-            <span style={{ color: '#fbbf24', fontFamily: 'monospace', fontSize: 10 }}>
+          <div
+            data-testid="streak-dev-panel"
+            style={{
+              position: 'fixed',
+              left: 8,
+              top: '40vh',
+              zIndex: 2147483000,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              gap: 6,
+              background: 'rgba(10, 10, 26, 0.92)',
+              border: '2px dashed #fbbf24',
+              borderRadius: 8,
+              padding: 8,
+              boxShadow: '0 4px 14px rgba(0,0,0,0.5)',
+              pointerEvents: 'auto',
+            }}
+          >
+            <span style={{ color: '#fbbf24', fontFamily: 'monospace', fontSize: 10, letterSpacing: '0.05em' }}>
               DEV STREAK {streakPreview.currentStreak > 0 ? `(now: ${streakPreview.currentStreak})` : '(none)'}
             </span>
-            <div style={{ display: 'flex', gap: 5 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
               {[1, 2, 3, 7, 14].map(n => (
-                <button key={n} onClick={() => devSet(n)} style={{ background: '#1a1a2e', color: '#fde68a', border: '1px dashed #fbbf24', borderRadius: 6, padding: '5px 9px', fontSize: 12, cursor: 'pointer', fontFamily: 'monospace' }}>
+                <button
+                  key={n}
+                  onClick={() => devSet(n)}
+                  style={{
+                    background: '#1a1a2e',
+                    color: '#fde68a',
+                    border: '1px dashed #fbbf24',
+                    borderRadius: 6,
+                    padding: '5px 10px',
+                    fontSize: 12,
+                    cursor: 'pointer',
+                    fontFamily: 'monospace',
+                    textAlign: 'left',
+                  }}
+                >
                   🔥{n}
                 </button>
               ))}
-              <button onClick={devReset} style={{ background: '#1a1a2e', color: '#f87171', border: '1px dashed #f87171', borderRadius: 6, padding: '5px 9px', fontSize: 12, cursor: 'pointer', fontFamily: 'monospace' }}>
-                ✕
+              <button
+                onClick={devReset}
+                style={{
+                  background: '#1a1a2e',
+                  color: '#f87171',
+                  border: '1px dashed #f87171',
+                  borderRadius: 6,
+                  padding: '5px 10px',
+                  fontSize: 12,
+                  cursor: 'pointer',
+                  fontFamily: 'monospace',
+                  textAlign: 'left',
+                }}
+              >
+                ✕ Reset
               </button>
             </div>
           </div>
