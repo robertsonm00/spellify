@@ -328,6 +328,14 @@ export default function MemorySpell({
     </GameProgressStrip>
   );
 
+  // Small pill placed above the H1 on every phase so the child can always
+  // see where they are in the list at a glance.
+  const wordCounterPill = (
+    <span className="ms-word-counter" aria-label={`Word ${Math.min(wordIdx + 1, queue.length)} of ${queue.length}`}>
+      Word {Math.min(wordIdx + 1, queue.length)}<span className="ms-word-counter__sep">/</span>{queue.length}
+    </span>
+  );
+
   // ── Results screen ─────────────────────────────────────────────────────────
 
   if (phase === 'results') {
@@ -418,6 +426,7 @@ export default function MemorySpell({
                 fallback={childCharacter?.emoji}
               />
             </span>
+            {wordCounterPill}
             <h1 className="ms-h1">Let's study this one together!</h1>
             <button className="ms-btn ms-btn--primary ms-btn--large" onClick={goReveal}>
               Show me the word ▶
@@ -435,6 +444,7 @@ export default function MemorySpell({
                 fallback={childCharacter?.emoji}
               />
             </span>
+            {wordCounterPill}
             <h1 className="ms-h1">Study this word carefully</h1>
             <div className="ms-word-display">
               <span className="ms-word-big">{word}</span>
@@ -462,6 +472,7 @@ export default function MemorySpell({
                 cheering={buddyCheering}
               />
             </span>
+            {wordCounterPill}
             <h1 className="ms-h1">
               {lastResult?.correct === false
                 ? "Almost — let's look at the tricky bit"

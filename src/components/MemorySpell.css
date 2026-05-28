@@ -681,10 +681,280 @@
 .ms-wrap {
   background-color: #07030f;
   background-image:
-    linear-gradient(rgba(7, 3, 15, 0.4), rgba(7, 3, 15, 0.4)),
+    linear-gradient(rgba(7, 3, 15, 0.55), rgba(7, 3, 15, 0.55)),
     var(--bg-image-url, none);
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
   background-attachment: fixed;
+  color: #f5ecff;
 }
+
+/* ── Spell Shop-inspired UI spin ─────────────────────────────────────────
+   These overrides re-skin Memory Spell with the same neon/glow language
+   used in the Spell Shop: deep-purple gradient surfaces, amber + cyan
+   accents, glow text-shadows, and color-mixed borders. Layout + game
+   logic untouched — only chrome.                                          */
+
+/* Phase card — dark, glowing, replacing the white panel. */
+.ms-phase {
+  background: linear-gradient(160deg, rgba(46, 16, 101, 0.78), rgba(15, 6, 32, 0.92));
+  border: 2px solid rgba(199, 125, 255, 0.55);
+  box-shadow:
+    0 12px 38px rgba(0, 0, 0, 0.55),
+    0 0 28px rgba(199, 125, 255, 0.25),
+    inset 0 0 24px rgba(199, 125, 255, 0.08);
+  color: #f5ecff;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* "Word X / Y" pill above the H1 on every phase. */
+.ms-word-counter {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(46, 16, 101, 0.85), rgba(15, 6, 32, 0.85));
+  border: 1.5px solid rgba(199, 125, 255, 0.55);
+  box-shadow: 0 0 14px rgba(199, 125, 255, 0.25);
+  font-family: 'Press Start 2P', 'Nunito', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  color: #fde68a;
+  text-shadow: 0 0 6px rgba(253, 230, 138, 0.45);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.ms-word-counter__sep { opacity: 0.55; margin: 0 2px; }
+
+/* Headings + body copy on the dark card */
+.ms-phase .ms-h1 {
+  color: #fde68a;
+  text-shadow:
+    0 0 10px rgba(253, 230, 138, 0.55),
+    2px 2px 0 rgba(0, 0, 0, 0.55);
+  font-family: 'Press Start 2P', 'Nunito', monospace;
+  font-size: 1.15rem;
+  line-height: 1.45;
+  letter-spacing: 0.03em;
+}
+.ms-wrap--es .ms-phase .ms-h1 { font-size: 1.35rem; }
+
+/* Word reveal — big glowing word in the normal Nunito body font (kept
+   non-pixel so the spelling stays as readable as possible). */
+.ms-phase .ms-word-big {
+  color: #ffffff;
+  text-shadow:
+    0 0 10px #c77dff,
+    0 0 22px rgba(199, 125, 255, 0.65),
+    2px 2px 0 rgba(0, 0, 0, 0.55);
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+}
+.ms-phase .ms-word-big--correct {
+  color: #bbf7d0;
+  text-shadow:
+    0 0 10px #22c55e,
+    0 0 22px rgba(34, 197, 94, 0.55),
+    2px 2px 0 rgba(0, 0, 0, 0.55);
+}
+
+/* Chunk preview chip */
+.ms-phase .ms-chunk-display {
+  background: rgba(199, 125, 255, 0.14);
+  border-color: rgba(199, 125, 255, 0.55);
+  color: #fde68a;
+  text-shadow: 0 0 6px rgba(253, 230, 138, 0.45);
+}
+
+/* Letter boxes — dark glass with neon edge, blinking cursor in cyan. */
+.ms-phase .ms-letter-box {
+  background: rgba(15, 6, 32, 0.55);
+  border: 2px solid rgba(216, 180, 254, 0.45);
+  color: #f5ecff;
+  box-shadow: inset 0 0 10px rgba(199, 125, 255, 0.12);
+}
+.ms-phase .ms-letter-box--cursor {
+  border-color: #a5f3fc;
+  background: rgba(165, 243, 252, 0.10);
+  box-shadow:
+    inset 0 0 12px rgba(165, 243, 252, 0.25),
+    0 0 14px rgba(165, 243, 252, 0.45);
+  animation: ms-box-blink-neon 1s step-end infinite;
+}
+@keyframes ms-box-blink-neon {
+  0%, 100% { border-color: #a5f3fc; box-shadow: inset 0 0 12px rgba(165, 243, 252, 0.25), 0 0 14px rgba(165, 243, 252, 0.45); }
+  50%      { border-color: rgba(165, 243, 252, 0.35); box-shadow: inset 0 0 8px rgba(165, 243, 252, 0.10); }
+}
+.ms-phase .ms-letter-box--ok {
+  background: rgba(34, 197, 94, 0.18);
+  border-color: #6bcb77;
+  color: #bbf7d0;
+  text-shadow: 0 0 6px rgba(187, 247, 208, 0.55);
+}
+.ms-phase .ms-letter-box--wrong {
+  background: rgba(248, 113, 113, 0.18);
+  border-color: #fca5a5;
+  color: #fecaca;
+}
+
+/* Hidden-input fallback for typed entries */
+.ms-phase .ms-input {
+  background: rgba(15, 6, 32, 0.7);
+  border-color: rgba(216, 180, 254, 0.55);
+  color: #f5ecff;
+}
+.ms-phase .ms-input:focus {
+  background: rgba(46, 16, 101, 0.55);
+  border-color: #c77dff;
+  box-shadow: 0 0 14px rgba(199, 125, 255, 0.45);
+}
+
+/* Hint chips */
+.ms-phase .ms-hint-chip {
+  background: rgba(253, 230, 138, 0.18);
+  border-color: #fde68a;
+  color: #fde68a;
+  text-shadow: 0 0 6px rgba(253, 230, 138, 0.55);
+}
+
+/* Power-up hint buttons */
+.ms-phase .ms-powerups { border-top-color: rgba(199, 125, 255, 0.35); }
+.ms-phase .ms-powerups-label { color: #d8b4fe; }
+.ms-phase .ms-hint-btn {
+  background: rgba(46, 16, 101, 0.6);
+  border-color: rgba(199, 125, 255, 0.55);
+  color: #f5ecff;
+  box-shadow: 0 0 12px rgba(199, 125, 255, 0.15);
+}
+.ms-phase .ms-hint-btn:hover:not(:disabled) {
+  background: rgba(46, 16, 101, 0.85);
+  border-color: #c77dff;
+  box-shadow: 0 0 18px rgba(199, 125, 255, 0.4);
+}
+
+/* Primary / secondary buttons — drop the chunky 2D shadow and lean into glow. */
+.ms-phase .ms-btn--primary,
+.ms-results .ms-btn--primary {
+  background: linear-gradient(135deg, #c77dff, #7c3aed);
+  border: 2px solid rgba(253, 230, 138, 0.55);
+  color: #fff;
+  box-shadow:
+    0 8px 22px rgba(0, 0, 0, 0.45),
+    0 0 22px rgba(199, 125, 255, 0.55);
+  text-shadow: 0 0 8px rgba(253, 230, 138, 0.55);
+}
+.ms-phase .ms-btn--primary:hover:not(:disabled),
+.ms-results .ms-btn--primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #d8b4fe, #9333ea);
+  box-shadow:
+    0 10px 26px rgba(0, 0, 0, 0.5),
+    0 0 32px rgba(199, 125, 255, 0.7);
+}
+.ms-phase .ms-btn--secondary,
+.ms-results .ms-btn--secondary {
+  background: rgba(15, 6, 32, 0.65);
+  border: 2px solid rgba(216, 180, 254, 0.55);
+  color: #f5ecff;
+  box-shadow: 0 0 14px rgba(199, 125, 255, 0.2);
+  text-shadow: none;
+}
+.ms-phase .ms-btn--secondary:hover { background: rgba(46, 16, 101, 0.7); }
+.ms-phase .ms-btn:active { transform: translateY(1px); }
+
+/* Auto-advance fill — make the sweep cyan/amber instead of plain white. */
+.ms-phase .ms-btn-auto-fill {
+  background: linear-gradient(90deg, rgba(165, 243, 252, 0.45), rgba(253, 230, 138, 0.55));
+}
+
+/* Success / wrong panels — keep colour cue, dial up the contrast on dark. */
+.ms-phase .ms-success-panel {
+  background: rgba(34, 197, 94, 0.18);
+  border-color: #22c55e;
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.5),
+    0 0 22px rgba(34, 197, 94, 0.4);
+}
+.ms-phase .ms-success-msg {
+  color: #bbf7d0;
+  text-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+}
+.ms-phase .ms-wrong-panel {
+  background: rgba(248, 113, 113, 0.18);
+  border-color: #f87171;
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.5),
+    0 0 22px rgba(248, 113, 113, 0.4);
+}
+.ms-phase .ms-wrong-msg { color: #fecaca; }
+
+/* Letter diff cells on the dark card */
+.ms-phase .ms-diff-char--ok    { background: rgba(34, 197, 94, 0.18); color: #bbf7d0; border-color: #6bcb77; }
+.ms-phase .ms-diff-char--wrong { background: rgba(248, 113, 113, 0.18); color: #fecaca; border-color: #fca5a5; }
+.ms-phase .ms-diff-char--extra { background: rgba(248, 113, 113, 0.10); color: #fecaca; border-color: #fca5a5; }
+
+/* Tiny captions */
+.ms-phase .ms-answer-label,
+.ms-phase .ms-hints-used { color: #d8b4fe; }
+.ms-phase .ms-word-answer {
+  color: #ffffff;
+  text-shadow: 0 0 8px rgba(199, 125, 255, 0.6), 2px 2px 0 rgba(0,0,0,0.55);
+}
+
+/* Top bar — gradient + glow to match the Spell Shop look. */
+.ms-topbar {
+  background: linear-gradient(135deg, rgba(46, 16, 101, 0.9), rgba(15, 6, 32, 0.92));
+  border-bottom-color: rgba(199, 125, 255, 0.35);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.45), 0 0 18px rgba(199, 125, 255, 0.15);
+}
+.ms-back {
+  border-color: rgba(216, 180, 254, 0.45);
+  background: rgba(15, 6, 32, 0.5);
+  color: #f5ecff;
+}
+.ms-back:hover {
+  background: rgba(46, 16, 101, 0.8);
+  border-color: #c77dff;
+  box-shadow: 0 0 14px rgba(199, 125, 255, 0.4);
+}
+.ms-title {
+  color: #fde68a;
+  text-shadow:
+    0 0 10px rgba(253, 230, 138, 0.55),
+    2px 2px 0 rgba(0, 0, 0, 0.55);
+}
+
+/* Progress strip (still rendered on Memory Spell? component is currently
+   a no-op — but the inline progress at top stays). Theme it cyan. */
+.ms-progress-bar-track { background: rgba(15, 6, 32, 0.7); }
+.ms-progress-bar-fill  {
+  background: linear-gradient(90deg, #c77dff, #a5f3fc);
+  box-shadow: 0 0 14px rgba(165, 243, 252, 0.55);
+}
+.ms-progress-label { color: #d8b4fe; }
+
+/* Results screen — reskin the score card + sections to dark/glow. */
+.ms-results-score {
+  background: linear-gradient(160deg, rgba(46, 16, 101, 0.85), rgba(15, 6, 32, 0.92));
+  border: 2px solid rgba(253, 230, 138, 0.55);
+  box-shadow:
+    0 12px 38px rgba(0, 0, 0, 0.55),
+    0 0 28px rgba(253, 230, 138, 0.3);
+}
+.ms-score-num {
+  color: #fde68a;
+  text-shadow: 0 0 10px rgba(253, 230, 138, 0.55), 2px 2px 0 rgba(0, 0, 0, 0.5);
+}
+.ms-score-label { color: #d8b4fe; }
+.ms-results-section {
+  background: linear-gradient(160deg, rgba(46, 16, 101, 0.6), rgba(15, 6, 32, 0.85));
+  border-color: rgba(199, 125, 255, 0.4);
+  color: #f5ecff;
+}
+.ms-results-heading--good     { color: #bbf7d0; text-shadow: 0 0 6px rgba(34, 197, 94, 0.45); }
+.ms-results-heading--practice { color: #fde68a; text-shadow: 0 0 6px rgba(253, 230, 138, 0.45); }
+.ms-results-chip--good     { background: rgba(34, 197, 94, 0.18); border-color: #6bcb77; color: #bbf7d0; }
+.ms-results-chip--practice { background: rgba(253, 230, 138, 0.18); border-color: #fcd34d; color: #fde68a; }

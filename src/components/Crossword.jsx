@@ -218,14 +218,10 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', year = null, onC
     if (isWordComplete(selectedWord, filled)) return;
     const clue = definitions.get(selectedWord.word);
     if (!clue) return;
-    if (!('speechSynthesis' in window)) return;
-    try {
-      window.speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(clue);
-      u.lang = 'en-GB';
-      u.rate = 0.9;
-      window.speechSynthesis.speak(u);
-    } catch { /* TTS unavailable — silent */ }
+    // Use the shared speech helper so the clue uses the same selected voice
+    // as the rest of the app (Google UK / Apple Enhanced) instead of the
+    // browser default robot voice.
+    try { speakWord(clue, { rate: 0.9 }); } catch { /* TTS unavailable — silent */ }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedWordId, year]);
 

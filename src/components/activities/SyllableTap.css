@@ -16,6 +16,26 @@
   text-align: center;
 }
 
+/* "Word X / Y" pill — sits above the H1, matches Memory Spell. */
+.st-word-counter {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(46, 16, 101, 0.85), rgba(15, 6, 32, 0.85));
+  border: 1.5px solid rgba(199, 125, 255, 0.55);
+  box-shadow: 0 0 14px rgba(199, 125, 255, 0.25);
+  font-family: 'Press Start 2P', 'Nunito', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  color: #fde68a;
+  text-shadow: 0 0 6px rgba(253, 230, 138, 0.45);
+  text-transform: uppercase;
+  margin-top: 0.5rem;
+}
+.st-word-counter__sep { opacity: 0.55; margin: 0 2px; }
+
 /* Instructions — promoted to a real heading. */
 .st-instructions {
   font-family: 'Nunito', sans-serif;

@@ -198,7 +198,8 @@
   font-family: 'Nunito', sans-serif;
   font-size: 1.8rem;
   font-weight: 800;
-  color: #1a1a2e;
+  color: #ffffff;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
   margin: 0 0 0.25rem;
   line-height: 1.25;
   max-width: 480px;
@@ -765,10 +766,290 @@
 .qq-wrap {
   background-color: #07030f;
   background-image:
-    linear-gradient(rgba(7, 3, 15, 0.4), rgba(7, 3, 15, 0.4)),
+    linear-gradient(rgba(7, 3, 15, 0.55), rgba(7, 3, 15, 0.55)),
     var(--bg-image-url, none);
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
   background-attachment: fixed;
+  color: #f5ecff;
 }
+
+/* ── Spell Shop / Memory Spell-inspired UI spin ───────────────────────────
+   Mirrors the Memory Spell skin so Quiz Quest reads as the same family
+   of game: deep-purple gradient surfaces, amber + cyan accents, glow
+   text-shadows, color-mixed borders. Layout + game logic untouched —
+   only chrome.                                                              */
+
+/* Main phase card (mirrors .ms-phase). */
+.qq-phase,
+.qq-card {
+  background: linear-gradient(160deg, rgba(46, 16, 101, 0.78), rgba(15, 6, 32, 0.92));
+  border: 2px solid rgba(199, 125, 255, 0.55);
+  box-shadow:
+    0 12px 38px rgba(0, 0, 0, 0.55),
+    0 0 28px rgba(199, 125, 255, 0.25),
+    inset 0 0 24px rgba(199, 125, 255, 0.08);
+  color: #f5ecff;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.qq-card--correct {
+  border-color: #6bcb77;
+  box-shadow:
+    0 12px 38px rgba(0, 0, 0, 0.55),
+    0 0 28px rgba(34, 197, 94, 0.4);
+}
+.qq-card--wrong {
+  border-color: #f59e0b;
+  box-shadow:
+    0 12px 38px rgba(0, 0, 0, 0.55),
+    0 0 28px rgba(245, 158, 11, 0.4);
+}
+
+/* Headings — amber Press Start 2P (the H1 itself is set to white above;
+   this restyles supporting headings on the card). */
+.qq-start-heading {
+  color: #fde68a;
+  font-family: 'Press Start 2P', 'Nunito', monospace;
+  font-size: 1.15rem;
+  letter-spacing: 0.03em;
+  text-shadow: 0 0 10px rgba(253, 230, 138, 0.55), 2px 2px 0 rgba(0, 0, 0, 0.55);
+}
+.qq-start-sub  { color: #d8b4fe; }
+.qq-start-meta { color: #d8b4fe; opacity: 0.85; }
+
+/* Prompts + definitions on the dark card */
+.qq-prompt { color: #f5ecff; }
+.qq-definition {
+  background: rgba(253, 230, 138, 0.12);
+  border-left: 4px solid rgba(253, 230, 138, 0.55);
+  color: #fff5d6;
+  border-radius: 10px;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
+}
+
+/* The big word display — non-pixel, glowing. Matches the Memory Spell
+   word-big treatment. */
+.qq-display {
+  color: #ffffff;
+  text-shadow:
+    0 0 10px #c77dff,
+    0 0 22px rgba(199, 125, 255, 0.65),
+    2px 2px 0 rgba(0, 0, 0, 0.55);
+  background: transparent;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+}
+.qq-display--wrong  { color: #fecaca; background: rgba(248, 113, 113, 0.16); }
+.qq-display--gap    { color: #fde68a; background: rgba(199, 125, 255, 0.14); }
+.qq-display-hint    { color: #d8b4fe; }
+.qq-word-big {
+  color: #ffffff;
+  text-shadow:
+    0 0 10px #c77dff,
+    0 0 22px rgba(199, 125, 255, 0.65),
+    2px 2px 0 rgba(0, 0, 0, 0.55);
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+}
+.qq-word-big--correct {
+  color: #bbf7d0;
+  text-shadow:
+    0 0 10px #22c55e,
+    0 0 22px rgba(34, 197, 94, 0.55),
+    2px 2px 0 rgba(0, 0, 0, 0.55);
+}
+
+/* Letter boxes — dark glass with neon edge, cyan blinking cursor. */
+.qq-letter-box {
+  background: rgba(15, 6, 32, 0.55);
+  border: 2px solid rgba(216, 180, 254, 0.45);
+  color: #f5ecff;
+  box-shadow: inset 0 0 10px rgba(199, 125, 255, 0.12);
+}
+.qq-letter-box--filled {
+  background: rgba(15, 6, 32, 0.7);
+  border-color: rgba(216, 180, 254, 0.5);
+  color: #f5ecff;
+}
+.qq-letter-box--cursor {
+  border-color: #a5f3fc;
+  background: rgba(165, 243, 252, 0.10);
+  box-shadow:
+    inset 0 0 12px rgba(165, 243, 252, 0.25),
+    0 0 14px rgba(165, 243, 252, 0.45);
+  animation: qq-box-blink-neon 1s step-end infinite;
+}
+@keyframes qq-box-blink-neon {
+  0%, 100% { border-color: #a5f3fc; box-shadow: inset 0 0 12px rgba(165, 243, 252, 0.25), 0 0 14px rgba(165, 243, 252, 0.45); }
+  50%      { border-color: rgba(165, 243, 252, 0.35); box-shadow: inset 0 0 8px rgba(165, 243, 252, 0.10); }
+}
+.qq-letter-box--ok    { background: rgba(34, 197, 94, 0.18); color: #bbf7d0; border-color: #6bcb77; }
+.qq-letter-box--wrong { background: rgba(248, 113, 113, 0.18); color: #fecaca; border-color: #fca5a5; }
+
+/* Inputs */
+.qq-input {
+  background: rgba(15, 6, 32, 0.7);
+  border-color: rgba(216, 180, 254, 0.55);
+  color: #f5ecff;
+}
+.qq-input:focus {
+  background: rgba(46, 16, 101, 0.55);
+  border-color: #c77dff;
+  box-shadow: 0 0 14px rgba(199, 125, 255, 0.45);
+}
+
+/* Multiple-choice options */
+.qq-option {
+  background: rgba(15, 6, 32, 0.65);
+  border: 2px solid rgba(216, 180, 254, 0.45);
+  color: #f5ecff;
+  box-shadow: 0 0 14px rgba(199, 125, 255, 0.15);
+}
+.qq-option:hover:not(:disabled) {
+  background: rgba(46, 16, 101, 0.85);
+  border-color: #c77dff;
+  box-shadow: 0 0 22px rgba(199, 125, 255, 0.45);
+}
+.qq-option--selected {
+  background: rgba(199, 125, 255, 0.18);
+  border-color: #fde68a;
+  box-shadow: 0 0 22px rgba(253, 230, 138, 0.4);
+}
+
+/* Clue + replay helper buttons */
+.qq-clue-btn,
+.qq-replay-btn {
+  background: rgba(46, 16, 101, 0.6);
+  border: 2px solid rgba(199, 125, 255, 0.55);
+  color: #f5ecff;
+  box-shadow: 0 0 12px rgba(199, 125, 255, 0.15);
+}
+.qq-clue-btn:hover,
+.qq-replay-btn:hover {
+  background: rgba(46, 16, 101, 0.85);
+  border-color: #c77dff;
+  box-shadow: 0 0 18px rgba(199, 125, 255, 0.4);
+}
+.qq-clue-def {
+  background: rgba(253, 230, 138, 0.12);
+  border-left: 4px solid rgba(253, 230, 138, 0.55);
+  color: #fff5d6;
+  border-radius: 10px;
+}
+
+/* Primary / secondary buttons — glow rather than chunky 2D shadow. */
+.qq-btn--primary,
+.qq-submit {
+  background: linear-gradient(135deg, #c77dff, #7c3aed);
+  border: 2px solid rgba(253, 230, 138, 0.55);
+  color: #fff;
+  box-shadow:
+    0 8px 22px rgba(0, 0, 0, 0.45),
+    0 0 22px rgba(199, 125, 255, 0.55);
+  text-shadow: 0 0 8px rgba(253, 230, 138, 0.55);
+}
+.qq-btn--primary:hover,
+.qq-submit:hover:not(:disabled) {
+  background: linear-gradient(135deg, #d8b4fe, #9333ea);
+  box-shadow:
+    0 10px 26px rgba(0, 0, 0, 0.5),
+    0 0 32px rgba(199, 125, 255, 0.7);
+}
+.qq-btn--secondary {
+  background: rgba(15, 6, 32, 0.65);
+  border: 2px solid rgba(216, 180, 254, 0.55);
+  color: #f5ecff;
+  box-shadow: 0 0 14px rgba(199, 125, 255, 0.2);
+}
+.qq-btn--secondary:hover { background: rgba(46, 16, 101, 0.7); }
+
+/* Auto-advance fill — cyan/amber sweep. */
+.qq-btn-auto-fill {
+  background: linear-gradient(90deg, rgba(165, 243, 252, 0.45), rgba(253, 230, 138, 0.55));
+}
+
+/* Success / wrong panels */
+.qq-success-panel {
+  background: rgba(34, 197, 94, 0.18);
+  border-color: #22c55e;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5), 0 0 22px rgba(34, 197, 94, 0.4);
+}
+.qq-success-msg {
+  color: #bbf7d0;
+  text-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+}
+.qq-wrong-panel {
+  background: rgba(248, 113, 113, 0.18);
+  border-color: #f87171;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5), 0 0 22px rgba(248, 113, 113, 0.4);
+}
+.qq-wrong-msg    { color: #fecaca; }
+.qq-wrong-detail { color: #f5ecff; opacity: 0.85; }
+
+/* Feedback row */
+.qq-feedback-msg--correct { color: #bbf7d0; text-shadow: 0 0 8px rgba(34, 197, 94, 0.45); }
+.qq-feedback-msg--wrong   { color: #fde68a; text-shadow: 0 0 8px rgba(253, 230, 138, 0.4); }
+.qq-feedback-label  { color: #d8b4fe; }
+.qq-feedback-given  { color: #fecaca; text-decoration-color: #fca5a5; }
+.qq-feedback-answer {
+  color: #ffffff;
+  text-shadow: 0 0 8px rgba(199, 125, 255, 0.6), 2px 2px 0 rgba(0, 0, 0, 0.55);
+}
+
+/* Top bar — purple gradient with glow */
+.qq-topbar {
+  background: linear-gradient(135deg, rgba(46, 16, 101, 0.9), rgba(15, 6, 32, 0.92));
+  border-bottom-color: rgba(199, 125, 255, 0.35);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.45), 0 0 18px rgba(199, 125, 255, 0.15);
+}
+.qq-back,
+.qq-restart {
+  border-color: rgba(216, 180, 254, 0.45);
+  background: rgba(15, 6, 32, 0.5);
+  color: #f5ecff;
+}
+.qq-back:hover,
+.qq-restart:hover {
+  background: rgba(46, 16, 101, 0.8);
+  border-color: #c77dff;
+  box-shadow: 0 0 14px rgba(199, 125, 255, 0.4);
+  color: #fff;
+}
+.qq-title {
+  color: #fde68a;
+  text-shadow: 0 0 10px rgba(253, 230, 138, 0.55), 2px 2px 0 rgba(0, 0, 0, 0.55);
+}
+
+/* Progress strip — cyan/purple gradient with glow */
+.qq-progress-bar-track { background: rgba(15, 6, 32, 0.7); }
+.qq-progress-bar-fill  {
+  background: linear-gradient(90deg, #c77dff, #a5f3fc);
+  box-shadow: 0 0 14px rgba(165, 243, 252, 0.55);
+}
+.qq-progress-label { color: #d8b4fe; }
+
+/* Results screen */
+.qq-results-score {
+  background: linear-gradient(160deg, rgba(46, 16, 101, 0.85), rgba(15, 6, 32, 0.92));
+  border: 2px solid rgba(253, 230, 138, 0.55);
+  box-shadow:
+    0 12px 38px rgba(0, 0, 0, 0.55),
+    0 0 28px rgba(253, 230, 138, 0.3);
+}
+.qq-score-num {
+  color: #fde68a;
+  text-shadow: 0 0 10px rgba(253, 230, 138, 0.55), 2px 2px 0 rgba(0, 0, 0, 0.5);
+}
+.qq-score-label { color: #d8b4fe; }
+.qq-results-section {
+  background: linear-gradient(160deg, rgba(46, 16, 101, 0.6), rgba(15, 6, 32, 0.85));
+  border: 1.5px solid rgba(199, 125, 255, 0.4);
+  color: #f5ecff;
+}
+.qq-results-heading--good     { color: #bbf7d0; text-shadow: 0 0 6px rgba(34, 197, 94, 0.45); }
+.qq-results-heading--practice { color: #fde68a; text-shadow: 0 0 6px rgba(253, 230, 138, 0.45); }
+.qq-results-chip--good     { background: rgba(34, 197, 94, 0.18); border-color: #6bcb77; color: #bbf7d0; }
+.qq-results-chip--practice { background: rgba(253, 230, 138, 0.18); border-color: #fcd34d; color: #fde68a; }

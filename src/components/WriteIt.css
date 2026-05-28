@@ -4,9 +4,17 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background: linear-gradient(160deg, #f5f0ff 0%, #fdf4ff 100%);
   font-family: 'Nunito', sans-serif;
   padding: 0 0 1.5rem;
+  background-color: #07030f;
+  background-image:
+    linear-gradient(rgba(7, 3, 15, 0.55), rgba(7, 3, 15, 0.55)),
+    var(--bg-image-url, none);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  color: #f5ecff;
 }
 
 /* ── Top bar ──────────────────────────────────────────────────────────────── */
@@ -158,29 +166,67 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1.25rem;
-  padding: 0.65rem 1rem;
+  gap: clamp(0.85rem, 2.5vw, 1.75rem);
+  /* Extra top padding so the steps don't hug the header. */
+  padding: 1.5rem 1rem 1.1rem;
   flex-wrap: wrap;
+  max-width: 760px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .wi-step {
+  --wi-step-accent: #c77dff;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.15rem;
+  gap: 0.5rem;
+  min-width: 72px;
 }
 
 .wi-step-icon {
-  font-size: 1.4rem;
-  line-height: 1;
+  width: 52px;
+  height: 52px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  background: linear-gradient(160deg, rgba(46, 16, 101, 0.7), rgba(15, 6, 32, 0.85));
+  border: 2px solid color-mix(in srgb, var(--wi-step-accent) 55%, transparent);
+  box-shadow:
+    0 8px 22px rgba(0, 0, 0, 0.45),
+    0 0 18px color-mix(in srgb, var(--wi-step-accent) 30%, transparent);
+  color: var(--wi-step-accent);
+  padding: 10px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.wi-step-icon svg {
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--wi-step-accent) 60%, transparent));
+}
+.wi-step:hover .wi-step-icon {
+  transform: translateY(-2px);
+  box-shadow:
+    0 10px 26px rgba(0, 0, 0, 0.5),
+    0 0 26px color-mix(in srgb, var(--wi-step-accent) 55%, transparent);
 }
 
 .wi-step-label {
-  font-size: 0.7rem;
+  font-family: 'Press Start 2P', 'Nunito', monospace;
+  font-size: 0.62rem;
   font-weight: 800;
-  color: #6b21a8;
-  letter-spacing: 0.04em;
+  color: #ffffff;
+  text-shadow:
+    0 0 6px color-mix(in srgb, var(--wi-step-accent) 60%, transparent),
+    2px 2px 0 rgba(0, 0, 0, 0.5);
+  letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+@media (max-width: 540px) {
+  .wi-step-icon { width: 44px; height: 44px; border-radius: 12px; padding: 8px; }
+  .wi-step-label { font-size: 0.55rem; }
+  .wi-step { min-width: 60px; }
 }
 
 
@@ -189,16 +235,13 @@
 .wi-table-outer {
   overflow-x: auto;
   padding: 0 1rem;
-  /* Allow the table to be as wide as it needs to — all four practice
-     boxes are fully visible. The previous 760px cap clipped the 4th
-     column when the active input expanded. Using 100% lets the flex
-     container decide the width; overflow-x: auto adds a scrollbar only
-     if the table exceeds the viewport, which is the correct fallback. */
-  max-width: 100%;
+  /* Constrained to match the other games (Memory Spell / Syllable Tap)
+     so Write It no longer extends edge-to-edge. The three base practice
+     columns sit comfortably inside 760px; overflow-x is kept as a
+     fallback in case extra columns ever reappear. */
+  max-width: 760px;
   width: 100%;
   margin: 0 auto;
-  /* Ensure horizontal overflow can escape — the parent .wi-wrap must
-     not clip it (it has no overflow:hidden, so this is safe). */
   box-sizing: border-box;
 }
 

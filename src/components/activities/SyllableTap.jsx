@@ -215,6 +215,12 @@ function SyllableTap({ words, onComplete, onExit, savedProgress = null, onSavePr
         Word {wordIndex + 1} of {queue.length}
       </GameProgressStrip>
       <div className="st-shell">
+        <span
+          className="st-word-counter"
+          aria-label={`Word ${Math.min(wordIndex + 1, queue.length)} of ${queue.length}`}
+        >
+          Word {Math.min(wordIndex + 1, queue.length)}<span className="st-word-counter__sep">/</span>{queue.length}
+        </span>
         <h1 className="st-instructions">
           Listen to the word, then tap once for each syllable you hear.
         </h1>

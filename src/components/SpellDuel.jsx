@@ -459,7 +459,9 @@ function SpellDuel({
         {/* Round badge (middle) */}
         <div className="sd-round-badge">
           <span className="sd-round-label">ROUND</span>
-          <span className="sd-round-num">{wordIndex + 1}</span>
+          <span className="sd-round-num">
+            {wordIndex + 1}<span className="sd-round-sep">/</span>{queue.length}
+          </span>
         </div>
 
         {/* Opponent HP strip — drains left→right */}

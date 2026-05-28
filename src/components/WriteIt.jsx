@@ -65,14 +65,57 @@ function WordDetailModal({ word, userAge, onClose }) {
   );
 }
 
+// Themed background — same pattern as the other adventure screens.
+const BG_STYLE = {
+  '--bg-image-url': `url("${process.env.PUBLIC_URL || ''}/adventure/Write%20it%20background%20.png")`,
+};
+
 // ── Constants ────────────────────────────────────────────────────────────────
 
+// Crisp inline SVG icons for the Look→Say→Cover→Write→Check method banner.
+// (We don't ship Lottie in the codebase yet — see the note in the PR. These
+//  scale cleanly and inherit currentColor so each step can be tinted.)
+const STEP_ICONS = {
+  look: (
+    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M1.5 12s4-7 10.5-7 10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z" />
+      <circle cx="12" cy="12" r="3.2" />
+    </svg>
+  ),
+  say: (
+    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M11 5 6 9H3v6h3l5 4z" />
+      <path d="M15.5 8.5a5 5 0 0 1 0 7" />
+      <path d="M18.5 5.5a9 9 0 0 1 0 13" />
+    </svg>
+  ),
+  cover: (
+    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M2 12s4-7 10-7c2.2 0 4.1.8 5.7 1.9" />
+      <path d="M22 12s-4 7-10 7c-2.2 0-4.1-.8-5.7-1.9" />
+      <path d="M3 3l18 18" />
+      <circle cx="12" cy="12" r="3.2" />
+    </svg>
+  ),
+  write: (
+    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M14.5 3.5l6 6L9 21H3v-6L14.5 3.5z" />
+      <path d="M13 5l6 6" />
+    </svg>
+  ),
+  check: (
+    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9.5" />
+      <path d="M7.5 12.5l3 3 6-7" />
+    </svg>
+  ),
+};
 const STEPS = [
-  { icon: '👀', label: 'Look' },
-  { icon: '🔊', label: 'Say' },
-  { icon: '🫣', label: 'Cover' },
-  { icon: '✏️', label: 'Write' },
-  { icon: '✅', label: 'Check' },
+  { key: 'look',  label: 'Look',  accent: '#a5f3fc' },
+  { key: 'say',   label: 'Say',   accent: '#fde68a' },
+  { key: 'cover', label: 'Cover', accent: '#d8b4fe' },
+  { key: 'write', label: 'Write', accent: '#fbcfe8' },
+  { key: 'check', label: 'Check', accent: '#bbf7d0' },
 ];
 
 const NUM_BASE = 3; // base practices that count toward 100%
@@ -420,7 +463,7 @@ function WriteIt({
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className={`wi-wrap${dyslexiaMode ? ' wi-wrap--es' : ''}`}>
+    <div className={`wi-wrap${dyslexiaMode ? ' wi-wrap--es' : ''}`} style={BG_STYLE}>
 
       {/* Screen header */}
       <div className="wi-no-print">
@@ -451,11 +494,11 @@ function WriteIt({
         </p>
       </div>
 
-      {/* Method banner — no boxes, just floating steps */}
+      {/* Method banner — bigger, padded, with SVG step icons. */}
       <div className="wi-steps wi-no-print">
         {STEPS.map((s) => (
-          <div key={s.label} className="wi-step">
-            <span className="wi-step-icon">{s.icon}</span>
+          <div key={s.key} className="wi-step" style={{ '--wi-step-accent': s.accent }}>
+            <span className="wi-step-icon" aria-hidden="true">{STEP_ICONS[s.key]}</span>
             <span className="wi-step-label">{s.label}</span>
           </div>
         ))}
@@ -597,14 +640,8 @@ function WriteIt({
         </div>
       </div>
 
-      {/* Add Practice button — appears once all base practices complete */}
-      {baseAllDone && (
-        <div className="wi-add-practice-wrap wi-no-print">
-          <button className="wi-add-practice-btn" onClick={addPractice}>
-            + Add Practice
-          </button>
-        </div>
-      )}
+      {/* Extra-practice option removed — child finishes after the base
+          three rounds and lands on the results / Done flow. */}
 
       {/* Round-complete celebration popup */}
       {celebrate && (

@@ -303,6 +303,36 @@ export default function ListHub({
   // explicitly asked for words to remain accessible but not dominate).
   const [wordsDrawerOpen, setWordsDrawerOpen] = useState(false);
 
+  // ── Cards-view onboarding coach ───────────────────────────────────────────
+  // First-visit tour: highlight Words button → open drawer → close drawer →
+  // mastery prompt. Phases: 'find-words' | 'mastery' | 'off'.
+  const COACH_LH_KEY = 'spellify.lh.cards.onboarding.v1';
+  const [coachPhase, setCoachPhase] = useState(() => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage.getItem(COACH_LH_KEY)) {
+        return 'off';
+      }
+    } catch { /* private mode — coach is fine to show */ }
+    return 'find-words';
+  });
+  const dismissCoach = useCallback(() => {
+    setCoachPhase('off');
+    try {
+      if (typeof window !== 'undefined') window.localStorage.setItem(COACH_LH_KEY, '1');
+    } catch { /* ignore */ }
+  }, []);
+  // Once the user opens the drawer during 'find-words', flip this flag.
+  // Closing the drawer afterwards advances to the mastery prompt.
+  const coachDrawerSeenRef = useRef(false);
+  useEffect(() => {
+    if (coachPhase !== 'find-words') return;
+    if (wordsDrawerOpen) {
+      coachDrawerSeenRef.current = true;
+    } else if (coachDrawerSeenRef.current) {
+      setCoachPhase('mastery');
+    }
+  }, [coachPhase, wordsDrawerOpen]);
+
   // ── Word Mastery modal (Part 4) ───────────────────────────────────────────
   // Show once when ALL words in the list are mastered during this session.
   // We compare the previous listProgress.status to detect the transition.
@@ -634,13 +664,27 @@ export default function ListHub({
       masteryState.words?.[w.toLowerCase()]?.mastered ? acc + 1 : acc, 0);
     return (
       <>
-        <div className="lh-cards-root">
+        <div className={`lh-cards-root${coachPhase !== 'off' ? ' lh-cards-root--coach-locked' : ''}`}>
           {viewToggleButton}
+
+          {/* Dev: re-trigger onboarding. Remove before shipping. */}
+          <button
+            type="button"
+            className="lh-coach-devreset"
+            onClick={() => {
+              try { window.localStorage.removeItem(COACH_LH_KEY); } catch { /* ignore */ }
+              coachDrawerSeenRef.current = false;
+              setWordsDrawerOpen(false);
+              setActiveWord(null);
+              setCoachPhase('find-words');
+            }}
+          >
+            ⟳ Replay tour
+          </button>
 
           {/* Big centred title — pixel-font, glowing, matches Spell Shop. */}
           <header className="lh-cards-header">
             <h1 className="lh-cards-title">
-              <span aria-hidden="true">📜</span>
               <span>{list.name}</span>
             </h1>
             <p className="lh-cards-subtitle">
@@ -713,7 +757,7 @@ export default function ListHub({
               functionality (definition modal, mastery dots) preserved. */}
           <button
             type="button"
-            className="lh-words-toggle"
+            className={`lh-words-toggle${coachPhase === 'find-words' ? ' lh-words-toggle--coach' : ''}`}
             onClick={() => setWordsDrawerOpen(o => !o)}
             aria-expanded={wordsDrawerOpen}
           >
@@ -721,6 +765,63 @@ export default function ListHub({
             <span>Words</span>
             <span className="lh-words-toggle__count">{fullWords.length}</span>
           </button>
+
+          {/* ── Onboarding coach ── first-visit tour: highlight Words button,
+              let them open + close the drawer, then show the mastery prompt.
+              Arrow points from the coach card to the target element. The
+              scrim is suppressed while the drawer is open because the
+              drawer ships its own (darker) backdrop. */}
+          {coachPhase !== 'off' && !(coachPhase === 'find-words' && wordsDrawerOpen) && (
+            <div className="lh-coach-scrim" aria-hidden="true" />
+          )}
+          {coachPhase === 'find-words' && !wordsDrawerOpen && (
+            <div
+              key="find-words"
+              className="lh-coach lh-coach--find-words"
+              role="status"
+              aria-live="polite"
+            >
+              <div className="lh-coach__body">
+                <div className="lh-coach__title">Find your words</div>
+                <div className="lh-coach__hint">Tap the glowing <strong>Words</strong> button to see them.</div>
+              </div>
+              <button type="button" className="lh-coach__skip" onClick={dismissCoach}>Skip</button>
+              <span className="lh-coach__arrow" aria-hidden="true" />
+            </div>
+          )}
+          {coachPhase === 'find-words' && wordsDrawerOpen && (
+            <div
+              key="close-drawer"
+              className="lh-coach lh-coach--close-drawer"
+              role="status"
+              aria-live="polite"
+            >
+              <div className="lh-coach__body">
+                <div className="lh-coach__title">Find out more about your words</div>
+                <div className="lh-coach__hint">Tap <strong>✕</strong> to close the word list when you're done.</div>
+              </div>
+              <button type="button" className="lh-coach__skip" onClick={dismissCoach}>Skip</button>
+              <span className="lh-coach__arrow" aria-hidden="true" />
+            </div>
+          )}
+          {coachPhase !== 'off' && coachPhase !== 'find-words' && (
+            <div
+              key={coachPhase}
+              className={`lh-coach lh-coach--${coachPhase}`}
+              role="status"
+              aria-live="polite"
+            >
+              {coachPhase === 'mastery' && (
+                <>
+                  <div className="lh-coach__body">
+                    <div className="lh-coach__title">You're all set!</div>
+                    <div className="lh-coach__hint">Play the games and practise to master every word to unlock the next level.</div>
+                  </div>
+                  <button type="button" className="lh-coach__skip lh-coach__skip--primary" onClick={dismissCoach}>Got it</button>
+                </>
+              )}
+            </div>
+          )}
           {wordsDrawerOpen && (
             <>
               <div

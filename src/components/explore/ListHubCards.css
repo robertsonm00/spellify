@@ -294,6 +294,206 @@
   .lh-words-toggle { bottom: calc(env(safe-area-inset-bottom, 0px) + 108px); right: 10px; padding: 8px 13px; font-size: 0.72rem; }
 }
 
+/* ── Onboarding coach ── first-visit overlay walking through the word list */
+
+/* Dim scrim that knocks back surrounding content. Only used for phases
+   that don't already have a backdrop (the drawer + modal ship their own).
+   Sits below the focal element + coach card via z-index. */
+.lh-coach-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(0, 0, 0, 0.60);
+  animation: lh-coach-scrim-in 1.6s ease forwards;
+  pointer-events: none;
+}
+
+/* While the coach is active, disable hover + click on the rest of the
+   word-list page. Back button + footer nav live outside .lh-cards-root
+   in ExploreDashboard so they remain interactive. */
+.lh-cards-root--coach-locked { pointer-events: none; }
+.lh-cards-root--coach-locked .lh-words-toggle,
+.lh-cards-root--coach-locked .lh-coach,
+.lh-cards-root--coach-locked .lh-coach *,
+.lh-cards-root--coach-locked .lh-words-drawer,
+.lh-cards-root--coach-locked .lh-words-drawer *,
+.lh-cards-root--coach-locked .lh-words-drawer-scrim { pointer-events: auto; }
+@keyframes lh-coach-scrim-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Lift the Words button + drawer above the coach scrim so they stay
+   highlighted while everything else is knocked back. */
+.lh-words-toggle--coach {
+  animation: lh-coach-pulse 1.4s ease-in-out infinite;
+  z-index: 90;
+}
+@keyframes lh-coach-pulse {
+  0%, 100% { box-shadow: 0 6px 18px rgba(0,0,0,0.5), 0 0 22px rgba(199,125,255,0.45); transform: translateY(0); }
+  50%      { box-shadow: 0 10px 30px rgba(0,0,0,0.55), 0 0 42px rgba(253,230,138,0.95); transform: translateY(-3px); }
+}
+
+.lh-coach {
+  position: fixed;
+  z-index: 92;
+  max-width: min(320px, calc(100vw - 32px));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(46, 16, 101, 0.97), rgba(15, 6, 32, 0.97));
+  border: 2px solid #fde68a;
+  box-shadow: 0 10px 28px rgba(0,0,0,0.55), 0 0 28px rgba(253, 230, 138, 0.4);
+  color: #fff5d6;
+  font-family: 'Nunito', sans-serif;
+  animation: lh-coach-in 0.42s cubic-bezier(.2, .9, .3, 1.2) both;
+}
+@keyframes lh-coach-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.92); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+.lh-coach__body { flex: 1; min-width: 0; }
+.lh-coach__title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.72rem;
+  color: #fde68a;
+  margin-bottom: 8px;
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+}
+.lh-coach__hint { font-size: 0.85rem; line-height: 1.75; color: #f5ecff; }
+.lh-coach__hint strong { color: #fde68a; }
+.lh-coach__skip {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(253, 230, 138, 0.55);
+  background: transparent;
+  color: #fde68a;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.lh-coach__skip:hover {
+  background: rgba(253, 230, 138, 0.2);
+  color: #fffbe6;
+  border-color: #fde68a;
+}
+.lh-coach__skip--primary {
+  background: linear-gradient(135deg, #fde68a, #f59e0b);
+  color: #451a03;
+  border-color: #f59e0b;
+}
+.lh-coach__skip--primary:hover {
+  background: linear-gradient(135deg, #fcd34d, #d97706);
+  color: #1a0a02;
+  border-color: #d97706;
+}
+
+/* Temporary dev button to re-trigger the onboarding tour. */
+.lh-coach-devreset {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 96;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px dashed #f87171;
+  background: rgba(15, 6, 32, 0.85);
+  color: #fca5a5;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  opacity: 0.7;
+}
+.lh-coach-devreset:hover { opacity: 1; color: #fff; border-color: #fff; }
+
+/* Arrow — a small yellow chevron that bobs toward the target element.
+   Uses a rotated square so we get clean diagonal corners for free. */
+.lh-coach__arrow {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  background: linear-gradient(135deg, rgba(46, 16, 101, 0.97), rgba(15, 6, 32, 0.97));
+  border-right: 2px solid #fde68a;
+  border-bottom: 2px solid #fde68a;
+  animation: lh-coach-arrow-bob 1.2s ease-in-out infinite;
+}
+@keyframes lh-coach-arrow-bob {
+  0%, 100% { transform: var(--arrow-base) translate(0, 0); }
+  50%      { transform: var(--arrow-base) translate(var(--arrow-bob-x, 0), var(--arrow-bob-y, 0)); }
+}
+
+/* ── Per-phase positioning ──────────────────────────────────────────────── */
+
+/* find-words: sit above-left of the Words button (bottom-right corner),
+   arrow points down-right toward it. We stage the entry with a longer
+   fade + a delay so the user sees the room dim down *before* the
+   prompt arrives. */
+.lh-coach--find-words {
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 180px);
+  right: 16px;
+  animation: lh-coach-in-dramatic 0.9s cubic-bezier(.2, .9, .3, 1.2) 1.2s both;
+}
+@keyframes lh-coach-in-dramatic {
+  from { opacity: 0; transform: translateY(22px) scale(0.88); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+/* Pause the pulsing Words button until the coach is visible too. */
+.lh-words-toggle--coach { animation-delay: 1.2s; }
+.lh-coach--find-words .lh-coach__arrow {
+  right: 24px;
+  bottom: -12px;
+  --arrow-base: rotate(45deg);
+  --arrow-bob-y: 5px;
+}
+
+/* close-drawer: drawer is open on the right. Card hovers just below the
+   drawer's ✕ close button, arrow pointing up at it. */
+.lh-coach--close-drawer {
+  z-index: 76;
+  top: 76px;
+  right: 16px;
+  max-width: min(300px, calc(100vw - 32px));
+  /* Wait for the drawer slide-in to settle, then drop in. */
+  animation: lh-coach-in-from-top 0.7s cubic-bezier(.2,.9,.3,1.2) 0.45s both;
+}
+@keyframes lh-coach-in-from-top {
+  from { opacity: 0; transform: translateY(-22px) scale(0.88); }
+  to   { opacity: 1; transform: translateY(0)     scale(1); }
+}
+.lh-coach--close-drawer .lh-coach__arrow {
+  top: -12px;
+  right: 24px;
+  --arrow-base: rotate(225deg);
+  --arrow-bob-y: -5px;
+}
+
+/* mastery: card near the top of the cards view, no arrow needed. */
+.lh-coach--mastery {
+  top: clamp(20px, 8vh, 80px);
+  left: 50%;
+  transform: translateX(-50%);
+  animation: lh-coach-in-top 0.42s cubic-bezier(.2,.9,.3,1.2) both;
+}
+@keyframes lh-coach-in-top {
+  from { opacity: 0; transform: translateX(-50%) translateY(-14px) scale(0.92); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0)     scale(1); }
+}
+
+@media (max-width: 540px) {
+  .lh-coach { padding: 12px 14px; max-width: calc(100vw - 24px); }
+  .lh-coach__title { font-size: 0.62rem; }
+  .lh-coach__hint { font-size: 0.78rem; }
+  .lh-coach--find-words { right: 10px; bottom: calc(env(safe-area-inset-bottom, 0px) + 170px); }
+}
+
 /* Drawer + scrim. Slides in from the right; click outside to close. */
 .lh-words-drawer-scrim {
   position: fixed;
