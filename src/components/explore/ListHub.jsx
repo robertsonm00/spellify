@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { ACTIVITIES, PHASES } from '../../data/activities';
 import { getActivityAvailability } from '../../utils/activityAvailability';
 import { renderExploreActivity } from './exploreActivityRunner';
@@ -24,6 +24,28 @@ import PracticeWriteIt from '../PracticeWriteIt';
 import { HubPlayerCard, WordDetailModal, preSeedWordInfoCache } from '../WordListHub';
 import '../WordListHub.css';
 import './ListHub.css';
+import './ListHubCards.css';
+
+// Painted card art for the cards view. Prefers a dedicated *_gametile.png
+// where supplied (Word Search, Memory Spell, Crossword, Quiz Quest), falls
+// back to the matching full-scene background PNG otherwise, and finally to
+// the emoji placeholder defined on the activity for games with no art yet.
+// Filenames mirror the live public/adventure/ folder; URL-encoded at use
+// site so spaces and the stray trailing space on some filenames are safe.
+const GAME_ART = {
+  wordsearch:  '/adventure/Wordsearch_gametile.png',
+  memoryspell: '/adventure/Memory_spell_gametile.png',
+  crossword:   '/adventure/Crossword_gametile.png',
+  quizquest:   '/adventure/Quiz_quest_gametile.png',
+  // Fallbacks — full-scene background images. Swap to *_gametile.png as
+  // dedicated tiles are produced.
+  hangman:     '/adventure/Spell Duel background .png',
+  syllabletap: '/adventure/Sylaball tap background.png',
+  writeit:     '/adventure/Write it background.png',
+  // weakspot + wordforge currently have no painted art → emoji placeholder.
+};
+const encodeArtUrl = (path) =>
+  path ? `${process.env.PUBLIC_URL || ''}${path.replace(/ /g, '%20')}` : null;
 
 const MASTERY_LABELS = { new: 'Not tried yet', learning: 'Keep practising', mastered: 'Mastered!' };
 
@@ -252,6 +274,34 @@ export default function ListHub({
 
   // ── Mastery progress tooltip ──────────────────────────────────────────────
   const [masteryTipOpen, setMasteryTipOpen] = useState(false);
+
+  // ── Alternative "cards" view — big rounded game tiles with painted art ──
+  // Cards is now the default landing layout (painted, photo-led tiles); the
+  // classic split-pane layout is opt-in via the floating toggle button.
+  // Preference persists per device.
+  const [viewMode, setViewMode] = useState(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        return window.localStorage.getItem('spellify.listhub.view') || 'cards';
+      }
+    } catch { /* ignore */ }
+    return 'cards';
+  });
+  const cycleViewMode = useCallback(() => {
+    setViewMode(prev => {
+      const next = prev === 'cards' ? 'classic' : 'cards';
+      try {
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem('spellify.listhub.view', next);
+        }
+      } catch { /* ignore */ }
+      return next;
+    });
+  }, []);
+
+  // Words drawer open/closed in cards view (secondary panel — the user
+  // explicitly asked for words to remain accessible but not dominate).
+  const [wordsDrawerOpen, setWordsDrawerOpen] = useState(false);
 
   // ── Word Mastery modal (Part 4) ───────────────────────────────────────────
   // Show once when ALL words in the list are mastered during this session.
@@ -559,10 +609,188 @@ export default function ListHub({
     setActiveActivity(gameId);
   };
 
+  // Toggle button — rendered in both views, positioned via CSS. Lets the
+  // child flip between the classic split-pane layout and the cards-led
+  // layout. Preference persists per device.
+  const viewToggleButton = (
+    <button
+      type="button"
+      className="lh-view-toggle"
+      onClick={cycleViewMode}
+      aria-label={viewMode === 'cards' ? 'Switch to classic view' : 'Switch to cards view'}
+      title={viewMode === 'cards' ? 'Classic view' : 'Cards view'}
+    >
+      <span aria-hidden="true">{viewMode === 'cards' ? '📋' : '🎮'}</span>
+      <span className="lh-view-toggle__label">{viewMode === 'cards' ? 'Classic' : 'Cards'}</span>
+    </button>
+  );
+
+  // ── Cards view ───────────────────────────────────────────────────────────
+  // Big centred title (matches the SpellShop heading treatment), photo-led
+  // game cards as the primary affordance, and a collapsible secondary word
+  // list panel that reuses all the existing chip/mastery functionality.
+  if (viewMode === 'cards') {
+    const masteredCount = fullWords.reduce((acc, w) =>
+      masteryState.words?.[w.toLowerCase()]?.mastered ? acc + 1 : acc, 0);
+    return (
+      <>
+        <div className="lh-cards-root">
+          {viewToggleButton}
+
+          {/* Big centred title — pixel-font, glowing, matches Spell Shop. */}
+          <header className="lh-cards-header">
+            <h1 className="lh-cards-title">
+              <span aria-hidden="true">📜</span>
+              <span>{list.name}</span>
+            </h1>
+            <p className="lh-cards-subtitle">
+              <strong>{masteredCount}</strong> of <strong>{fullWords.length}</strong> words mastered
+            </p>
+          </header>
+
+          {/* Game cards — rounded, photo-led tiles. One row of three on
+              desktop, single column on mobile. Uses existing click +
+              locked + completion logic so behaviour is identical to the
+              classic grid. */}
+          <section className="lh-cards-grid" aria-label="Games">
+            {ACTIVITIES
+              .filter(a => getActivityAvailability(a, { session: exploreSession, user }).reason !== 'unsupported')
+              .map(activity => {
+                const avail = getActivityAvailability(activity, { session: exploreSession, user });
+                const locked = avail.locked;
+                const completions = progress?.[activity.id]?.completions
+                  || (progress?.[activity.id]?.status === 'completed' ? 1 : 0);
+                const inProgress = startedActivities.has(activity.id);
+                const artUrl = encodeArtUrl(GAME_ART[activity.id]);
+                const click = () => {
+                  if (locked) return;
+                  if (!lockedWords[activity.id]) {
+                    setLockedWords(prev => ({ ...prev, [activity.id]: words }));
+                  }
+                  setStartedActivities(prev => new Set(prev).add(activity.id));
+                  setActiveActivity(activity.id);
+                };
+                return (
+                  <button
+                    key={activity.id}
+                    type="button"
+                    className={`lh-game-card${locked ? ' lh-game-card--locked' : ''}${completions > 0 ? ' lh-game-card--complete' : ''}`}
+                    style={{
+                      '--card-accent': activity.dark,
+                      '--card-accent-light': activity.color,
+                    }}
+                    onClick={click}
+                    aria-disabled={locked}
+                    title={locked ? avail.message : undefined}
+                  >
+                    {/* Painted card art, or accent-tinted gradient fallback. */}
+                    <div
+                      className={`lh-game-card__art${artUrl ? '' : ' lh-game-card__art--placeholder'}`}
+                      style={artUrl ? { backgroundImage: `url("${artUrl}")` } : undefined}
+                      aria-hidden="true"
+                    >
+                      {!artUrl && (
+                        <span className="lh-game-card__art-emoji">{activity.icon}</span>
+                      )}
+                      {locked && <span className="lh-game-card__lock" aria-hidden="true">🔒</span>}
+                    </div>
+                    <div className="lh-game-card__body">
+                      <h3 className="lh-game-card__name">{activity.name}</h3>
+                      <p className="lh-game-card__time">⏱ {activity.timeEstimate}</p>
+                      {!locked && <CompletionTicks count={completions} />}
+                      {!locked && (
+                        <span className="lh-game-card__cta">
+                          {inProgress ? 'Continue ▶' : 'Play ▶'}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+          </section>
+
+          {/* Word list — collapsible secondary drawer. All existing chip
+              functionality (definition modal, mastery dots) preserved. */}
+          <button
+            type="button"
+            className="lh-words-toggle"
+            onClick={() => setWordsDrawerOpen(o => !o)}
+            aria-expanded={wordsDrawerOpen}
+          >
+            <span aria-hidden="true">📜</span>
+            <span>Words</span>
+            <span className="lh-words-toggle__count">{fullWords.length}</span>
+          </button>
+          {wordsDrawerOpen && (
+            <>
+              <div
+                className="lh-words-drawer-scrim"
+                onClick={() => setWordsDrawerOpen(false)}
+                aria-hidden="true"
+              />
+              <aside className="lh-words-drawer" role="dialog" aria-label="Word list">
+                <header className="lh-words-drawer__header">
+                  <div>
+                    <span className="lh-words-drawer__label">WORD LIST</span>
+                    <h2 className="lh-words-drawer__title">{list.name}</h2>
+                  </div>
+                  <button
+                    type="button"
+                    className="lh-words-drawer__close"
+                    onClick={() => setWordsDrawerOpen(false)}
+                    aria-label="Close word list"
+                  >
+                    ✕
+                  </button>
+                </header>
+                {listNamePanel}
+                <div className="hub-chips">
+                  {fullWords.map((w, i) => {
+                    const { bg, border } = WORD_CHIP_COLORS[i % WORD_CHIP_COLORS.length];
+                    const entry = masteryState.words?.[w.toLowerCase()];
+                    const mastered = !!entry?.mastered;
+                    const level = mastered ? 'mastered' : (entry?.attempts > 0 ? 'learning' : 'new');
+                    return (
+                      <button
+                        key={i}
+                        className={`hub-chip${mastered ? ' hub-chip--mastered' : ''}`}
+                        style={{ background: bg, borderColor: border }}
+                        onClick={() => setActiveWord({ word: w, chipColor: border })}
+                      >
+                        <span className="hub-chip-word">{w}</span>
+                        <span
+                          className={`hub-chip-mastery hub-chip-mastery--${level}`}
+                          aria-label={level}
+                          title={MASTERY_LABELS[level]}
+                        >★</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {listFooter}
+              </aside>
+            </>
+          )}
+        </div>
+
+        {/* Re-use the existing word definition modal mount from below. */}
+        {activeWord && (
+          <WordDetailModal
+            word={activeWord.word}
+            chipColor={activeWord.chipColor}
+            userAge={session?.age || 8}
+            onClose={() => setActiveWord(null)}
+          />
+        )}
+      </>
+    );
+  }
+
   // ── List hub view ────────────────────────────────────────────────────────
   return (
     <>
     <div className="hub-shell hub-shell--split">
+    {viewToggleButton}
     <div className="hub hub--split">
 
       {/* ── Left column ── */}

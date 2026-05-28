@@ -1,0 +1,384 @@
+/* ListHubCards — alternative cards-led layout for the word list page.
+   The classic split-pane layout still lives in WordListHub.css / ListHub.css;
+   activating "Cards" mode swaps in the rules below. The toggle button is
+   shared between both views.
+
+   Goals:
+   - Big centred title (matches the Spell Shop heading treatment).
+   - Photo-led rounded game cards as the primary affordance.
+   - Word list still accessible but secondary — collapsible drawer.
+*/
+
+/* ── Floating view toggle (top-right, mirrors the Help button) ─────────── */
+.lh-view-toggle {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 64px);
+  right: 16px;
+  z-index: 50;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px 8px 10px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(46, 16, 101, 0.92), rgba(15, 6, 32, 0.92));
+  border: 1.5px solid rgba(199, 125, 255, 0.55);
+  color: #f5ecff;
+  font-family: 'Nunito', 'Segoe UI', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4), 0 0 14px rgba(199, 125, 255, 0.25);
+  transition: transform 0.15s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.lh-view-toggle:hover {
+  transform: translateY(-1px);
+  border-color: rgba(199, 125, 255, 0.9);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5), 0 0 22px rgba(199, 125, 255, 0.45);
+}
+.lh-view-toggle__label { line-height: 1; }
+@media (max-width: 540px) {
+  .lh-view-toggle {
+    top: calc(env(safe-area-inset-top, 0px) + 56px);
+    right: 10px;
+    padding: 6px 11px 6px 7px;
+    font-size: 0.66rem;
+  }
+}
+
+/* ── Cards view root ────────────────────────────────────────────────────── */
+.lh-cards-root {
+  position: fixed;
+  top: env(safe-area-inset-top, 0px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 96px);
+  left: 0;
+  right: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  color: #f5ecff;
+  font-family: 'Nunito', 'Segoe UI', sans-serif;
+  padding: 24px clamp(12px, 4vw, 40px) 64px;
+  z-index: 1;       /* stay above the .ed-shell themed background */
+}
+@media (min-width: 769px) {
+  .lh-cards-root {
+    top: 0;
+    bottom: 80px;   /* desktop arcade footer height */
+  }
+}
+
+/* ── Header — big centred title ─────────────────────────────────────────── */
+.lh-cards-header {
+  text-align: center;
+  /* Leave room top-left for the floating Spellify wordmark + top-right
+     for the view-toggle pill. */
+  padding: 56px clamp(150px, 16vw, 200px) 16px;
+  margin-bottom: 24px;
+}
+.lh-cards-title {
+  margin: 0 0 10px;
+  font-family: 'Press Start 2P', 'Nunito', monospace;
+  font-size: clamp(1.2rem, 3.4vw, 2rem);
+  color: #ffffff;
+  letter-spacing: 0.04em;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 14px;
+  text-shadow:
+    0 0 8px #c77dff,
+    0 0 22px rgba(199, 125, 255, 0.7),
+    0 0 36px rgba(165, 243, 252, 0.4),
+    2px 2px 0 rgba(0, 0, 0, 0.55);
+}
+.lh-cards-subtitle {
+  margin: 0;
+  font-size: clamp(0.85rem, 2vw, 1rem);
+  color: #d8b4fe;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.lh-cards-subtitle strong {
+  color: #fde68a;
+  font-weight: 900;
+  text-shadow: 0 0 8px rgba(253, 230, 138, 0.55);
+}
+
+/* ── Game cards grid ────────────────────────────────────────────────────── */
+.lh-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 20px;
+  max-width: 1200px;
+  margin: 0 auto 28px;
+}
+
+.lh-game-card {
+  --card-accent: #c77dff;
+  --card-accent-light: #d8b4fe;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  text-align: left;
+  gap: 0;
+  padding: 0;
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(46, 16, 101, 0.7), rgba(15, 6, 32, 0.85));
+  border: 2px solid color-mix(in srgb, var(--card-accent) 55%, transparent);
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.55),
+    0 0 20px color-mix(in srgb, var(--card-accent) 28%, transparent);
+  color: inherit;
+  cursor: pointer;
+  font-family: inherit;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+.lh-game-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--card-accent);
+  box-shadow:
+    0 14px 36px rgba(0, 0, 0, 0.6),
+    0 0 34px color-mix(in srgb, var(--card-accent) 55%, transparent);
+}
+.lh-game-card:focus-visible {
+  outline: 2px solid #ffd93d;
+  outline-offset: 3px;
+}
+.lh-game-card--locked {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.lh-game-card--locked:hover {
+  transform: none;
+}
+
+/* Card art — painted background image (game-themed PNG) or accent-tinted
+   gradient with an emoji glyph for games without dedicated art yet. */
+.lh-game-card__art {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  background-size: cover;
+  background-position: center;
+  background-color: #1a0a2e;
+  border-bottom: 2px solid color-mix(in srgb, var(--card-accent) 55%, transparent);
+  /* Subtle inner gradient so the title block underneath blends in. */
+  box-shadow: inset 0 -36px 36px -16px rgba(15, 6, 32, 0.7);
+}
+.lh-game-card__art--placeholder {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--card-accent-light) 45%, transparent),
+    color-mix(in srgb, var(--card-accent) 60%, transparent)
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.lh-game-card__art-emoji {
+  font-size: 3.6rem;
+  line-height: 1;
+  filter: drop-shadow(0 0 18px color-mix(in srgb, var(--card-accent) 60%, transparent));
+}
+.lh-game-card__lock {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 6, 32, 0.8);
+  border: 1.5px solid rgba(199, 125, 255, 0.55);
+  border-radius: 50%;
+  font-size: 1rem;
+  backdrop-filter: blur(4px);
+}
+
+/* Card body — name + time + progress + CTA. */
+.lh-game-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 18px 18px;
+}
+.lh-game-card__name {
+  margin: 0;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.92rem;
+  letter-spacing: 0.03em;
+  color: #ffffff;
+  text-shadow: 0 0 8px color-mix(in srgb, var(--card-accent) 55%, transparent), 1px 1px 0 rgba(0, 0, 0, 0.55);
+  line-height: 1.25;
+}
+.lh-game-card__time {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #d8b4fe;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.lh-game-card__cta {
+  margin-top: 4px;
+  align-self: flex-start;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--card-accent);
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35);
+  transition: transform 0.12s;
+}
+.lh-game-card:hover .lh-game-card__cta {
+  transform: translateY(-1px);
+}
+
+@media (max-width: 540px) {
+  .lh-cards-header { padding-top: 48px; padding-left: clamp(120px, 18vw, 150px); padding-right: 64px; }
+  .lh-cards-grid { grid-template-columns: 1fr; gap: 14px; }
+  .lh-game-card__name { font-size: 0.82rem; }
+  .lh-game-card__art-emoji { font-size: 2.8rem; }
+}
+
+/* ── Words drawer — collapsible secondary panel ─────────────────────────── */
+.lh-words-toggle {
+  position: fixed;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 112px);  /* clears footer/nav */
+  right: 16px;
+  z-index: 45;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #2e1065 0%, #6b21a8 100%);
+  border: 2px solid #c77dff;
+  color: #ffffff;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  box-shadow:
+    0 6px 18px rgba(0, 0, 0, 0.5),
+    0 0 22px rgba(199, 125, 255, 0.45);
+  transition: transform 0.14s ease, box-shadow 0.2s ease;
+}
+.lh-words-toggle:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.55), 0 0 30px rgba(199, 125, 255, 0.65);
+}
+.lh-words-toggle__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px;
+  background: #fde68a;
+  color: #451a03;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+}
+@media (max-width: 540px) {
+  .lh-words-toggle { bottom: calc(env(safe-area-inset-bottom, 0px) + 108px); right: 10px; padding: 8px 13px; font-size: 0.72rem; }
+}
+
+/* Drawer + scrim. Slides in from the right; click outside to close. */
+.lh-words-drawer-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: rgba(7, 3, 15, 0.55);
+  backdrop-filter: blur(2px);
+  animation: lh-scrim-in 0.22s ease;
+}
+@keyframes lh-scrim-in { from { opacity: 0; } to { opacity: 1; } }
+
+.lh-words-drawer {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: min(420px, 92vw);
+  z-index: 71;
+  background: linear-gradient(180deg, rgba(46, 16, 101, 0.97), rgba(15, 6, 32, 0.97));
+  border-left: 2px solid rgba(199, 125, 255, 0.55);
+  box-shadow: -12px 0 32px rgba(0, 0, 0, 0.55);
+  padding: 24px 20px 32px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  color: #f5ecff;
+  animation: lh-drawer-in 0.26s ease;
+}
+@keyframes lh-drawer-in {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+.lh-words-drawer__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.lh-words-drawer__label {
+  display: block;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  color: #a5f3fc;
+  margin-bottom: 6px;
+}
+.lh-words-drawer__title {
+  margin: 0;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 1rem;
+  color: #ffffff;
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 8px rgba(199, 125, 255, 0.55), 1px 1px 0 rgba(0, 0, 0, 0.55);
+}
+.lh-words-drawer__close {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.14s, border-color 0.14s;
+}
+.lh-words-drawer__close:hover {
+  background: rgba(199, 125, 255, 0.2);
+  border-color: rgba(199, 125, 255, 0.7);
+}
+
+/* Reuse the existing .hub-chips / .hub-chip rules from WordListHub.css —
+   they get a slight contrast bump inside the dark drawer. */
+.lh-words-drawer .hub-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.lh-words-drawer .hub-chip {
+  background: rgba(255, 255, 255, 0.92) !important;
+  /* keep the per-chip border colour from the inline style */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lh-words-drawer-scrim,
+  .lh-words-drawer,
+  .lh-game-card { animation: none !important; transition: none !important; }
+}

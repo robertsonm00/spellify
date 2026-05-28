@@ -935,10 +935,14 @@ function App() {
   // the parent stays authenticated. Hidden on welcome, onboarding,
   // and the selector itself. Hidden for guests (no selector to land
   // on yet — Prompt 1 changes that).
+  // Exit-to-profile-selector is only shown on the Adventure Map (home).
+  // Everywhere else (dashboard sub-pages, HFW island, Spell Shop, in-game
+  // chrome) hides it to keep those screens focused.
   const showExitBtn = !!authUser
     && screen !== 'welcome'
     && screen !== 'onboarding'
-    && screen !== 'profileSelector';
+    && screen !== 'profileSelector'
+    && section === 'home';
 
   const exitToSelectorBtn = showExitBtn ? (
     <button
