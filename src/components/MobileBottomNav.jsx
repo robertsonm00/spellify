@@ -17,6 +17,7 @@
 
 import React, { useEffect, useState } from 'react';
 import BuddyAvatar from './BuddyAvatar';
+import { useMuted, toggleMuted } from '../utils/audioMute';
 import './MobileBottomNav.css';
 
 // ── Outlined line icons (Lucide-style) ─────────────────────────────
@@ -122,6 +123,7 @@ export default function MobileBottomNav({
   onSettingsClick,
 }) {
   const xpPct = Math.max(0, Math.min(100, (xpCurrent / Math.max(1, xpMax)) * 100));
+  const muted = useMuted();
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   useEffect(() => {
@@ -164,6 +166,30 @@ export default function MobileBottomNav({
               <span className="mbn__xp-fill" style={{ width: `${xpPct}%` }} />
             </span>
           </div>
+
+          {/* Mute toggle — far right of the mobile nav status row,
+              mirroring the desktop ArcadeFooter position. */}
+          <button
+            type="button"
+            className={`mbn__mute${muted ? ' mbn__mute--muted' : ''}`}
+            onClick={toggleMuted}
+            aria-label={muted ? 'Unmute all sound' : 'Mute all sound'}
+            aria-pressed={muted}
+          >
+            {muted ? (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M11 5 L6 9 H3 V15 H6 L11 19 Z" fill="currentColor" stroke="none" />
+                <line x1="16" y1="9"  x2="22" y2="15" />
+                <line x1="22" y1="9"  x2="16" y2="15" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M11 5 L6 9 H3 V15 H6 L11 19 Z" fill="currentColor" stroke="none" />
+                <path d="M15.5 9.5 a4 4 0 0 1 0 5" />
+                <path d="M18 7    a7 7 0 0 1 0 10" />
+              </svg>
+            )}
+          </button>
         </div>
 
         {/* Tabs row — full-width 5-column grid. */}

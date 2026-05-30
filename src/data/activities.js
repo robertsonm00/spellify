@@ -23,6 +23,7 @@
 
 import WordSearch  from '../components/WordSearch';
 import MemorySpell from '../components/MemorySpell';
+import MemoryMatch from '../components/MemoryMatch';
 import SpellDuel   from '../components/SpellDuel';
 import Crossword   from '../components/Crossword';
 import WriteIt     from '../components/WriteIt';
@@ -56,6 +57,13 @@ export const ACTIVITIES = [
     phase: 'warmup', component: SpellDuel,
     minYear: 1, maxYear: 6,
     buildProps: (s) => ({ difficulty: s.difficulty || 'medium', yearGroup: s.year ?? null }),
+  },
+  {
+    id: 'memorymatch', name: 'Memory Match', icon: '🃏',
+    timeEstimate: '5 mins', color: '#d4b8f5', dark: '#6a3aa3',
+    phase: 'warmup', component: MemoryMatch,
+    minYear: 0, maxYear: 6,
+    buildProps: () => ({}),
   },
   {
     id: 'syllabletap', name: 'Syllable Tap', icon: '👂',

@@ -15,6 +15,8 @@
  * more robotic but still intelligible as a last resort.
  */
 
+import { isMuted } from './audioMute';
+
 let _cachedVoice = null;
 
 function _pickBestVoice() {
@@ -59,6 +61,7 @@ export function getBestVoice() {
  */
 export function speakWord(word, { rate = 0.85, lang = 'en-GB' } = {}) {
   if (!('speechSynthesis' in window)) return;
+  if (isMuted()) return;
   window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(word);
   u.lang = lang;
@@ -80,6 +83,7 @@ export function speakWord(word, { rate = 0.85, lang = 'en-GB' } = {}) {
  */
 export function speakSyllables(word, chunks) {
   if (!('speechSynthesis' in window)) return;
+  if (isMuted()) return;
   window.speechSynthesis.cancel();
   const v = getBestVoice();
 
@@ -113,6 +117,7 @@ export function speakSyllables(word, chunks) {
  */
 export function speakWordWithInfo(word, extraLines = []) {
   if (!('speechSynthesis' in window)) return;
+  if (isMuted()) return;
   window.speechSynthesis.cancel();
   const v = getBestVoice();
 

@@ -37,6 +37,33 @@
     overflow: visible;
   }
 
+  /* Mute toggle — pinned to the far-right of the status row,
+     matching the desktop ArcadeFooter placement. */
+  .mbn__mute {
+    margin-left: auto;
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1.5px solid rgba(255, 217, 61, 0.3);
+    border-radius: 8px;
+    color: #ffd93d;
+    cursor: pointer;
+    padding: 0;
+    transition: color 0.12s, background 0.12s, border-color 0.12s;
+  }
+  .mbn__mute svg { width: 18px; height: 18px; }
+  .mbn__mute:hover {
+    background: rgba(255, 217, 61, 0.10);
+  }
+  .mbn__mute--muted {
+    color: #ff6b6b;
+    border-color: rgba(255, 107, 107, 0.6);
+    background: rgba(255, 107, 107, 0.10);
+  }
+
   .mbn__buddy-slot {
     /* The slot has zero width so it doesn't push the score sideways;
        the sprite is rendered as a centred overflowing element. The

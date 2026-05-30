@@ -423,3 +423,19 @@
   background: rgba(255, 217, 61, 0.12);
 }
 .af-nav-icon svg { width: 20px; height: 20px; }
+
+/* Mute toggle — same chip shape as the other icons but visually
+   distinct when muted so the state reads at a glance. */
+.af-nav-icon--mute {
+  margin-left: 6px;     /* small gap from the alerts bell */
+  border-color: rgba(255, 217, 61, 0.25);
+}
+.af-nav-icon--mute.af-nav-icon--muted {
+  color: #ff6b6b;
+  border-color: rgba(255, 107, 107, 0.6);
+  background: rgba(255, 107, 107, 0.10);
+}
+.af-nav-icon--mute.af-nav-icon--muted:hover {
+  color: #ff8a8a;
+  background: rgba(255, 107, 107, 0.18);
+}

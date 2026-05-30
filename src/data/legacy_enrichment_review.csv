@@ -1,0 +1,71 @@
+word,field,proposed_value,confidenceNote
+either,rareSpelling,false,"rareSpelling: ei = /ee/ in either (British) is standard but ei = /ie/ also common — not rare, just a vowel digraph variant; confident false but flag"
+aunt,rareSpelling,false,rareSpelling: au = /ar/ in aunt (British RP) is unusual — many speakers say /ant/; worth flagging but not definitively rare
+neither,rareSpelling,false,rareSpelling: same ei pattern as either — consistent false but flag for review
+tongue,rareSpelling,false,rareSpelling: -ongue = /ung/ is unusual pattern; ong = /ung/ not standard — worth flagging but confident false for primary level
+forehead,rareSpelling,false,rareSpelling: forehead pronounced /FOR-id/ in RP — the -head is elided; borderline rareSpelling
+row,rareSpelling,false,"rareSpelling: ow = /oh/ in 'a row of seats' but /ow/ in 'a row' (argument) — not rare, just polysemous; confident false"
+bow,rareSpelling,false,rareSpelling: ow = /oh/ in bow (weapon/ribbon) but /ow/ in bow (bend) — polysemous; confident false
+palm,rareSpelling,false,"rareSpelling: silent l in palm — l after a is silent: palm, calm, psalm. Learnable rule so confident false, but worth flagging"
+tear,rareSpelling,false,"rareSpelling: tear has two pronunciations: /teer/ (from eye) and /tair/ (to rip) — polysemous, not rareSpelling; confident false"
+broad,rareSpelling,false,"rareSpelling: oa = /aw/ in broad — unusual; oa usually = /oh/ (road, boat). Confident false for primary level but worth flagging"
+object,stressedSyl,1,"stressedSyl: noun = OB-ject (stress 1), verb = ob-JECT (stress 2); most uses in this database likely noun; defaulting to 1"
+record,stressedSyl,1,"stressedSyl: noun = REC-ord (stress 1), verb = rec-ORD (stress 2); noun use more common at this level; defaulting to 1"
+project,stressedSyl,1,"stressedSyl: noun = PRO-ject (1), verb = pro-JECT (2); noun more common at primary level; default 1"
+mayor,rareSpelling,false,rareSpelling: mayor = /MAIR/ — ay = /air/ is unusual (most ay = /ay/); borderline; confident false
+route,rareSpelling,false,rareSpelling: route = /root/ in British English; ou = /oo/ is unusual — most ou = /ow/; learnable pattern but worth flagging
+drawer,rareSpelling,false,"rareSpelling: drawer = /draw-er/ but often pronounced /drawr/ as one syllable; not rare, just variable"
+progress,stressedSyl,1,"stressedSyl: noun = PRO-gress (1), verb = pro-GRESS (2); noun more common at primary level; default 1"
+suspect,stressedSyl,2,"stressedSyl: noun = SUS-pect (1), verb = sus-PECT (2); verb use likely dominant in narratives; default 2 for verb"
+protest,stressedSyl,1,"stressedSyl: noun = PRO-test (1), verb = pro-TEST (2); default 1 as noun is most common at this level"
+lose,rareSpelling,false,rareSpelling: lose = /looz/ — ose = /ooz/ is unusual (most ose = /ohz/ e.g. nose); confident false at primary level but worth noting
+desert,stressedSyl,1,stressedSyl: noun DES-ert (1) vs verb de-SERT (2); noun most common at primary; default 1
+camouflage,rareSpelling,false,rareSpelling: French loanword; -flage = /flazh/; ou = /oo/; borderline — learnable with French pattern but unusual at primary level
+simile,rareSpelling,false,rareSpelling: final -e is pronounced /lee/ — SIM-i-lee; unusual in English where final e is usually silent; worth flagging
+contrast,stressedSyl,1,"stressedSyl: noun CON-trast (1), verb con-TRAST (2); noun most common at primary; default 1"
+genre,rareSpelling,false,rareSpelling: French loanword; gen- = /zhon/ — no English rule for this; borderline rareSpelling
+export,stressedSyl,1,"stressedSyl: noun EX-port (1), verb ex-PORT (2); noun default"
+import,stressedSyl,1,"stressedSyl: noun IM-port (1), verb im-PORT (2); noun default"
+impact,stressedSyl,1,"stressedSyl: noun IM-pact (1), verb im-PACT (2); noun default"
+content,stressedSyl,1,stressedSyl: adjective/noun CON-tent (1); verb con-TENT (2); adjective most common at primary; default 1
+borough,rareSpelling,false,rareSpelling: -ough = /uh/ in borough — one of six different ough pronunciations; the /uh/ variant (also thorough) is arguably learnable as a pattern but genuinely unusual
+bough,rareSpelling,false,rareSpelling: -ough = /ow/ in bough — another variant; confident false as it's the same pattern as plough
+survey,stressedSyl,1,"stressedSyl: noun SUR-vey (1), verb sur-VEY (2); noun most common at primary; default 1"
+grimace,stressedSyl,2,stressedSyl: GRIM-ace (1) or grim-ACE (2) — both used; British tendency towards stress 1; default 2 as verb
+tsunami,rareSpelling,false,rareSpelling: silent t at start (Japanese loanword); ts = /s/ at start of word is unusual in English
+plateau,rareSpelling,false,"rareSpelling: French -eau = /oh/ at end; learnable as a pattern (plateau, bureau, chateau) but unusual at primary level"
+sovereign,rareSpelling,false,rareSpelling: sovereign = /SOV-rin/ — the g is silent and the ei = /i/ pattern is unusual; borderline rareSpelling
+renaissance,stressedSyl,3,"stressedSyl: British REN-uh-sance (1) vs French ren-ay-SANCE (3); British primary stress most common in UK schools; rareSpelling: French loanword, -ais- = /ay/ unusual"
+renaissance,rareSpelling,false,"stressedSyl: British REN-uh-sance (1) vs French ren-ay-SANCE (3); British primary stress most common in UK schools; rareSpelling: French loanword, -ais- = /ay/ unusual"
+formidable,stressedSyl,1,stressedSyl: traditional FOR-mi-da-ble (1) vs increasingly common for-MID-a-ble (2); default 1 for primary level
+timbre,rareSpelling,false,rareSpelling: French loanword; -mbre = /m-ber/ but -bre is silent in French origin; borderline — TAM-ber is the common pronunciation
+cuisine,rareSpelling,false,rareSpelling: French loanword; ui = /wee/ is unusual in English; kwi-ZEEN pronunciation has no English rule
+oesophagus,rareSpelling,false,rareSpelling: oe- = /ee/ at start (Greek); British spelling differs from American esophagus; oe = /ee/ is unusual
+ricochet,rareSpelling,false,rareSpelling: French loanword; -chet = /shay/; the t is silent; no English rule for this
+hyperbole,rareSpelling,false,rareSpelling: final -e is pronounced /ee/ — hy-PER-bo-lee; same pattern as simile; unusual in English
+reservoir,rareSpelling,false,rareSpelling: French -voir = /vwar/; British pronunciation RES-er-vwar has no English rule for the final syllable
+apartheid,rareSpelling,false,rareSpelling: Afrikaans loanword; -heid = /hait/; no English rule for this pronunciation
+nonchalant,rareSpelling,false,rareSpelling: French loanword; -ant = /ont/ and ch = /sh/; non-sha-LONT has no English rule
+fjord,rareSpelling,false,rareSpelling: Norwegian loanword; fj = /fy/ is genuinely irregular in English; no rule
+geyser,rareSpelling,false,rareSpelling: gey- = /GUY/; the ey = /ie/ pattern is unusual; confident false but worth noting
+bureaucracy,rareSpelling,false,rareSpelling: bureau- = /byoor-oh/; eau = /oh/ is a French pattern; borderline at primary level
+draught,rareSpelling,false,rareSpelling: draught = /draft/; augh = /ar/ is unusual — most augh = /aw/; worth flagging
+fungi,rareSpelling,false,rareSpelling: -gi = /jie/ or /gee/ — both pronunciations used; FUN-jie is standard in British schools but FUN-gee also heard
+applicable,stressedSyl,1,stressedSyl: AP-plic-able (1) vs ap-PLIC-able (2); default 1
+despicable,stressedSyl,2,stressedSyl: des-PIC-able (2) increasingly common; default 2
+transport,stressedSyl,1,"stressedSyl: noun TRANS-port (1), verb trans-PORT (2); noun default"
+transfer,stressedSyl,1,"stressedSyl: noun TRANS-fer (1), verb trans-FER (2); noun default"
+ballet,rareSpelling,false,rareSpelling: French -et=/ay/; silent t
+bouquet,rareSpelling,false,rareSpelling: French -et=/ay/; boo-KAY
+crochet,rareSpelling,false,rareSpelling: French -et=/ay/; croh-SHAY
+debris,rareSpelling,false,rareSpelling: French; final -s silent; deh-BREE
+forfeit,rareSpelling,false,rareSpelling: -feit=/fit/; silent e
+counterfeit,rareSpelling,false,rareSpelling: -feit=/fit/; same pattern as forfeit
+beige,rareSpelling,false,rareSpelling: French -eige=/ayzh/; no English rule
+rapport,rareSpelling,false,rareSpelling: French; final -t silent; ra-POR
+fiancee,rareSpelling,false,rareSpelling: French; accent mark unusual in English; fee-on-SAY
+brochure,rareSpelling,false,rareSpelling: ch=/sh/ French; broh-SHOOR has no English rule
+buffet,rareSpelling,false,rareSpelling: French -et=/ay/; silent t; boo-FAY
+fiancé,rareSpelling,false,rareSpelling: French; accent mark unusual in English; fee-on-SAY
+niche,rareSpelling,false,rareSpelling: ch=/sh/ French; neesh vs nitch both common
+silhouette,rareSpelling,false,rareSpelling: French; -ouette=/et/; sil-oo-ET several irregular patterns
