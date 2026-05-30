@@ -24,9 +24,9 @@ function generatePassword() {
   const symbols = '!@#$%^&*';
   const all     = lower + upper + digits + symbols;
   const pwd = [
-    lower  [Math.floor(Math.random() * lower.length)],
-    upper  [Math.floor(Math.random() * upper.length)],
-    digits [Math.floor(Math.random() * digits.length)],
+    lower[Math.floor(Math.random() * lower.length)],
+    upper[Math.floor(Math.random() * upper.length)],
+    digits[Math.floor(Math.random() * digits.length)],
     symbols[Math.floor(Math.random() * symbols.length)],
   ];
   for (let i = 0; i < 8; i++) {

@@ -40060,9 +40060,11 @@ export const getWordsByPattern = (r) => [...Y1_WORD_DATA, ...Y2_WORD_DATA].filte
 export const getWordsByPatternGroup = (g) => [...Y1_WORD_DATA, ...Y2_WORD_DATA].filter(e => e.patternGroup === g);
 export const getCorePatternWords = () => [...Y1_WORD_DATA, ...Y2_WORD_DATA].filter(e => e.corePatternWord);
 
-export default {
+const ks1WordData = {
   y1: { label:'Year 1', ageRange:[5,6], words:Y1_WORD_DATA, statutory:Y1_STATUTORY },
   y2: { label:'Year 2', ageRange:[6,7], words:Y2_WORD_DATA, statutory:Y2_STATUTORY },
   ks1: { label:'KS1', ageRange:[5,7], words:[...Y1_WORD_DATA,...Y2_WORD_DATA], statutory:KS1_ALL_STATUTORY },
   getWordData, getDefinition, getSessionWords, getWordsByPattern, getWordsByPatternGroup, getCorePatternWords,
 };
+
+export default ks1WordData;

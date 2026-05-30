@@ -381,16 +381,6 @@ function WriteIt({
     if (row?.word) speak(row.word);
   };
 
-  const addPractice = () => {
-    setRows(prev => prev.map(r => ({
-      ...r,
-      practices: [
-        ...r.practices,
-        { value: '', done: false, attempts: 0, revealHint: false, status: 'idle' },
-      ],
-    })));
-  };
-
   const handleComplete = () => {
     onSaveRef.current?.(null);
     // WriteIt tracks per-practice attempts & a one-shot auto-reveal hint.

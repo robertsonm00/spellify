@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import ReactDOM from 'react-dom';
 import './App.css';
 import Welcome        from './components/Welcome';
 import OnboardingFlow from './components/OnboardingFlow';
 import SpellingQuiz   from './components/SpellingQuiz';
 import { loadSession, saveSession, createSession, INITIAL_STATUSES, updateMastery, rebuildReviewQueue, getActivityProgress, setActivityProgress } from './data/spelling/sessionSchema';
-import { getActivity, getActivityTitle } from './data/activities';
+import { getActivity } from './data/activities';
 import { isActivityAvailable } from './utils/activityAvailability';
 import { recordGameCompleted, getPlayerStats, getLevelFromPoints } from './utils/gamificationEngine';
 import { recordPlayToday, getStreak, getStreakStatus } from './utils/streakEngine';
@@ -39,10 +38,6 @@ function hasProgress(activityStatuses) {
     (s) => s === 'in-progress' || s === 'completed'
   );
 }
-
-// Title for the Review pseudo-activity (real activities pull their title
-// from the canonical registry via getActivityTitle()).
-const REVIEW_TITLE = 'Spelling Quiz';
 
 function App() {
   const [section,        setSection]        = useState('home'); // 'home' | 'assignments' | 'mylists' | 'exploreDashboard' | 'favourites' | 'recent'
@@ -693,7 +688,7 @@ function App() {
   });
   const [activeActivity, setActiveActivity] = useState(null);
   const [showExitModal,  setShowExitModal]  = useState(false);
-  const [isFirstVisit,   setIsFirstVisit]   = useState(false);
+  const [, setIsFirstVisit] = useState(false);
 
   useEffect(() => {
     saveSession(session);
@@ -740,27 +735,6 @@ function App() {
     setSection(wantAddList ? 'mylists' : 'home');
     setScreen('hub');
     setTimeout(fireBuddyCheer, 600);
-  };
-
-  const handleLaunch = (id, opts = {}) => {
-    // Don't mark as in-progress on launch — only after the child has actually
-    // completed at least one word. That bump happens in handleSaveProgress
-    // once the snapshot shows real progress.
-    //
-    // `opts.words` overrides session.words for this launch (used by Test All
-    // to send the whole unmastered list). `opts.isTestAll` flags the run so
-    // gamification points the streak / badge bonus.
-    //
-    // Resuming: if there's an in-progress snapshot for this activity, the
-    // word list it was started with takes precedence over a freshly-computed
-    // active window — otherwise mastery shifts could drop or reorder words
-    // mid-game and break the saved index.
-    const existing = getActivityProgress(session, id);
-    const lockedWords = existing?._words;
-    const words = (Array.isArray(lockedWords) && lockedWords.length > 0)
-      ? lockedWords
-      : opts.words;
-    setActiveActivity({ id, overrideWords: words, isTestAll: !!opts.isTestAll });
   };
 
   // Inspect a saved-progress snapshot for "did the child complete at least
@@ -1102,7 +1076,6 @@ function App() {
       ? overrideWords
       : session.words;
     let Activity = null;
-    let title    = '';
 
     if (id === 'review') {
       // Review is a special pseudo-activity — fixed component, not in the registry.
@@ -1115,7 +1088,6 @@ function App() {
           onExit={handleExit}
         />
       );
-      title = REVIEW_TITLE;
     } else {
       const activity = getActivity(id);
       // Refuse to render an activity that isn't available for this session.
@@ -1135,7 +1107,6 @@ function App() {
             {...extraProps}
           />
         );
-        title = getActivityTitle(id);
       }
     }
 

@@ -381,7 +381,7 @@ export default function ListHub({
   // words. For lists ≤ 10 words this reduces to "all words minus mastered".
   const masteryState = useMemo(
     () => getMasteryState(list.id),
-    [list.id, masteryTick],
+    [list.id, masteryTick],   // eslint-disable-line react-hooks/exhaustive-deps
   );
   // Pass the effective SEN profile derived from session.spellingConfidence
   // + session.senProfile so getActiveWindow applies the right schedule

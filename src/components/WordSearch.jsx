@@ -211,7 +211,7 @@ export default function WordSearch({ words, wordObjects = [], year = null, saved
     setToast(null);
     isDraggingRef.current = false;
     dragStartRef.current  = null;
-  }, [words, onSaveProgress]);
+  }, [words, onSaveProgress]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── DEV-only: instant complete ─────────────────────────────────────────────
   const handleDevComplete = () => {
@@ -262,7 +262,7 @@ export default function WordSearch({ words, wordObjects = [], year = null, saved
       return true;
     }
     return false;
-  }, [gameState, foundWords]);
+  }, [gameState, foundWords]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Coach — advance to next target when current is found, finish after
   // COACH_WORDS words. Hook lives up here (above any early return) so it

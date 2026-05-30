@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import { speakWord, speakSyllables } from '../../utils/speech';
 import { syllableCount, syllableChunks } from '../../utils/syllableCount';
@@ -68,7 +68,7 @@ function SyllableTap({ words, onComplete, onExit, savedProgress = null, onSavePr
 
   const word    = queue[wordIndex];
   const correct = word ? syllableCount(word) : 0;
-  const chunks  = word ? syllableChunks(word) : [];
+  const chunks  = useMemo(() => (word ? syllableChunks(word) : []), [word]);
 
   const playSyllables = useCallback(() => {
     if (!word) return;

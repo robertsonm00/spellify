@@ -40,7 +40,6 @@ const PATTERNS = {
   his:     { support_strategy: 'h·i·s — three letters, no tricks. His hat, his bag.' },
   has:     { support_strategy: 'h·a·s — rhymes with "jazz". Has a hat.' },
   your:    { support_strategy: 'y·our — "our" is hiding inside: your = y + our.' },
-  said:    { support_strategy: 'Try chunking: s·a·i·d. The "ai" here says a short "e".' },
   no:      { support_strategy: 'Short and sweet — n·o. Rhymes with go, so, and show.' },
   go:      { support_strategy: 'g·o — rhymes with no, so, show. A great family to learn together!' },
   so:      { support_strategy: 's·o — same family as go and no. They all say "oh".' },

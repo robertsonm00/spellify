@@ -407,7 +407,7 @@ export function GeneratedWords({
   initialDyslexiaMode = false,
 }) {
   const [count,        setCount]        = useState(10);
-  const [extraSupport, setExtraSupport] = useState(initialDyslexiaMode);
+  const [extraSupport] = useState(initialDyslexiaMode);
 
   // RULE_BUCKET_PICKER ── Y1/Y2 can practise by phonics rule instead of by year
   const ruleBuckets   = getRuleGroups(yearGroup);
@@ -433,11 +433,6 @@ export function GeneratedWords({
 
   const reshuffle = () =>
     setResult(selectWords(buildArgs()));
-
-  const handleExtraSupportToggle = (val) => {
-    setExtraSupport(val);
-    setResult(selectWords(buildArgs({ dyslexiaMode: val })));
-  };
 
   const handleGroupByChange = (mode) => {
     setGroupBy(mode);

@@ -34,17 +34,6 @@ const HFW_COORD_OVERRIDES = {
 // ── Module-level persistence (separate from AdventureMap's variable) ─────────
 let _hfwLastActiveStopPos = null; // { x, y } | null
 
-function starsForList(list) {
-  const total = list?.wordCount || list?.words?.length || 0;
-  if (!total) return 0;
-  const mastered = getMasteredWords(list.id).length;
-  const ratio = mastered / total;
-  if (ratio >= 0.95) return 3;
-  if (ratio >= 0.85) return 2;
-  if (ratio >= 0.6)  return 1;
-  return 0;
-}
-
 function isListComplete(list) {
   const total = list.wordCount || (list.words?.length || 0);
   if (!total) return false;
@@ -181,7 +170,6 @@ export default function HFWIsland({ session, fromIsleId, onBack, onOpenList }) {
   const [chapterIdx, setChapterIdx] = useState(naturalChapter);
 
   const coords  = DEFAULT_CHAPTER_COORDS;
-  const landmarks = {};
 
   const chapterListStart = chapterIdx * STOPS_PER_CHAPTER;
   const chapterLists = lists.slice(chapterListStart, chapterListStart + STOPS_PER_CHAPTER);

@@ -82,19 +82,6 @@ const HFW_SIGN = '/adventure/High-frequency_island_sign.png';
 // unmounts while the list screen is showing.
 let _lastActiveStopPos = null; // { x, y } | null
 
-// ── Star count (0–3) derived from real mastery ratio. ───────────────────── Completion is at
-// the existing 80% threshold; star tiers above that reward perfection.
-function starsForList(list) {
-  const total = list?.wordCount || list?.words?.length || 0;
-  if (!total) return 0;
-  const mastered = getMasteredWords(list.id).length;
-  const ratio = mastered / total;
-  if (ratio >= 0.95) return 3;
-  if (ratio >= 0.85) return 2;
-  if (ratio >= 0.6)  return 1;
-  return 0;
-}
-
 function isleForYear(year) {
   const y = Number(year);
   return SPELL_ISLES.find(i => i.years.includes(y)) || SPELL_ISLES[0];

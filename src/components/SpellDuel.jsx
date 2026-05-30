@@ -113,49 +113,6 @@ function fireWrongFizzle() {
 
 const MAX_WRONG = { easy: 8, medium: 6, hard: 4 };
 
-const SEGMENTS = 6;
-
-// Individual gem-style spell charges. Drains from the right on each wrong guess.
-function SpellEnergyBar({ wrongCount, maxWrong, won, lost }) {
-  const charges = maxWrong - wrongCount;
-  const dimCount = lost
-    ? SEGMENTS
-    : Math.round((Math.min(wrongCount, maxWrong) / maxWrong) * SEGMENTS);
-
-  return (
-    <div className="sd-energy-panel">
-      <div
-        className="sd-energy-gems"
-        role="meter"
-        aria-label={`${charges} spell charges remaining`}
-        aria-valuenow={charges}
-        aria-valuemin={0}
-        aria-valuemax={maxWrong}
-      >
-        {Array.from({ length: SEGMENTS }, (_, i) => {
-          const isLit = !lost && i < (SEGMENTS - dimCount);
-          let cls = 'sd-energy-gem';
-          if (isLit && won) cls += ' sd-energy-gem--gold';
-          else if (isLit)   cls += ' sd-energy-gem--lit';
-          return <div key={i} className={cls} />;
-        })}
-      </div>
-      <div className="sd-charges-display">
-        <span className={`sd-charges-number${won ? ' sd-charges-number--won' : lost ? ' sd-charges-number--lost' : ''}`}>
-          {won ? '⚡' : lost ? '✗' : charges}
-        </span>
-        <span className="sd-charges-label">
-          {won
-            ? 'You won the duel!'
-            : lost
-            ? 'The spell is broken…'
-            : `spell charge${charges === 1 ? '' : 's'} remaining`}
-        </span>
-      </div>
-    </div>
-  );
-}
-
 function SpellDuel({
   words,
   difficulty = 'medium',

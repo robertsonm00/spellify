@@ -1,5 +1,3 @@
-import React from 'react';
-
 // Standard progress strip — fixed to the very top of the viewport so it's
 // always visible, even as the game content scrolls beneath it.
 // Renders a zero-height spacer in the document flow so the layout below

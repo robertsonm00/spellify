@@ -91,13 +91,6 @@ const STRAND_PILLS = [
   { value: 'statutory',  label: 'Statutory',  color: '#6b7280', dark: '#374151' },
 ];
 
-// Difficulty pills — traffic-light palette: green / amber / dark pink.
-const DIFFICULTY_PILLS = [
-  { value: 'easy',   label: 'Easy',   color: '#22c55e', dark: '#15803d' },
-  { value: 'medium', label: 'Medium', color: '#f59e0b', dark: '#b45309' },
-  { value: 'hard',   label: 'Hard',   color: '#be185d', dark: '#831843' },
-];
-
 function safeParse(raw, fallback) {
   try { return JSON.parse(raw) ?? fallback; } catch { return fallback; }
 }
@@ -278,8 +271,6 @@ function ListCard({ list, listType = 'curriculum', index = 0, onClick, progress,
   // is derived against the full activity registry so the traffic light
   // still has a sensible high-water mark.
   const completedActs = Object.values(progress || {}).filter(p => p?.status === 'completed').length;
-  const gamesRatio    = ACTIVITIES.length > 0 ? completedActs / ACTIVITIES.length : 0;
-  const gamesLight    = trafficLight(gamesRatio);
 
   const done   = masteryRatio >= 1 && completedActs === ACTIVITIES.length;
   const status = done ? 'completed' : (masteredCount > 0 || completedActs > 0) ? 'in-progress' : 'not-started';
@@ -425,19 +416,6 @@ function StrandPill({ pill, on, onToggle }) {
   );
 }
 
-function DifficultyPill({ pill, on, onToggle }) {
-  return (
-    <button
-      type="button"
-      className={`ed-arcade-pill${on ? ' ed-arcade-pill--on' : ''}`}
-      onClick={() => onToggle(on ? 'all' : pill.value)}
-      aria-pressed={on}
-    >
-      {pill.label}
-    </button>
-  );
-}
-
 // Lean filter row shared across My Lists / Assignments / Favourites / Recent.
 // Mirrors the structure of ExploreFilters (just the toggle + the count) so
 // every dashboard page lines up.
@@ -485,7 +463,7 @@ function HideCompletedToggle({ on, onChange }) {
       type="button"
       className={`ed-toggle${on ? ' ed-toggle--on' : ''}`}
       onClick={() => onChange(!on)}
-      aria-pressed={on}
+      aria-checked={on}
       role="switch"
     >
       <span className="ed-toggle-track" aria-hidden="true">

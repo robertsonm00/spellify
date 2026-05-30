@@ -55,7 +55,7 @@ function SpellingQuiz({ words, difficulty = 'medium', dyslexiaMode = false, chil
       }, hasTip ? 4500 : 1500);
     }
     return () => clearTimeout(id);
-  }, [phase, countdown, index, queue.length, memoriseTime]);
+  }, [phase, countdown, index, queue.length, memoriseTime]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (phase === 'type') inputRef.current?.focus();
