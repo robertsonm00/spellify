@@ -12,7 +12,7 @@ import {
   saveMasteryState,
   getUnmasteredWords,
   recordWordResult,
-  getStrugglingWordEntries,
+  getAllStrugglingWords,
 } from '../../utils/masteryEngine';
 import { recordGameCompleted, getPlayerStats } from '../../utils/gamificationEngine';
 import { recordPlayToday } from '../../utils/streakEngine';
@@ -262,6 +262,13 @@ export default function ListHub({
   // Lives outside the normal activity-registry flow because it can be
   // launched from the hub layer too, not just the game grid.
   const [practiceItems,  setPracticeItems]  = useState(null);
+  // Batched practice (PRAC-01 / SR-01 Rule 3): the global struggling pool is
+  // surfaced in sets of 3. `practiceQueue` is the ordered snapshot taken at
+  // launch; `practiceBatchStart` is the cursor into it; `nextSetModal` shows
+  // the gentle "do another set?" prompt between batches.
+  const [practiceQueue,    setPracticeQueue]    = useState([]);
+  const [practiceBatchStart, setPracticeBatchStart] = useState(0);
+  const [nextSetModal,     setNextSetModal]     = useState(false);
   // Test-All flow: 'idle' → user clicks → 'choose' → picks game → 'running' →
   // completes → back to 'idle'. While 'running', activity words are the
   // full unmastered list and isTestAll: true flows into recordGameCompleted.
@@ -379,10 +386,12 @@ export default function ListHub({
     () => getUnmasteredWords(list.id, fullWords),
     [list.id, fullWords, masteryTick],   // eslint-disable-line react-hooks/exhaustive-deps
   );
-  // Struggling entries for THIS list, sorted by consecutiveMisses desc.
-  // Capped at 5 inside the card preview / Practice Quest session.
+  // The single GLOBAL struggling-word pool (PRAC-01) — every word the child
+  // is currently struggling with, across ALL their lists, sorted most-missed
+  // first. Surfaced in batches inside the practice tile / session. Re-read
+  // when a game finishes (masteryTick) or the list changes.
   const strugglingEntries = useMemo(
-    () => getStrugglingWordEntries(list.id),
+    () => getAllStrugglingWords(),
     [list.id, masteryTick],   // eslint-disable-line react-hooks/exhaustive-deps
   );
   const masteryPct = listProgress.totalCount > 0
@@ -421,30 +430,67 @@ export default function ListHub({
   }, [listProgress.status, list.id]);
 
   // ── Practice Quest launch / completion ─────────────────────────────────
-  const PRACTICE_QUEST_MAX = 5;
+  // Practice is delivered in short, winnable batches (SR-01 Rule 3) drawn
+  // from the global struggling pool. A child clears a set, then chooses
+  // whether to do the next set — never forced to grind the whole pool.
+  const PRACTICE_BATCH_SIZE = 3;
+  const toPracticeItem = (e) => ({
+    word:   e.word,
+    listId: e.listId,
+    // listName is null for the global pool — no per-word "From:" pill.
+  });
   const launchPracticeQuest = () => {
-    const items = strugglingEntries.slice(0, PRACTICE_QUEST_MAX).map(e => ({
-      word:   e.word,
-      listId: e.listId,
-      // List-level launch: no source label — context is implicit.
-      // (Hub-level launches set listName so the "From:" pill shows.)
-    }));
-    if (items.length === 0) return;
-    setPracticeItems(items);
+    // Snapshot the ordered global pool now so the batch cursor steps through
+    // a stable sequence even as words gain credit during the session.
+    const pool = strugglingEntries;
+    if (!pool.length) return;
+    setPracticeQueue(pool);
+    setPracticeBatchStart(0);
+    setNextSetModal(false);
+    setPracticeItems(pool.slice(0, PRACTICE_BATCH_SIZE).map(toPracticeItem));
   };
   const handlePracticeComplete = (results) => {
-    // Persist each per-word outcome through the canonical credit
-    // framework so cleanSessionsPostFlag advances correctly. Practice
-    // Quest is its own "game type" for credit-by-game accounting.
+    // Persist each per-word outcome through the canonical credit framework
+    // so cleanSessionsPostFlag advances correctly. Record against the word's
+    // OWN list (global pool spans lists), falling back to the current list.
+    // Practice Quest is its own "game type" for credit-by-game accounting.
     for (const r of results) {
       if (!r || !r.word) continue;
       const credit = r.correct
         ? (r.hintUsed ? 0.75 : 1.0)   // single-slot = 1st attempt
         : 0;                          // wrong on a 1-attempt task → 0, not -0.5
-      recordWordResult(list.id, r.word, 'practicequest', credit);
+      recordWordResult(r.listId || list.id, r.word, 'practicequest', credit);
     }
     setMasteryTick(t => t + 1);
   };
+  // Called from PracticeWriteIt's summary "Back". If the snapshot queue has
+  // more words beyond the batch just finished, offer the next set; otherwise
+  // close the practice flow cleanly.
+  const finishPracticeBatch = () => {
+    setPracticeItems(null);
+    const nextStart = practiceBatchStart + PRACTICE_BATCH_SIZE;
+    if (nextStart < practiceQueue.length) {
+      setPracticeBatchStart(nextStart);
+      setNextSetModal(true);
+    } else {
+      setPracticeQueue([]);
+      setPracticeBatchStart(0);
+    }
+  };
+  const startNextPracticeBatch = () => {
+    setNextSetModal(false);
+    setPracticeItems(
+      practiceQueue
+        .slice(practiceBatchStart, practiceBatchStart + PRACTICE_BATCH_SIZE)
+        .map(toPracticeItem),
+    );
+  };
+  const dismissNextSet = () => {
+    setNextSetModal(false);
+    setPracticeQueue([]);
+    setPracticeBatchStart(0);
+  };
+  const practiceRemaining = Math.max(0, practiceQueue.length - practiceBatchStart);
 
   // DEV-only: directly write mastery state for all words in this list,
   // bypassing the credit-accumulation threshold. Useful for testing the
@@ -570,8 +616,12 @@ export default function ListHub({
         <PracticeWriteIt
           items={practiceItems}
           onComplete={handlePracticeComplete}
-          onExit={() => setPracticeItems(null)}
-          onBack={() => setPracticeItems(null)}
+          onExit={() => {           // header X — abandon the whole queue
+            setPracticeItems(null);
+            setPracticeQueue([]);
+            setPracticeBatchStart(0);
+          }}
+          onBack={finishPracticeBatch}   // summary Back — offer the next set
         />
       </div>
     );
@@ -987,6 +1037,44 @@ export default function ListHub({
                   onClick={() => setShowMasteryModal(false)}
                 >
                   Keep playing here
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Practice "next set" modal (PRAC-01 / SR-01 Rule 3) — shown
+            between batches of 3. Always offers an easy way out so practice
+            stays opt-in and never feels like a grind (gentle gamification). */}
+        {nextSetModal && (
+          <div
+            className="lh-mastery-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="lh-practice-nextset-title"
+          >
+            <div className="lh-mastery-card">
+              <div className="lh-mastery-emoji" aria-hidden="true">🎯</div>
+              <h2 id="lh-practice-nextset-title" className="lh-mastery-title">
+                Nice practising!
+              </h2>
+              <p className="lh-mastery-sub">
+                You've still got <strong>{practiceRemaining}</strong>{' '}
+                spell{practiceRemaining === 1 ? '' : 's'} to master.
+                Want to do {Math.min(PRACTICE_BATCH_SIZE, practiceRemaining)} more?
+              </p>
+              <div className="lh-mastery-actions">
+                <button
+                  className="lh-mastery-btn lh-mastery-btn--primary"
+                  onClick={startNextPracticeBatch}
+                >
+                  Do {Math.min(PRACTICE_BATCH_SIZE, practiceRemaining)} more ▶
+                </button>
+                <button
+                  className="lh-mastery-btn lh-mastery-btn--secondary"
+                  onClick={dismissNextSet}
+                >
+                  I'm done for now
                 </button>
               </div>
             </div>

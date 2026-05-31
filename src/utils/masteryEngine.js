@@ -426,6 +426,34 @@ export function getStrugglingWordsAcrossLists(listRefs) {
 }
 
 /**
+ * The single global struggling-word pool (PRAC-01). Discovers every
+ * persisted mastery record directly from storage — scanning all
+ * `spellify_mastery_*` keys — so it spans every list the child has ever
+ * played without the caller needing to enumerate them. Same shape and
+ * sort order as `getStrugglingWordsAcrossLists`.
+ *
+ * `listName` is left null (not recoverable from the storage key alone);
+ * callers that want a human source label should map listId → name from
+ * their own list collection. Safe against storage being unavailable.
+ *
+ * @returns {Array<{ word: string, listId: string, listName: string|null,
+ *                   consecutiveMisses: number, totalCredit: number }>}
+ */
+export function getAllStrugglingWords() {
+  let keys = [];
+  try {
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(STORAGE_PREFIX)) keys.push(k);
+    }
+  } catch {
+    return [];
+  }
+  const refs = keys.map((k) => ({ id: k.slice(STORAGE_PREFIX.length) }));
+  return getStrugglingWordsAcrossLists(refs);
+}
+
+/**
  * Per-list version of the same shape, sorted the same way. Useful for
  * the list-level Practice Quest card which already knows the list and
  * just needs the words in priority order.
