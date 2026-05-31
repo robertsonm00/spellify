@@ -445,6 +445,16 @@
 }
 .cw-hear-btn:hover { background: #ede4ff; }
 
+/* "Hear the clue" — reading support. Tinted teal/blue so it reads as a
+   distinct action from the purple "Hear the word" (the answer) sitting
+   next to it (SDR-01). */
+.cw-hear-btn--clue {
+  border-color: #5ec5d6;
+  background: #ecfbfd;
+  color: #0e7490;
+}
+.cw-hear-btn--clue:hover { background: #d9f5fa; }
+
 .cw-reveal-btn {
   font-family: 'Nunito', sans-serif;
   font-size: 0.78rem;

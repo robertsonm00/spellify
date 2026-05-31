@@ -107,6 +107,29 @@ export function speakSyllables(word, chunks) {
 }
 
 /**
+ * Speak a full sentence / phrase (e.g. a Crossword clue) using the best
+ * available voice. Reads at a slightly quicker, more natural rate than the
+ * word-by-word `speakWord` so a clue sounds like speech rather than a
+ * laboured single word. Honours the global mute and cancels any in-flight
+ * utterance first so a replay tap interrupts cleanly.
+ *
+ * @param {string} text
+ * @param {{ rate?: number, lang?: string }} opts
+ */
+export function speakSentence(text, { rate = 0.92, lang = 'en-GB' } = {}) {
+  if (!('speechSynthesis' in window)) return;
+  if (isMuted()) return;
+  if (!text || !String(text).trim()) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(String(text));
+  u.lang = lang;
+  u.rate = rate;
+  const v = getBestVoice();
+  if (v) u.voice = v;
+  window.speechSynthesis.speak(u);
+}
+
+/**
  * Speak a word and then immediately queue follow-up sentences (e.g. the
  * definition and an example). Each sentence reads at a slightly faster
  * rate than the word itself so the explanation feels like natural speech

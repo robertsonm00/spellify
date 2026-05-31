@@ -36,7 +36,7 @@ Consequences for the items below:
 | DESIGN-01 | Design direction | Retire classic hub; commit to card design | Change | High | ✅ Done |
 | SD-01 | Spell Duel | Add distractor letters to keyboard | Bug / Enhancement | High | ✅ Already implemented (31 May) |
 | SD-02 | Spell Duel | Stop adding rounds after 3 words wrong (matches SR-01) | Enhancement | Med | Open |
-| SDR-01 | Crossword | Read the Crossword clue aloud (TTS, site voice) | Enhancement | Med | Open |
+| SDR-01 | Crossword | Read the Crossword clue aloud (TTS, site voice) | Enhancement | Med | ✅ Done |
 | RES-01 | Results | Unified end-of-game results — full 2-variant spec (Memory Spell base) | Enhancement | High | Specced |
 | RES-02 | Results | Every completed game returns with a celebration | Enhancement / Polish | High | Open |
 | RES-03 | Results | Post-game levels/lumens readout — ensure it exists on card design | Bug | High | ✅ Done |
@@ -110,7 +110,7 @@ Use the **same ceiling (3)** and the same bounded-retry logic as SR-01 — one s
 ## Crossword
 
 ### SDR-01 — Read the Crossword clue aloud (TTS)
-**Type:** Enhancement · **Priority:** Med · **Status:** Open
+**Type:** Enhancement · **Priority:** Med · **Status:** ✅ Done (31 May)
 
 Read the **Crossword clue** aloud to the player. Auto-play on reveal plus a replay button.
 

@@ -6,7 +6,7 @@ import GameHeader from './GameHeader';
 import GameProgressStrip from './GameProgressStrip';
 import RestartButton from './RestartButton';
 import './Crossword.css';
-import { speakWord } from '../utils/speech';
+import { speakWord, speakSentence } from '../utils/speech';
 
 // Themed background — injected via a CSS custom property so css-loader
 // doesn't try to resolve a public/ path at build time.
@@ -99,7 +99,7 @@ function isWordComplete(pw, filled) {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-function Crossword({ words, userAge = 8, difficulty = 'medium', year = null, onComplete, onExit, savedProgress = null, onSaveProgress }) {
+function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onExit, savedProgress = null, onSaveProgress }) {
   const maxWords = getMaxWords(userAge, difficulty);
   const maxHints = getMaxHints(userAge);
 
@@ -190,12 +190,12 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', year = null, onC
 
   useEffect(() => { containerRef.current?.focus(); }, [layout]);
 
-  // Y1 reading-accommodation: auto-read the clue aloud when a new word is
-  // selected. Y1 children can often spell a word but not yet decode a
-  // written clue independently — TTS bridges that gap. The manual "Hear
-  // the word" button below the clue stays available for all year groups.
-  // Triggered by selectedCell change (cheaper than diffing selectedWord)
-  // and guarded by wordDone so we don't re-read a completed word.
+  // SDR-01: auto-read the clue aloud when a new word is selected, for every
+  // player (not just Y1). Reading the clue is a reading-accommodation, not a
+  // spelling hint — it never reveals the answer word, so it's safe for all
+  // ages, and the global mute toggle is the escape hatch for confident
+  // readers. The manual "Hear the word" button (the answer) stays separate.
+  // Guarded by wordDone so we don't re-read a completed word.
 
   // ── Derived ────────────────────────────────────────────────────────────────
 
@@ -208,22 +208,20 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', year = null, onC
     ? wordCells(selectedWord.word, selectedWord.row, selectedWord.col, selectedWord.direction)
     : [];
 
-  // Y1 auto-read: when a Y1 child selects a word, read the clue aloud
-  // automatically. selectedWord.id is the stable per-puzzle key so this
-  // fires once per selection change.
+  // Auto-read: when a player selects a word, read its clue aloud once.
+  // selectedWord.id is the stable per-puzzle key so this fires once per
+  // selection change. Uses the shared speech helper so the clue speaks with
+  // the same warm voice as the rest of the app (Google UK / Apple Enhanced)
+  // rather than the browser default robot voice.
   const selectedWordId = selectedWord?.id ?? null;
   useEffect(() => {
-    if (year !== 1) return;
     if (!selectedWord) return;
     if (isWordComplete(selectedWord, filled)) return;
     const clue = definitions.get(selectedWord.word);
     if (!clue) return;
-    // Use the shared speech helper so the clue uses the same selected voice
-    // as the rest of the app (Google UK / Apple Enhanced) instead of the
-    // browser default robot voice.
-    try { speakWord(clue, { rate: 0.9 }); } catch { /* TTS unavailable — silent */ }
+    try { speakSentence(clue); } catch { /* TTS unavailable — silent */ }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedWordId, year]);
+  }, [selectedWordId]);
 
   const completedWords = layout
     ? layout.placedWords.filter(pw => isWordComplete(pw, filled)).length
@@ -831,6 +829,13 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', year = null, onC
             </div>
             <AutoFitClueText text={definitions.get(selectedWord.word) ?? '…'} />
             <div className="cw-clue-bar-actions">
+              <button
+                className="cw-hear-btn cw-hear-btn--clue"
+                onClick={() => speakSentence(definitions.get(selectedWord.word))}
+                title="Hear the clue"
+              >
+                🔊 Hear the clue
+              </button>
               <button
                 className="cw-hear-btn"
                 onClick={() => speakWord(selectedWord.word.toLowerCase())}
