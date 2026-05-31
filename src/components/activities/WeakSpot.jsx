@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import { getWeakSpot } from '../../data/weakSpots';
 import GameHeader from '../GameHeader';
-import GameProgressStrip from '../GameProgressStrip';
 import BuddyAvatar from '../BuddyAvatar';
+import GameResults from '../GameResults';
 import RestartButton from '../RestartButton';
 import DevCompleteButton from '../DevCompleteButton';
 import { speakWord } from '../../utils/speech';
@@ -12,6 +12,13 @@ import '../MemorySpell.css';
 import './WeakSpot.css';
 
 const FLASH_MS = 1800;
+
+// Themed background — Weak Spot shares Memory Spell's look/layout (R2-02),
+// inheriting the same dark glowing card on a themed backdrop. A bespoke
+// Weak Spot background can be dropped in later by swapping the filename.
+const BG_STYLE = {
+  '--bg-image-url': `url("${process.env.PUBLIC_URL || ''}/adventure/backgrounds/memory-spell-background.png")`,
+};
 
 function fireConfetti() {
   confetti({
@@ -22,7 +29,16 @@ function fireConfetti() {
   });
 }
 
-function WeakSpot({ words, childCharacter = null, onComplete, onExit }) {
+/**
+ * Weak Spot — plays a word, then hides its tricky letters for the child to
+ * type back in (audio-led gap-fill). The spoken word uses the shared site
+ * voice via speakWord (same path standardised in SDR-01).
+ *
+ * R2-02: restyled to Memory Spell's look (themed dark card, buddy, white H1,
+ * "Word X / Y" pill) and finishes on the shared RES-01 Variant A results
+ * screen (GameResults) — the old bespoke summary + "Play again" are retired.
+ */
+function WeakSpot({ words, childCharacter = null, dyslexiaMode = false, onComplete, onExit }) {
   const queue = words || [];
   const [wordIndex, setWordIndex] = useState(0);
   const [phase,     setPhase]     = useState('flash');
@@ -81,88 +97,74 @@ function WeakSpot({ words, childCharacter = null, onComplete, onExit }) {
   };
 
   // ── DEV-only: instant complete ─────────────────────────────────────────────
-  // Mark every word correct and jump to the results screen, so the Back to Hub
-  // → onComplete (points / lumens / reward) flow can be tested without filling
-  // in each word's tricky spot.
+  // Mark every word correct and jump to the shared results screen, so the
+  // Continue → onComplete (points / lumens / reward) flow can be tested without
+  // filling in each word's tricky spot.
   const handleDevComplete = () => {
     setResults(queue.map((w) => ({ word: w, correct: true })));
     setPhase('complete');
   };
 
   const hasProgress = wordIndex > 0 || results.length > 0;
+  const wrapClass   = `ms-wrap game-magical-bg${dyslexiaMode ? ' ms-wrap--es' : ''}`;
 
-  // ── Complete screen ──────────────────────────────────────────────────────
+  // ── Complete screen (RES-01 Variant A — shared with Memory Spell) ──────────
 
   if (phase === 'complete') {
-    const wins = results.filter(r => r.correct).length;
-    const perfect = wins === results.length;
+    const byWord = new Map();
+    for (const r of results) {
+      byWord.set(String(r.word).toLowerCase(), { word: r.word, correct: !!r.correct });
+    }
+    const unique        = Array.from(byWord.values());
+    const correctWords  = unique.filter((e) =>  e.correct).map((e) => e.word);
+    const practiceWords = unique.filter((e) => !e.correct).map((e) => e.word);
+
     return (
-      <>
-        <GameHeader title="Weak Spot" onExit={onExit}
-          rightSlot={<RestartButton hasProgress onRestart={restart} />} />
-        <GameProgressStrip percent={100}>
-          {results.length} of {queue.length} words done
-        </GameProgressStrip>
-        <div className="ws-stage">
-          <div className="ws-phase">
-            <span className="ms-buddy" aria-hidden="true">
-              <BuddyAvatar id={childCharacter?.id} size={120} fallback={childCharacter?.emoji} cheering={buddyCheering} />
-            </span>
-            <h1 className="ms-h1">You Did It!</h1>
-            <div className="ms-results-score">
-              <span className="ms-score-emoji">{perfect ? '⭐' : wins >= Math.ceil(results.length / 2) ? '🌟' : '💪'}</span>
-              <span className="ms-score-num">{wins} / {results.length}</span>
-              <span className="ms-score-label">{perfect ? 'Perfect — every word correct!' : 'words correct'}</span>
-            </div>
-            <ul className="ws-summary">
-              {results.map((r, i) => (
-                <li key={i} className={r.correct ? 'ws-summary-row ws-summary-row--ok' : 'ws-summary-row ws-summary-row--bad'}>
-                  <span className="ws-summary-word">{r.word}</span>
-                  {!r.correct && (
-                    <span className="ws-summary-attempt">you typed "{r.attempt || '—'}" · was "{r.missing}"</span>
-                  )}
-                </li>
-              ))}
-            </ul>
-            <div className="ws-done-actions">
-              <button className="ms-btn ms-btn--secondary" onClick={restart}>↺ Play again</button>
-              <button className="ms-btn ms-btn--primary" onClick={() =>
-                onComplete(results.map(r => ({ word: r.word, correct: r.correct })))
-              }>Back to Hub ▶</button>
-            </div>
-          </div>
-        </div>
-      </>
+      <div className={wrapClass} style={BG_STYLE}>
+        <GameHeader title="Weak Spot" onExit={onExit} />
+        <GameResults
+          variant="A"
+          correctWords={correctWords}
+          practiceWords={practiceWords}
+          total={queue.length}
+          onContinue={() => onComplete(unique.map((e) => ({ word: e.word, correct: e.correct })))}
+        />
+      </div>
     );
   }
 
   if (!word) {
     return (
-      <>
+      <div className={wrapClass} style={BG_STYLE}>
         <GameHeader title="Weak Spot" onExit={onExit} />
-        <div className="ws-stage"><p>No words available.</p></div>
-      </>
+        <div className="ms-stage"><div className="ms-phase"><p>No words available.</p></div></div>
+      </div>
     );
   }
 
   const boxSize = letterBoxSize(word.length);
   const last = results[results.length - 1];
 
+  const wordCounterPill = (
+    <span className="ms-word-counter" aria-label={`Word ${wordIndex + 1} of ${queue.length}`}>
+      Word {wordIndex + 1}<span className="ms-word-counter__sep">/</span>{queue.length}
+    </span>
+  );
+
   return (
-    <>
+    <div className={wrapClass} style={BG_STYLE}>
       <GameHeader title="Weak Spot" onExit={onExit}
         rightSlot={<RestartButton hasProgress={hasProgress} onRestart={restart} />} />
       <DevCompleteButton onClick={handleDevComplete} />
-      <GameProgressStrip percent={(wordIndex / queue.length) * 100}>
-        Word {wordIndex + 1} of {queue.length}
-      </GameProgressStrip>
 
-      <div className="ws-stage">
-        <div className="ws-phase">
+      <div className="ms-stage">
+        <div className="ms-phase">
           <span className="ms-buddy" aria-hidden="true">
             <BuddyAvatar id={childCharacter?.id} size={120} fallback={childCharacter?.emoji}
               cheering={buddyCheering} />
           </span>
+
+          {wordCounterPill}
 
           {/* ── Flash: all letters visible ── */}
           {phase === 'flash' && (
@@ -269,7 +271,7 @@ function WeakSpot({ words, childCharacter = null, onComplete, onExit }) {
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 }
 

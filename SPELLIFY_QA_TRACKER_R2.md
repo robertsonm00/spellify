@@ -20,7 +20,7 @@ _Created: 31 May 2026_
 | ID | Area | Title | Type | Priority | Status |
 |----|------|-------|------|----------|--------|
 | R2-01 | Word Forge | Gate when list lacks prefixes/suffixes; restyle to Memory Spell | Enhancement / UI | Med | ✅ Done |
-| R2-02 | Weak Spot | Restyle to Memory Spell + new background; Variant A end screen | UI | Med | Open |
+| R2-02 | Weak Spot | Restyle to Memory Spell + new background; Variant A end screen | UI | Med | ✅ Done |
 | R2-03 | Word Mastery | Hover text describes mastery wrongly ("play 14 more games") | Bug | High | ✅ Done (removed) |
 | R2-04 | Cross-game | Persistent word-list panel (right side) in all games, collapsible | Feature | High | Open |
 | R2-05 | Avatars / Profile | Avatar packs — pick a character, unlock/buy themed packs with lumens | Feature | Med | → Moved to R3-02 |
@@ -53,7 +53,9 @@ Word Forge is a **prefix/suffix** game. If the words in a list don't contain pre
 > **Open question:** what's the threshold — hide only if **zero** prefix/suffix words, or below some percentage (as Syllable Tap uses ≥50%)? Awaiting your steer with the UI detail.
 
 ### R2-02 — Weak Spot: new background + front-end UI refresh
-**Type:** UI · **Priority:** Med · **Status:** Open
+**Type:** UI · **Priority:** Med · **Status:** ✅ Done (31 May)
+
+> **Resolved (31 May):** Weak Spot rebuilt onto Memory Spell's shell — themed dark glowing card on a backdrop, buddy avatar, white Nunito H1, "Word X / Y" pill, and letter boxes restyled to match Memory Spell's (dark/glowing, neon cursor, green/red states). The spoken word already runs through the shared `speakWord` site voice (SDR-01 path). The **end screen** now uses the shared **RES-01 Variant A** `GameResults` (replacing the old bespoke summary + retired "Play again", per the unified-results direction). Background currently reuses `memory-spell-background.png` — a bespoke Weak Spot backdrop is a one-line swap when art is ready.
 
 Weak Spot: plays the word, then plays it back with **some letters/parts missing** for the child to complete (audio-led gap-fill).
 
