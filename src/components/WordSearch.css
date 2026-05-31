@@ -342,8 +342,8 @@
 .ws-complete-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(10, 4, 24, 0.55);  /* 55% opacity dark purple — game visible behind */
-  backdrop-filter: blur(3px);
+  background: rgba(10, 4, 24, 0.92);  /* near-opaque scrim — GameResults panel is semi-transparent, so the busy grid must be hidden behind it */
+  backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;

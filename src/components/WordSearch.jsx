@@ -5,6 +5,8 @@ import { speakWord } from '../utils/speech';
 import GameHeader from './GameHeader';
 import GameProgressStrip from './GameProgressStrip';
 import RestartButton from './RestartButton';
+import GameResults from './GameResults';
+import { formatDuration } from '../utils/formatDuration';
 import { WordDetailModal, preSeedWordInfoCache } from './WordListHub';
 import './WordSearch.css';
 
@@ -46,63 +48,9 @@ function fireWordConfetti() {
   });
 }
 
-function fireVictoryFanfare() {
-  // Wave 1 — big central burst
-  confetti({
-    particleCount: 120,
-    spread: 80,
-    origin: { x: 0.5, y: 0.4 },
-    colors: ['#FFD700', '#ec4899', '#c77dff', '#6bcb77', '#60a5fa'],
-  });
-  // Wave 2 — left cannon
-  setTimeout(() => confetti({
-    particleCount: 70,
-    angle: 60,
-    spread: 55,
-    origin: { x: 0, y: 0.6 },
-    colors: ['#fbbf24', '#f9a8d4', '#a78bfa'],
-  }), 200);
-  // Wave 3 — right cannon
-  setTimeout(() => confetti({
-    particleCount: 70,
-    angle: 120,
-    spread: 55,
-    origin: { x: 1, y: 0.6 },
-    colors: ['#fbbf24', '#f9a8d4', '#a78bfa'],
-  }), 400);
-}
-
-function playVictorySound() {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    // Rising arpeggio + sustained chord
-    const notes = [
-      { f: 523.25, t: 0.00, d: 0.3, v: 0.18 },
-      { f: 659.25, t: 0.12, d: 0.3, v: 0.18 },
-      { f: 783.99, t: 0.24, d: 0.3, v: 0.18 },
-      { f: 1046.5, t: 0.38, d: 0.7, v: 0.22 },
-      { f: 1318.5, t: 0.45, d: 0.6, v: 0.14 },
-      // Sparkle tail
-      { f: 1568.0, t: 0.55, d: 0.25, v: 0.09 },
-      { f: 2093.0, t: 0.65, d: 0.25, v: 0.09 },
-      { f: 2637.0, t: 0.75, d: 0.30, v: 0.07 },
-    ];
-    notes.forEach(({ f, t, d, v }) => {
-      const osc  = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = 'triangle';
-      osc.frequency.value = f;
-      const at = ctx.currentTime + t;
-      gain.gain.setValueAtTime(0, at);
-      gain.gain.linearRampToValueAtTime(v, at + 0.03);
-      gain.gain.exponentialRampToValueAtTime(0.001, at + d);
-      osc.start(at);
-      osc.stop(at + d + 0.05);
-    });
-  } catch { /* AudioContext unavailable */ }
-}
+// The completion fanfare (confetti + victory sound) is owned by the shared
+// GameResults screen now (RES-01/RES-02). Only the per-word burst above stays
+// local to Word Search.
 
 // Fixed 10×10 max
 // Year 5+ get a roomier 16x16 grid; younger ages stay on the cosier 10x10.
@@ -145,7 +93,10 @@ function getCellsBetween(start, end) {
 
 export default function WordSearch({ words, wordObjects = [], year = null, savedProgress = null, onSaveProgress, onComplete, onExit, dyslexiaMode = false }) {
   const GRID_SIZE = gridSizeForYear(year);
-  const [gameState,      setGameState]      = useState(() => savedProgress?.gameState ?? generateWordSearch(words, GRID_SIZE, { dyslexiaMode }));
+  // The grid is generated once on mount (resumed from a snapshot if present)
+  // and never regenerated in place — "Play Again" was removed with RES-01, so
+  // there's no setter. A header restart only clears found state (resetProgress).
+  const [gameState] = useState(() => savedProgress?.gameState ?? generateWordSearch(words, GRID_SIZE, { dyslexiaMode }));
   const [selectionAnchor, setSelectionAnchor] = useState(null); // click-mode anchor
   const [selectionCells,  setSelectionCells]  = useState([]);
   const [foundWords,      setFoundWords]      = useState(savedProgress?.foundWords ?? []);
@@ -157,6 +108,12 @@ export default function WordSearch({ words, wordObjects = [], year = null, saved
   const [celebration,     setCelebration]     = useState(null);
   // Word detail modal — opened when any word in the sidebar list is tapped
   const [activeWord,      setActiveWord]      = useState(null); // string | null
+
+  // Elapsed-time tracking for the Variant B results tile (RES-01). The clock
+  // starts on mount (≈ when this sitting begins) and freezes when the last
+  // word is found. Resuming or restarting restarts the clock for that sitting.
+  const startTimeRef = useRef(Date.now());
+  const [endTime, setEndTime] = useState(null);
 
   // ── Coach (onboarding) state ───────────────────────────────────────────
   // Active on a first-time play (no saved progress, no "seen" flag in
@@ -184,34 +141,18 @@ export default function WordSearch({ words, wordObjects = [], year = null, saved
   const isDraggingRef = useRef(false);
   const dragStartRef  = useRef(null);
 
-  // ── Victory fanfare — fires once when all words are found ───────────────────
-  const fanfareFiredRef = useRef(false);
+  // ── Completion clock — freeze elapsed time once all words are found ─────────
+  // The celebration itself is owned by the shared GameResults screen (RES-02);
+  // here we just stop the clock so the Variant B Time tile is stable.
   useEffect(() => {
-    // Reset the fanfare guard when a new game starts (foundWords back to 0).
-    if (foundWords.length === 0) { fanfareFiredRef.current = false; return; }
-    // Need the placed-word count; read from gameState.
+    if (foundWords.length === 0) { setEndTime(null); return; }
     const total = gameState?.placedWords?.length ?? 0;
-    if (total > 0 && foundWords.length === total && !fanfareFiredRef.current) {
-      fanfareFiredRef.current = true;
-      fireVictoryFanfare();
-      playVictorySound();
+    if (total > 0 && foundWords.length === total) {
+      setEndTime((prev) => prev ?? Date.now());
     }
   }, [foundWords, gameState]);
 
   // ── Game actions ────────────────────────────────────────────────────────────
-
-  const startGame = useCallback(() => {
-    onSaveProgress?.(null);
-    const fresh = generateWordSearch(words, GRID_SIZE, { dyslexiaMode });
-    setGameState(fresh);
-    setFoundWords([]);
-    setFoundCells([]);
-    setSelectionAnchor(null);
-    setSelectionCells([]);
-    setToast(null);
-    isDraggingRef.current = false;
-    dragStartRef.current  = null;
-  }, [words, onSaveProgress]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── DEV-only: instant complete ─────────────────────────────────────────────
   const handleDevComplete = () => {
@@ -228,6 +169,8 @@ export default function WordSearch({ words, wordObjects = [], year = null, saved
     setSelectionAnchor(null);
     setSelectionCells([]);
     setToast(null);
+    setEndTime(null);
+    startTimeRef.current = Date.now();
     isDraggingRef.current = false;
     dragStartRef.current  = null;
   }, [onSaveProgress]);
@@ -595,35 +538,30 @@ export default function WordSearch({ words, wordObjects = [], year = null, saved
 
       </div>
 
-      {/* ── Completion overlay — sits on top of the game, not a separate screen ── */}
+      {/* ── Completion — shared Variant B results over the finished grid ── */}
       {isComplete && (
         <div className="ws-complete-overlay" role="dialog" aria-modal="true" aria-label="Word search complete">
-          <div className="ws-complete-card">
-            <div className="ws-complete-emoji">🎉</div>
-            <h2 className="ws-complete-title">All words found!</h2>
-            <p className="ws-complete-sub">Congratulations — brilliant work!</p>
-            <div className="ws-complete-actions">
-              <button className="ws-done-btn ws-done-btn--primary" onClick={startGame}>
-                Play Again
-              </button>
-              <button className="ws-done-btn ws-done-btn--secondary" onClick={() => {
-                // Per-word result for the mastery engine. Word Search is
-                // recognition-only — there are no attempts and no hint
-                // affordance, so every word is reported as a 1st-attempt
-                // outcome with no hint. The 0.5x recognition multiplier is
-                // applied centrally in gamificationEngine.
-                onSaveProgress?.(null);
-                onComplete(words.map(w => ({
-                  word:     w,
-                  correct:  foundWords.includes(w),
-                  attempts: 1,
-                  hintUsed: false,
-                })));
-              }}>
-                Back to Hub
-              </button>
-            </div>
-          </div>
+          <GameResults
+            variant="B"
+            stats={[
+              { value: formatDuration(((endTime ?? Date.now()) - startTimeRef.current) / 1000), label: 'Time' },
+              { value: foundWords.length, label: 'Words found' },
+            ]}
+            onContinue={() => {
+              // Per-word result for the mastery engine. Word Search is
+              // recognition-only — there are no attempts and no hint
+              // affordance, so every word is reported as a 1st-attempt
+              // outcome with no hint. The 0.5x recognition multiplier is
+              // applied centrally in gamificationEngine.
+              onSaveProgress?.(null);
+              onComplete(words.map((w) => ({
+                word:     w,
+                correct:  foundWords.includes(w),
+                attempts: 1,
+                hintUsed: false,
+              })));
+            }}
+          />
         </div>
       )}
 

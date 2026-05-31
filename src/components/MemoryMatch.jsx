@@ -26,9 +26,10 @@
 //   surface "shaky recall" in the engine — out of scope for this build.)
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import confetti from 'canvas-confetti';
 import GameHeader from './GameHeader';
 import GameProgressStrip from './GameProgressStrip';
+import GameResults from './GameResults';
+import { formatDuration } from '../utils/formatDuration';
 import { speakWord } from '../utils/speech';
 import { isMuted } from '../utils/audioMute';
 import './MemoryMatch.css';
@@ -180,14 +181,8 @@ function playThunk() {
   } catch { /* ignore */ }
 }
 
-function fireConfetti() {
-  confetti({
-    particleCount: 140,
-    spread: 95,
-    origin: { y: 0.5 },
-    colors: ['#ffd93d', '#ff9f43', '#c77dff', '#6bcb77', '#4d96ff', '#ff6b6b'],
-  });
-}
+// The completion celebration is owned by the shared GameResults screen now
+// (RES-01/RES-02). Per-pair chimes stay local to this component.
 
 // ── Component ────────────────────────────────────────────────────────────────
 
@@ -251,6 +246,12 @@ export default function MemoryMatch({
   // Set of card IDs that should briefly pulse on mismatch (red flash).
   const [mismatchIds, setMismatchIds] = useState(null);
 
+  // Elapsed-time tracking for the Variant B results tile (RES-01). The clock
+  // starts on mount and freezes when the final pair is matched; restarting or
+  // changing size restarts it.
+  const startTimeRef = useRef(Date.now());
+  const [endTime, setEndTime] = useState(null);
+
   // Snapshot save — fires after every state change so the parent can
   // persist progress between sessions.
   useEffect(() => {
@@ -275,20 +276,16 @@ export default function MemoryMatch({
     if (didCompleteRef.current) return;
     if (matched.size === 0 || matched.size < totalPairs) return;
     didCompleteRef.current = true;
-    fireConfetti();
-    // Drop the snapshot the moment we know the run is done. If the
-    // player exits during the 1.2 s celebration before `onComplete`
-    // fires, App's saveSnapshot effect would otherwise persist the
-    // "all matched" state and re-show the win modal on re-entry.
+    // Freeze the clock for the Time tile. The celebration and the handoff to
+    // the hub now live on the shared GameResults screen (RES-01) — the child
+    // sees the sealed board behind it and taps Continue when ready, rather
+    // than being auto-advanced after a fixed delay.
+    setEndTime(Date.now());
+    // Drop the snapshot the moment the run is done so App's saveSnapshot
+    // effect can't persist the "all matched" state and re-show the win screen
+    // on re-entry.
     onSaveProgress?.(null);
-    // Slight delay so the player sees the final pair stay revealed
-    // before App swaps the screen.
-    const t = setTimeout(() => {
-      const results = Array.from(matched).map((w) => ({ word: w, correct: true }));
-      onComplete?.(results);
-    }, 1200);
-    return () => clearTimeout(t);
-  }, [matched, totalPairs, onComplete, onSaveProgress]);
+  }, [matched, totalPairs, onSaveProgress]);
 
   // ── Card tap ────────────────────────────────────────────────────────
   const handleCard = useCallback((card) => {
@@ -351,6 +348,8 @@ export default function MemoryMatch({
     setLocked(false);
     setMismatchIds(null);
     setPairCount(null);
+    setEndTime(null);
+    startTimeRef.current = Date.now();
     clearSavedChoice();
     didCompleteRef.current = false;
   }, []);
@@ -366,6 +365,8 @@ export default function MemoryMatch({
     setMoves(0);
     setLocked(false);
     setMismatchIds(null);
+    setEndTime(null);
+    startTimeRef.current = Date.now();
     didCompleteRef.current = false;
     const capped = Math.min(n, availablePairs);
     writeSavedChoice(capped);
@@ -551,17 +552,21 @@ export default function MemoryMatch({
         })}
       </section>
 
-      {/* Completion overlay — shows the final move count and stays put
-          until App swaps the screen on onComplete. */}
+      {/* Completion — shared Variant B results over the sealed board. The
+          child taps Continue when ready; that records the run and returns. */}
       {matchedCount === totalPairs && totalPairs > 0 && (
         <div className="mm-win" role="status" aria-live="polite">
-          <div className="mm-win__card">
-            <div className="mm-win__icon" aria-hidden="true">🏆</div>
-            <h2 className="mm-win__title">Spellbook Sealed!</h2>
-            <p className="mm-win__body">
-              You matched every pair in <b>{moves}</b> {moves === 1 ? 'move' : 'moves'}.
-            </p>
-          </div>
+          <GameResults
+            variant="B"
+            stats={[
+              { value: formatDuration(((endTime ?? Date.now()) - startTimeRef.current) / 1000), label: 'Time' },
+              { value: moves, label: moves === 1 ? 'Move' : 'Moves' },
+            ]}
+            onContinue={() => {
+              const results = Array.from(matched).map((w) => ({ word: w, correct: true }));
+              onComplete?.(results);
+            }}
+          />
         </div>
       )}
     </main>

@@ -5,6 +5,8 @@ import { getClueSync } from '../utils/clueResolver';
 import GameHeader from './GameHeader';
 import GameProgressStrip from './GameProgressStrip';
 import RestartButton from './RestartButton';
+import GameResults from './GameResults';
+import { formatDuration } from '../utils/formatDuration';
 import './Crossword.css';
 import { speakWord, speakSentence } from '../utils/speech';
 
@@ -246,46 +248,9 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
     if (isGameComplete && !endTime) setEndTime(Date.now());
   }, [isGameComplete, endTime]);
 
-  // ── Crossword completion fanfare ──────────────────────────────────────────
-  const cwFanfareFiredRef = useRef(false);
-  useEffect(() => {
-    if (!isGameComplete || cwFanfareFiredRef.current) return;
-    cwFanfareFiredRef.current = true;
-
-    // Fanfare sound — ascending arpeggio + sustained chord + sparkle tail
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const seq = [
-        { f: 523.25, t: 0.00, d: 0.30, v: 0.18 },
-        { f: 659.25, t: 0.12, d: 0.30, v: 0.18 },
-        { f: 783.99, t: 0.24, d: 0.30, v: 0.18 },
-        { f: 1046.5, t: 0.38, d: 0.80, v: 0.22 },
-        { f: 1318.5, t: 0.46, d: 0.65, v: 0.15 },
-        { f: 1568.0, t: 0.56, d: 0.25, v: 0.09 },
-        { f: 2093.0, t: 0.66, d: 0.25, v: 0.09 },
-        { f: 2637.0, t: 0.76, d: 0.30, v: 0.07 },
-      ];
-      seq.forEach(({ f, t, d, v }) => {
-        const osc  = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain); gain.connect(ctx.destination);
-        osc.type = 'triangle'; osc.frequency.value = f;
-        const at = ctx.currentTime + t;
-        gain.gain.setValueAtTime(0, at);
-        gain.gain.linearRampToValueAtTime(v, at + 0.03);
-        gain.gain.exponentialRampToValueAtTime(0.001, at + d);
-        osc.start(at); osc.stop(at + d + 0.05);
-      });
-    } catch { /* AudioContext unavailable */ }
-
-    // Confetti — 3 waves from different origins
-    confetti({ particleCount: 130, spread: 85, origin: { x: 0.5, y: 0.4 },
-      colors: ['#FFD700', '#ec4899', '#c77dff', '#6bcb77', '#60a5fa'] });
-    setTimeout(() => confetti({ particleCount: 75, angle: 60, spread: 60,
-      origin: { x: 0, y: 0.65 }, colors: ['#fbbf24', '#f9a8d4', '#a78bfa'] }), 250);
-    setTimeout(() => confetti({ particleCount: 75, angle: 120, spread: 60,
-      origin: { x: 1, y: 0.65 }, colors: ['#fbbf24', '#f9a8d4', '#a78bfa'] }), 500);
-  }, [isGameComplete]);
+  // The completion celebration (confetti + fanfare) is owned by the shared
+  // GameResults screen now (RES-01/RES-02), so it fires identically across
+  // every game. Per-word confetti during play stays local to this component.
 
   // Save progress whenever the board changes and at least one word is correct.
   // Wipe the snapshot when the game finishes.
@@ -661,71 +626,52 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
 
   if (isGameComplete) {
     const elapsed = Math.round((endTime - startTime) / 1000);
-    const mins    = Math.floor(elapsed / 60);
-    const secs    = elapsed % 60;
+
+    const handleComplete = () => {
+      // Merge the main-puzzle outcome with the mini-round retry result. One
+      // entry per word. The mini-round result is authoritative for any word
+      // that was revealed:
+      //
+      //   - revealed + retry correct → { correct: true,  attempts: 2, hintUsed: true }
+      //   - revealed + retry wrong   → { correct: false, attempts: 2, hintUsed: true }
+      //   - revealed + no retry (skipped — shouldn't happen but handled
+      //     defensively) → { correct: false, attempts: 2, hintUsed: true }
+      //   - not revealed (filled normally, possibly with hints) →
+      //       { correct: true, attempts: 1, hintUsed: hints.has(id) }
+      const results = layout.placedWords.map((pw) => {
+        const fullyRevealed = revealedWords.has(pw.id);
+        if (fullyRevealed) {
+          const retried      = retryResults.has(pw.id);
+          const retryCorrect = retryResults.get(pw.id) === true;
+          return {
+            word:     pw.word,
+            correct:  retried ? retryCorrect : false,
+            attempts: 2,
+            hintUsed: true,
+          };
+        }
+        return {
+          word:     pw.word,
+          correct:  true,
+          attempts: 1,
+          hintUsed: hints.has(pw.id),
+        };
+      });
+      onComplete(results);
+    };
+
+    // Variant B — Time + Hints used (no "number of words" tile on Crossword,
+    // explicitly not wanted per RES-01).
     return (
       <div className="cw-wrap cw-wrap--complete" style={BG_STYLE}>
-        <div className="cw-complete">
-          <div className="cw-complete-emoji">🎉</div>
-          <h2 className="cw-complete-title">Crossword Complete!</h2>
-          <div className="cw-stats">
-            <div className="cw-stat">
-              <span className="cw-stat-val">{mins > 0 ? `${mins}m ${secs}s` : `${secs}s`}</span>
-              <span className="cw-stat-label">Time</span>
-            </div>
-            <div className="cw-stat">
-              <span className="cw-stat-val">{layout.placedWords.length}</span>
-              <span className="cw-stat-label">Words</span>
-            </div>
-            <div className="cw-stat">
-              <span className="cw-stat-val">{hintsUsed}</span>
-              <span className="cw-stat-label">Hints</span>
-            </div>
-          </div>
-          <div className="cw-done-actions">
-            <button className="cw-done-btn cw-done-btn--secondary" onClick={() => {
-              setFilled(new Map()); setHints(new Map());
-              setHintsUsed(0); setSelectedCell(null); setEndTime(null);
-              setRevealedWords(new Set());
-            }}>
-              Try Again
-            </button>
-            <button className="cw-done-btn cw-done-btn--primary" onClick={() => {
-              // Merge the main-puzzle outcome with the mini-round retry
-              // result. One entry per word. The mini-round result is
-              // authoritative for any word that was revealed:
-              //
-              //   - revealed + retry correct → { correct: true,  attempts: 2, hintUsed: true }
-              //   - revealed + retry wrong   → { correct: false, attempts: 2, hintUsed: true }
-              //   - revealed + no retry (skipped — shouldn't happen but
-              //     handled defensively) → { correct: false, attempts: 2, hintUsed: true }
-              //   - not revealed (filled normally, possibly with hints) →
-              //       { correct: true, attempts: 1, hintUsed: hints.has(id) }
-              const results = layout.placedWords.map(pw => {
-                const fullyRevealed = revealedWords.has(pw.id);
-                if (fullyRevealed) {
-                  const retried      = retryResults.has(pw.id);
-                  const retryCorrect = retryResults.get(pw.id) === true;
-                  return {
-                    word:     pw.word,
-                    correct:  retried ? retryCorrect : false,
-                    attempts: 2,
-                    hintUsed: true,
-                  };
-                }
-                return {
-                  word:     pw.word,
-                  correct:  true,
-                  attempts: 1,
-                  hintUsed: hints.has(pw.id),
-                };
-              });
-              onComplete(results);
-            }}>
-              Back to Hub ▶
-            </button>
-          </div>
-        </div>
+        <GameResults
+          variant="B"
+          stats={[
+            { value: formatDuration(elapsed), label: 'Time' },
+            { value: hintsUsed,               label: 'Hints used' },
+          ]}
+          onContinue={handleComplete}
+        />
       </div>
     );
   }

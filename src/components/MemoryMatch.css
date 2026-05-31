@@ -329,8 +329,8 @@
   z-index: 1500;
   display: grid;
   place-items: center;
-  background: rgba(8, 4, 24, 0.55);
-  backdrop-filter: blur(4px);
+  background: rgba(8, 4, 24, 0.92);  /* near-opaque scrim — GameResults panel is semi-transparent, so the busy board must be hidden behind it */
+  backdrop-filter: blur(6px);
   animation: mm-win-fade 0.4s ease;
 }
 @keyframes mm-win-fade {
