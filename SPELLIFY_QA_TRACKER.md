@@ -45,8 +45,8 @@ Consequences for the items below:
 | LVL-02 | Levelling | Add a level-up celebration moment | Enhancement / Polish | High | ✅ Done (31 May) |
 | MAS-01 | Mastery & progress | Show progress toward mastery + restore hover pop-up (0/14 is correct) | Enhancement | High | ✅ Done |
 | MAS-02 | Mastery & progress | Port classic "mastered" bar onto the card design | Enhancement | Med | ✅ Done |
-| ONB-01 | Onboarding | Raccoon mascot slow to load (blank first) | Bug | Med | Open |
-| MAP-01 | Home / Map | Map image not visible on home load (black flash) | Bug | High | Open |
+| ONB-01 | Onboarding | Raccoon mascot slow to load (blank first) | Bug | Med | ✅ Done (31 May) |
+| MAP-01 | Home / Map | Map image not visible on home load (black flash) | Bug | High | ✅ Done (31 May) |
 | MAP-02 | Home / Map | Ember Isle badge glow too strong on mobile | Bug / Polish | Med | ✅ Done |
 | MAP-03 | Home / Map | Remove dev streak from home page | Change | Med | ✅ Done |
 | NAV-01 | Footer nav | Footer navigation not working | Bug | High | Not reproduced (31 May) |
@@ -316,7 +316,7 @@ This dovetails with **MAS-01** — the bar is a concrete way to "show progress t
 ## Onboarding
 
 ### ONB-01 — Raccoon mascot slow to load (blank first)
-**Type:** Bug · **Priority:** Med · **Status:** Open
+**Type:** Bug · **Priority:** Med · **Status:** ✅ Done (31 May)
 
 On the onboarding flow the raccoon takes a long time to appear — it renders **blank first**, then the mascot pops in later. Rough first impression.
 
@@ -325,12 +325,14 @@ Likely fixes for Claude Code to check:
 - Reserve its dimensions / show a lightweight placeholder to avoid the blank flash and layout shift.
 - Optimise/compress the asset (and confirm it's not being pulled from a slow remote source).
 
+> **Built (31 May):** root cause was the two ~2.8 MB raccoon SVGs (still + cheer) being fetched on first render with nothing in the slot. `BuddyAvatar` now warms both frames at module-load (`new Image().src`, in the static import graph so it runs at app startup), shows a lightweight 🦝 emoji placeholder until the still SVG decodes, then fades the real sprite in over it (opacity transition gated by a `--loaded` class; `el.complete && naturalWidth>0` check covers the already-cached case where `onLoad` won't fire). The cheer frame stays mounted so the first cheer doesn't flash either. Reduced-motion users skip the fade. No more blank slot or layout shift.
+
 ---
 
 ## Home / Adventure map
 
 ### MAP-01 — Map image not visible on home load (black flash)
-**Type:** Bug · **Priority:** High · **Status:** Open
+**Type:** Bug · **Priority:** High · **Status:** ✅ Done (31 May)
 
 When the home screen loads, the map image isn't rendered straight away — you get a **black screen** for a moment, then the image pops in. It should be visible first, with no black flash. Seen on the primary screen every load, so it's a prominent first impression.
 
@@ -341,6 +343,8 @@ Likely fixes for Claude Code to check:
 - Consider a low-res placeholder that swaps to full-res once loaded.
 
 > Same class of issue as ONB-01 (asset-load flash) — worth fixing both with one preload/placeholder approach.
+
+> **Built (31 May):** same class of fix as ONB-01. The scene container now carries a **twilight gradient base** (`#1a1030 → #2a1540 → #1c0e26`) so any gap reads as night sky, not black. Each chapter backdrop `<img>` fades in on load (`loadedBg === bg` derived boolean resets the fade synchronously on src change, so swapping chapters never shows a stale frame), and the **next** chapter's image is pre-warmed (`new Image().src`) while the current one is shown, so forward navigation is already cached. Reduced-motion users skip the fade. Verified live: full Ember Isle map renders over the gradient with no black flash. *(Deliberately did **not** swap the PNGs for the existing WebP variants — that risks subtle crop/coordinate-calibration regressions on the pin positions, and the preload+gradient already removes the flash. Re-encoding/compression noted as a possible follow-up.)*
 
 ### MAP-02 — Ember Isle badge glow too strong on mobile
 **Type:** Bug / Polish · **Priority:** Med · **Status:** ✅ Done (31 May)
