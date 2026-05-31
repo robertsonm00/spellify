@@ -785,15 +785,6 @@ export default function ListHub({
   // Big centred title (matches the SpellShop heading treatment), photo-led
   // game cards as the primary affordance, and a collapsible secondary word
   // list panel that reuses all the existing chip/mastery functionality.
-  // gamesNeeded — estimate of how many more games to full mastery: each
-  // unmastered word needs ~ceil(2.0 - credit) more games.
-  const gamesNeeded = listProgress.status === 'completed' ? 0
-      : fullWords.reduce((acc, w) => {
-          const entry = masteryState.words?.[w.toLowerCase()];
-          if (entry?.mastered) return acc;
-          const credit = entry?.totalCredit || 0;
-          return acc + Math.max(1, Math.ceil(2.0 - credit));
-        }, 0);
     return (
       <>
         <div className={`lh-cards-root${coachPhase !== 'off' ? ' lh-cards-root--coach-locked' : ''}`}>
@@ -852,13 +843,13 @@ export default function ListHub({
                   "Complete some more" pop-up that prompts how to progress. */}
               {masteryTipOpen && (
                 <div className="hub-mastery-tip" role="tooltip">
-                  <p className="hub-mastery-tip-static">Complete games to achieve Word Mastery</p>
                   {listProgress.status === 'completed' ? (
-                    <p className="hub-mastery-tip-dynamic">You've achieved Word Mastery on this list! 🌟</p>
+                    <>
+                      <p className="hub-mastery-tip-static">Complete games to achieve Word Mastery</p>
+                      <p className="hub-mastery-tip-dynamic">You've achieved Word Mastery on this list! 🌟</p>
+                    </>
                   ) : (
-                    <p className="hub-mastery-tip-dynamic">
-                      Play {gamesNeeded} more game{gamesNeeded !== 1 ? 's' : ''} to reach Word Mastery
-                    </p>
+                    <p className="hub-mastery-tip-dynamic">Word Mastery comes from completing the games — keep playing.</p>
                   )}
                 </div>
               )}
