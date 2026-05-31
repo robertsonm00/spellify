@@ -422,7 +422,7 @@ Hypothesised from Syllable Tap testing (progress appearing to "return" only afte
 > **Action:** parked unless you can give the exact steps that produced the "stale until refresh" behaviour. If you hit it again, note exactly which game and what you did.
 
 ### PROF-04 — "Quick Start" wipes all saved data for returning users
-**Type:** Bug · **Priority:** Critical · **Status:** Open
+**Type:** Bug · **Priority:** Critical · **Status:** ✅ Done
 
 **Real data-loss vector found during diagnosis.** When a returning user taps **Quick Start** again, the start handler clears **all `spellify_*` keys** — which would wipe saved lists and progress.
 
@@ -568,7 +568,7 @@ The "Take photo" option has **no working camera/OCR path behind it** — the pho
 > **Resolved (31 May):** **hide the "Take photo" option for now** (so children/parents aren't offered a dead button). The actual photo/scan-a-word-list feature goes on the **roadmap to build after this QA phase** — it aligns with the scan-a-list spin-off concept. Not net-new work during QA.
 
 ### WL-02 — Created lists don't save or appear in My Lists
-**Type:** Bug · **Priority:** Critical · **Status:** Open
+**Type:** Bug · **Priority:** Critical · **Status:** ✅ Done (via PROF-04)
 
 Creating a word list is broken across **both** entry paths:
 - **From a photo:** add the list → add the words → save (10–12 words) → the list **does not appear** in My Lists. Reproduced twice, failed both times.
