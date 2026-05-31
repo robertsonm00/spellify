@@ -225,7 +225,11 @@
   min-width: 0;
   min-height: 0;
   align-self: stretch;
-  width: calc((100vh - 280px) * var(--cols) / var(--rows));
+  /* Span the full body width and centre the grid inside. The grid is sized
+     from its own height (see .cw-grid), so the area must NOT impose a narrow
+     width — doing so used to clamp the grid horizontally and squash square
+     cells into tall, narrow rectangles on wide screens. */
+  width: 100%;
   max-width: 100%;
   flex-shrink: 1;
 }
@@ -236,11 +240,15 @@
   grid-template-rows:    repeat(var(--rows), 1fr);
   gap: 3px;
   user-select: none;
-  /* Fill the largest square-celled area that fits the grid container */
+  /* Height-bound, square cells: the grid takes the full available height and
+     derives its width from the aspect ratio, so every cell stays a perfect
+     square. max-height caps cell size (~72px) on small puzzles / tall screens
+     so a 4-row grid doesn't balloon; max-width is the safety valve for the
+     rare puzzle that is wider than it is tall. */
   aspect-ratio: var(--cols) / var(--rows);
   height: 100%;
+  max-height: calc(var(--rows) * 72px + (var(--rows) - 1) * 3px);
   max-width: 100%;
-  max-height: 100%;
 }
 
 /* ── Cells ── */

@@ -319,8 +319,28 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
       if (wordsHere.some(pw => pw.direction === other)) setSelDir(other);
     } else {
       setSelectedCell({ row, col });
+      // Pick the most intuitive direction for a fresh tap. A numbered cell is
+      // the *start* of a word, so tapping it should select that word's clue —
+      // even when a different word merely crosses through the cell (e.g. tapping
+      // the "6" cell, which begins 6-Down but sits mid-way along 5-Across,
+      // should give 6-Down, not 5-Across). Only when the cell starts no word at
+      // all (a pure crossing) do we keep the current direction.
+      const startsHere = (dir) =>
+        wordsHere.some(pw => pw.direction === dir && pw.row === row && pw.col === col);
+      const startsAcross  = startsHere('across');
+      const startsDown    = startsHere('down');
       const hasCurrentDir = wordsHere.some(pw => pw.direction === selDir);
-      if (!hasCurrentDir) setSelDir(wordsHere[0].direction);
+
+      if (startsAcross && startsDown) {
+        // Corner that begins both words — honour the current direction.
+        if (!hasCurrentDir) setSelDir(wordsHere[0].direction);
+      } else if (startsAcross) {
+        setSelDir('across');
+      } else if (startsDown) {
+        setSelDir('down');
+      } else if (!hasCurrentDir) {
+        setSelDir(wordsHere[0].direction);
+      }
     }
   }, [layout, selectedCell, selDir, filled]);
 
