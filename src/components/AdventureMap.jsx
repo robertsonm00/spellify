@@ -90,7 +90,11 @@ function isListComplete(list) {
   const total = list.wordCount || (list.words?.length || 0);
   if (!total) return false;
   const mastered = getMasteredWords(list.id).length;
-  return mastered / total >= 0.8;
+  // A list is "MASTERED" only when EVERY word in it has been mastered.
+  // Previously this used a 0.8 threshold, which lit the green MASTERED badge
+  // (and advanced the chapter) at e.g. 12/14 words — telling a child they'd
+  // finished a list they hadn't. Mastery should mean all of it.
+  return mastered >= total;
 }
 
 export default function AdventureMap({ session, onSectionChange, onOpenList, onGoToHFW, initialIsleId }) {
@@ -705,7 +709,7 @@ export default function AdventureMap({ session, onSectionChange, onOpenList, onG
                     <span
                       className={`am-v2-node__label am-v2-node__label--${labelSide}${isActive ? ' am-v2-node__label--always' : ''}`}
                     >
-                      {stop.landmark?.label || stop.list?.name}
+                      {stop.list?.name || stop.landmark?.label}
                     </span>
                   )}
                 </button>
