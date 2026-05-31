@@ -452,6 +452,10 @@
      When width = 100% this collapses to 0 (no extra margin needed). */
   margin-left: calc((100% - max(1280px, 100%)) / 2);
   /* aspect-ratio set inline per isle */
+  /* Themed twilight base so the large painted backdrop never flashes the
+     near-black page colour while it loads (MAP-01). Reads as night sky,
+     not a black void, in the moment before the image fades in. */
+  background: linear-gradient(180deg, #1a1030 0%, #2a1540 45%, #1c0e26 100%);
 }
 
 .am-v2-bg {
@@ -467,6 +471,16 @@
   image-rendering: auto;
   pointer-events: none;
   z-index: 0;
+  /* Fade in once decoded so the backdrop resolves out of the twilight
+     base rather than popping in (MAP-01). */
+  opacity: 0;
+  transition: opacity 450ms ease-out;
+}
+.am-v2-bg--loaded {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .am-v2-bg { transition: none; }
 }
 
 /* ── Magical pathway between stops ────────────────────────────────

@@ -297,6 +297,29 @@ export default function AdventureMap({ session, onSectionChange, onOpenList, onG
   const coords    = chapter.coords || DEFAULT_CHAPTER_COORDS;
   const landmarks = chapter.landmarks || {};
 
+  // ── Backdrop load handling (MAP-01) ──────────────────────────────────
+  // The painted panoramas are large (~2–3 MB). Without this the scene
+  // showed the near-black page colour for a beat before the image painted
+  // (a "black flash" on every home load). We keep a themed twilight base
+  // under the scene (see .am-v2-scene in the CSS) so any gap reads as sky,
+  // never black, and fade each backdrop in once it has decoded. `bgReady`
+  // is derived from the loaded src so switching chapters resets the fade
+  // synchronously (no stale frame of the previous map).
+  const bgImgRef = useRef(null);
+  const [loadedBg, setLoadedBg] = useState(null);
+  const bgReady = loadedBg === bg;
+  useEffect(() => {
+    // Cached images can be `complete` before onLoad attaches.
+    const el = bgImgRef.current;
+    if (el && el.complete && el.naturalWidth > 0) setLoadedBg(bg);
+    // Warm the next chapter's backdrop so forward navigation is seamless.
+    const next = isleChapters[(chapterIdx + 1) % isleChapters.length];
+    if (next?.bg && next.bg !== bg) {
+      const warm = new Image();
+      warm.src = next.bg;
+    }
+  }, [bg, chapterIdx, isleChapters]);
+
   // Slice this chapter's 10 lists out of the full list array.
   const chapterListStart = chapterIdx * STOPS_PER_CHAPTER;
   const chapterLists = lists.slice(chapterListStart, chapterListStart + STOPS_PER_CHAPTER);
@@ -524,10 +547,12 @@ export default function AdventureMap({ session, onSectionChange, onOpenList, onG
           <div className="am-v2-scene" style={{ aspectRatio: `${ratio}` }}>
             {bg && (
               <img
-                className="am-v2-bg"
+                ref={bgImgRef}
+                className={`am-v2-bg${bgReady ? ' am-v2-bg--loaded' : ''}`}
                 src={bg}
                 alt={`${selectedIsle.name} map`}
                 draggable={false}
+                onLoad={() => setLoadedBg(bg)}
               />
             )}
 

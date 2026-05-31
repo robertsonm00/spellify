@@ -4,6 +4,19 @@ import './BuddyAvatar.css';
 import raccoonStill from '../assets/raccoon-still.svg';
 import raccoonCheer from '../assets/raccoon-cheer.svg';
 
+// Warm the browser cache for the raccoon frames as soon as this module is
+// evaluated (app startup, since BuddyAvatar sits in the static import graph).
+// Each frame is a ~2.8 MB SVG with embedded art; fetching it lazily on first
+// render is what made the onboarding hero flash blank before popping in
+// (ONB-01). Pre-fetching here means it's usually decoded before any buddy
+// is shown. The fade-in + placeholder below cover the cold-cache case.
+if (typeof window !== 'undefined') {
+  [raccoonStill, raccoonCheer].forEach((src) => {
+    const img = new Image();
+    img.src = src;
+  });
+}
+
 // ── Cheer sound + confetti ───────────────────────────────────────────────
 // Bright ascending arpeggio with a sparkle tail — suggests a kid's "yay!".
 function playKidCheer() {
@@ -47,16 +60,36 @@ function fireBuddyConfetti() {
 // ── Buddy renderers ──────────────────────────────────────────────────────
 
 function RaccoonSprite({ size, cheering }) {
-  // Both frames are rendered from the start so the browser loads and caches
-  // raccoon-cheer.svg immediately — no blank flash when the user first clicks.
+  // The still frame is a large SVG; until it has decoded we show a
+  // lightweight emoji placeholder so the slot is never blank (ONB-01),
+  // then fade the real sprite in over it. Both frames are kept mounted so
+  // the browser also caches raccoon-cheer.svg — no blank flash on first cheer.
+  const [loaded, setLoaded] = useState(false);
+  const stillRef = useRef(null);
+  useEffect(() => {
+    // Cached images may already be complete before onLoad can attach.
+    const el = stillRef.current;
+    if (el && el.complete && el.naturalWidth > 0) setLoaded(true);
+  }, []);
   const imgStyle = { maxWidth: size, maxHeight: size, width: 'auto', height: 'auto' };
   return (
-    <>
+    <span className="buddy-sprite-stack">
+      {!loaded && (
+        <span
+          className="buddy-sprite-ph"
+          aria-hidden="true"
+          style={{ fontSize: Math.round(size * 0.78), lineHeight: 1 }}
+        >
+          🦝
+        </span>
+      )}
       <img
-        className="buddy-sprite"
+        ref={stillRef}
+        className={`buddy-sprite buddy-sprite--fade${loaded ? ' buddy-sprite--loaded' : ''}`}
         src={raccoonStill}
         alt=""
         aria-hidden="true"
+        onLoad={() => setLoaded(true)}
         style={{ ...imgStyle, display: cheering ? 'none' : undefined }}
       />
       <img
@@ -66,7 +99,7 @@ function RaccoonSprite({ size, cheering }) {
         aria-hidden="true"
         style={{ ...imgStyle, display: cheering ? undefined : 'none' }}
       />
-    </>
+    </span>
   );
 }
 
