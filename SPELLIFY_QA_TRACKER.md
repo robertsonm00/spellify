@@ -40,7 +40,7 @@ Consequences for the items below:
 | RES-01 | Results | Unified end-of-game results — full 2-variant spec (Memory Spell base) | Enhancement | High | Specced |
 | RES-02 | Results | Every completed game returns with a celebration | Enhancement / Polish | High | Open |
 | RES-03 | Results | Post-game levels/lumens readout — ensure it exists on card design | Bug | High | ✅ Done |
-| PRAC-01 | Practice list | Reintroduce the practice list for struggling words | Enhancement | High | Open |
+| PRAC-01 | Practice list | Reintroduce the practice list for struggling words | Enhancement | High | ✅ Done (31 May) |
 | LVL-01 | Levelling | Rebalance the level-up curve | Bug | High | Open |
 | LVL-02 | Levelling | Add a level-up celebration moment | Enhancement / Polish | High | Open |
 | MAS-01 | Mastery & progress | Show progress toward mastery + restore hover pop-up (0/14 is correct) | Enhancement | High | ✅ Done |
@@ -471,7 +471,7 @@ This is computable from the existing `syllables` field on each word, so no new d
 ## Practice list
 
 ### PRAC-01 — Reintroduce the practice list for struggling words
-**Type:** Enhancement · **Priority:** High · **Status:** 🔄 In progress (31 May)
+**Type:** Enhancement · **Priority:** High · **Status:** ✅ Done (31 May)
 
 Bring back the **practice list**: the place words go once a child has had their attempts (the SR-01 single retry, or once over the session ceiling) and is still getting them wrong. This is the destination that SR-01, SD-02, and RES-01 all refer to — so it needs to actually exist and be wired up.
 
@@ -493,6 +493,14 @@ Bring back the **practice list**: the place words go once a child has had their 
 > 4. **Explicit graduation** — add an unambiguous "reaching a mastery tier removes the word from the struggling pool" step in `masteryEngine.js`, so words leave the practice list deterministically.
 >
 > Building these incrementally, smallest-risk first, coordinated with SR-01 (#29) since they share the batches-of-3 / ceiling-of-3 logic.
+>
+> **Built (31 May) — all four pieces landed:**
+> 1. **Mastery graduation** — `masteryEngine.recordWordResult` now removes a word from the struggling pool the moment it reaches a mastery tier (commit `30d1a43`).
+> 2. **Global pool + cross-list recording** — new `getAllStrugglingWords()` discovers every list from storage; the hub tile draws from it and records each result against the word's OWN list, not the hub's (commit `ccdd22e`).
+> 3. **Batches of 3 + next-set modal** — practice is delivered in winnable sets of 3 with a gentle "do N more / I'm done for now" modal between batches (commit `ccdd22e`).
+> 4. **First-tile visual treatment** — rendered as the first `.lh-game-card` in the hub grid with placeholder art (commit `f7c6648`).
+>
+> Verified in-browser with a seeded 5-word pool spanning two lists: tile shows the global count on an unrelated list, the full batched flow runs, the next-set modal offers the remaining set, the queue exhausts cleanly, and per-word outcomes persist to the correct source lists. Engine paths covered by Node unit tests (graduation + global pool). CI build clean.
 
 **Cross-refs:** the shared sink for **SR-01** (failed retry / over ceiling) and **SD-02** (Spell Duel ceiling), and the practice destination referenced by **RES-01**. Tied to **MAS-01/02** — a word on the practice list is, by definition, not yet mastered.
 
