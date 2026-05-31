@@ -60,7 +60,7 @@ Consequences for the items below:
 | PROF-03 | Profiles & persistence | Persisted progress not shown until point-status refresh (stale UI) | Bug | Low | Not reproduced |
 | PROF-04 | Profiles & persistence | "Quick Start" wipes all saved data for returning users | Bug | **Critical** | ✅ Done |
 | SR-01 | Spaced repetition | Cap retry rounds for wrong words (currently unbounded → round 22) | Enhancement | High | ✅ Done (31 May) |
-| WRT-01 | Write It | One practise per visit, locked in, spaced over days (4 then opt-in) | Change | Med | Open |
+| WRT-01 | Write It | One practise per visit, locked in, spaced over days (4 then opt-in) | Change | Med | ✅ Done (31 May) |
 | WRT-02 | Write It | Practise labels wrap to two lines on desktop (widen column) | Bug / Polish | Low | ✅ Done |
 
 ---
@@ -523,7 +523,7 @@ Bring back the **practice list**: the place words go once a child has had their 
 ## Write It
 
 ### WRT-01 — One practise per visit, locked in, spaced over days
-**Type:** Change · **Priority:** Med · **Status:** Open
+**Type:** Change · **Priority:** Med · **Status:** ✅ Done (31 May)
 
 (Not a bug — Write It on **mobile** works really well. This is a refinement.)
 
@@ -540,6 +540,8 @@ So the four core practises are **sequential and spaced** (one per visit, each lo
 - **End screen:** each completed practise shows the **RES-01 Variant B** results (Completed · Time · Number of words · Continue → hub) — same component as Word Search/Crossword.
 
 > **Resolved (31 May):** four structured practises (1→4), **one per visit**, returning to hub each time (spacing over days); past 4, prompt to start a new practise. End screen = RES-01 Variant B.
+
+> **Built (31 May):** `WriteIt.jsx` reworked to a single practice per visit — tracker pills show completed practises as ticked, the current one highlighted, future ones muted (not dangled as buttons). On the 5th+ entry a gentle opt-in card ("All four practices done!… bonus practice, just for fun?") offers a **Bonus ✨** practice or **Back to the map**. End screen is the shared `GameResults` Variant B (Completed · Time · Number of words · Continue → hub). The practice number is derived from a **persisted per-list completion count**: `useProgress.markComplete` now stores + returns an absolute `completions` value, surfaced to both launch paths (My Words via `session.activityCompletions`; Explore via ListHub → `exploreActivityRunner` pseudo-session) through the registry `buildProps`. Fixed a double-count race where the progress-resync effect firing during `markComplete`'s await made the count jump by two. Browser-verified end-to-end through the Explore/ListHub path: Practise 1→2→3→4 advance one-per-visit, persist across reloads, then the opt-in/Bonus flow. `CI=true npm run build` clean.
 
 > This makes Write It the clearest embodiment of the spacing philosophy behind SR-01 — practice spread across days rather than crammed.
 
