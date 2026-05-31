@@ -6,6 +6,7 @@ import GameHeader from './GameHeader';
 import GameProgressStrip from './GameProgressStrip';
 import RestartButton from './RestartButton';
 import GameResults from './GameResults';
+import DevCompleteButton from './DevCompleteButton';
 import { formatDuration } from '../utils/formatDuration';
 import './Crossword.css';
 import { speakWord, speakSentence } from '../utils/speech';
@@ -447,6 +448,21 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
 
   const restartHasProgress = filled.size > 0 || hintsUsed > 0;
 
+  // ── DEV-only: instant complete ─────────────────────────────────────────────
+  // Fill every cell with its correct letter so the puzzle reads as solved and
+  // the shared results screen appears. Letters are written as non-hint (and no
+  // words are "revealed"), so the retry mini-round is skipped and Continue →
+  // onComplete (points / lumens / reward) fires straight away.
+  const handleDevComplete = () => {
+    if (!layout) return;
+    const solved = new Map();
+    for (const pw of layout.placedWords) {
+      const cells = wordCells(pw.word, pw.row, pw.col, pw.direction);
+      cells.forEach((c, i) => solved.set(cellKey(c.row, c.col), { letter: pw.word[i], isHint: false }));
+    }
+    setFilled(solved);
+  };
+
   // ── Loading & no-layout states ────────────────────────────────────────────
 
   const topbar = (rightSlot = null) => (
@@ -702,6 +718,8 @@ function Crossword({ words, userAge = 8, difficulty = 'medium', onComplete, onEx
       tabIndex={-1}
       onKeyDown={handleKeyDown}
     >
+      <DevCompleteButton onClick={handleDevComplete} />
+
       {/* ── Header ── */}
       {topbar(null)}
 

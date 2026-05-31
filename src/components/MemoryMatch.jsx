@@ -29,6 +29,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import GameHeader from './GameHeader';
 import GameProgressStrip from './GameProgressStrip';
 import GameResults from './GameResults';
+import DevCompleteButton from './DevCompleteButton';
 import { formatDuration } from '../utils/formatDuration';
 import { speakWord } from '../utils/speech';
 import { isMuted } from '../utils/audioMute';
@@ -358,6 +359,16 @@ export default function MemoryMatch({
   // a list of 8 words can't ask for "12 pairs". Also writes the choice
   // to localStorage so the next visit (after completion) auto-resumes
   // the same difficulty with a fresh deck.
+  // ── DEV-only: instant complete ─────────────────────────────────────────────
+  // Mark every pair as matched so the board seals and the shared results screen
+  // appears, letting the Continue → onComplete (points / lumens / reward) flow
+  // be tested without finding each pair. No-ops on the difficulty chooser
+  // (where the deck isn't built yet) — pick a size first.
+  const handleDevComplete = useCallback(() => {
+    if (!deck.length) return;
+    setMatched(new Set(deck.map((c) => c.word)));
+  }, [deck]);
+
   const handlePickPairs = useCallback((n) => {
     seedRef.current = Date.now();
     setMatched(new Set());
@@ -450,6 +461,7 @@ export default function MemoryMatch({
 
   return (
     <main className={`mm-root${dyslexiaMode ? ' mm-root--dyslexia' : ''}`}>
+      <DevCompleteButton onClick={handleDevComplete} />
       <GameProgressStrip
         current={matchedCount}
         total={totalPairs}

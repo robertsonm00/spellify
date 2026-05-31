@@ -6,6 +6,7 @@ import GameProgressStrip from './GameProgressStrip';
 import RestartButton from './RestartButton';
 import BuddyAvatar from './BuddyAvatar';
 import GameResults from './GameResults';
+import DevCompleteButton from './DevCompleteButton';
 import { getSupportTip } from '../data/spelling/dyslexiaPatterns';
 import { resolveDefinition } from '../utils/wordDefinitions';
 import { generateSpellDuelKeyboard } from '../utils/generateSpellDuelKeyboard';
@@ -303,6 +304,16 @@ function SpellDuel({
     setPhase('playing');
   };
 
+  // ── DEV-only: instant complete ─────────────────────────────────────────────
+  // Mark every word as won and jump straight to the complete screen, so the
+  // shared results + Continue → onComplete (points / lumens / reward) flow can
+  // be tested without duelling each word.
+  const handleDevComplete = () => {
+    onSaveProgress?.(null);
+    setWordResults(words.map((word) => ({ word, won: true, wrongCount: 0 })));
+    setPhase('complete');
+  };
+
   const restartHasProgress = wordIndex > 0 || guessed.size > 0 || wordResults.length > 0;
 
   const topbar = (
@@ -384,6 +395,7 @@ function SpellDuel({
   return (
     <div className="hm-wrap game-magical-bg" style={BG_STYLE}>
       {topbar}
+      <DevCompleteButton onClick={handleDevComplete} />
       <GameProgressStrip percent={queue.length > 0 ? (wordResults.length / queue.length) * 100 : 0}>
         {wordResults.length} of {queue.length} words done
       </GameProgressStrip>

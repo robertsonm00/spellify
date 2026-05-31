@@ -3,6 +3,7 @@ import confetti from 'canvas-confetti';
 import { getMorphology, pickDistractors } from '../../data/morphology';
 import GameHeader from '../GameHeader';
 import GameProgressStrip from '../GameProgressStrip';
+import DevCompleteButton from '../DevCompleteButton';
 import './WordForge.css';
 
 // ── Word-correct celebration (mirrors Hangman / Crossword / WordSearch) ─────
@@ -114,6 +115,15 @@ function WordForge({ words, onComplete, onExit }) {
     }
   };
 
+  // ── DEV-only: instant complete ─────────────────────────────────────────────
+  // Mark every word correct and jump to the results screen, so the Back to Hub
+  // → onComplete (points / lumens / reward) flow can be tested without forging
+  // each word.
+  const handleDevComplete = () => {
+    setResults(queue.map((w) => ({ word: w, correct: true, attempt: w })));
+    setPhase('complete');
+  };
+
   if (phase === 'complete') {
     const wins = results.filter((r) => r.correct).length;
     return (
@@ -144,6 +154,7 @@ function WordForge({ words, onComplete, onExit }) {
   return (
     <>
       <GameHeader title="Word Forge" onExit={onExit} />
+      <DevCompleteButton onClick={handleDevComplete} />
       <GameProgressStrip percent={(wordIndex / queue.length) * 100}>
         Word {wordIndex + 1} of {queue.length}
       </GameProgressStrip>

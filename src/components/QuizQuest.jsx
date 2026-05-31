@@ -8,6 +8,7 @@ import GameProgressStrip from './GameProgressStrip';
 import RestartButton from './RestartButton';
 import BuddyAvatar from './BuddyAvatar';
 import GameResults from './GameResults';
+import DevCompleteButton from './DevCompleteButton';
 import { SESSION_RETRY_CEILING } from '../utils/retryCeiling';
 import './QuizQuest.css';
 import { speakWord as speak } from '../utils/speech';
@@ -595,11 +596,7 @@ export default function QuizQuest({
             </button>
           </div>
         </div>
-        {process.env.NODE_ENV === 'development' && (
-          <button onClick={handleDevComplete} style={{ position: 'fixed', bottom: 16, right: 16, zIndex: 9999, background: '#ff6b35', color: 'white', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 13, cursor: 'pointer', fontFamily: 'monospace' }}>
-            ⚡ DEV: Complete
-          </button>
-        )}
+        <DevCompleteButton onClick={handleDevComplete} />
       </div>
     );
   }
@@ -641,11 +638,7 @@ export default function QuizQuest({
 
       <div className="qq-stage">
         <div className="qq-phase">
-          {process.env.NODE_ENV === 'development' && (
-            <button onClick={handleDevComplete} style={{ position: 'fixed', bottom: 16, right: 16, zIndex: 9999, background: '#ff6b35', color: 'white', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 13, cursor: 'pointer', fontFamily: 'monospace' }}>
-              ⚡ DEV: Complete
-            </button>
-          )}
+          <DevCompleteButton onClick={handleDevComplete} />
           <span className="qq-buddy" aria-hidden="true">
             <BuddyAvatar
               id={childCharacter?.id}

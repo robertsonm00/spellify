@@ -6,6 +6,7 @@ import GameHeader from './GameHeader';
 import GameProgressStrip from './GameProgressStrip';
 import BuddyAvatar from './BuddyAvatar';
 import GameResults from './GameResults';
+import DevCompleteButton from './DevCompleteButton';
 import './MemorySpell.css';
 import { speakWord as speak } from '../utils/speech';
 import { SESSION_RETRY_CEILING } from '../utils/retryCeiling';
@@ -280,6 +281,18 @@ export default function MemorySpell({
     setBuddyCheering(false);
   }, [lastResult]);
 
+  // ── DEV-only: instant complete ─────────────────────────────────────────────
+  // Mark every word correct and jump to the shared results screen, so the
+  // celebration + Continue → onComplete (points / lumens / reward) flow can be
+  // exercised without spelling each word.
+  const handleDevComplete = () => {
+    onSaveProgress?.(null);
+    setResults(words.map((w) => ({
+      word: w, correct: true, hintsUsed: { ...INITIAL_HINTS }, typed: w,
+    })));
+    setPhase('results');
+  };
+
   const handleComplete = () => {
     onSaveProgress?.(null); // wipe snapshot — activity is fully done
     // Aggregate per-word for the credit framework. A word can appear up
@@ -378,6 +391,7 @@ export default function MemorySpell({
     <div className={wrapClass} style={BG_STYLE}>
       {topbar}
       {progressBar}
+      <DevCompleteButton onClick={handleDevComplete} />
 
       <div className="ms-stage">
 

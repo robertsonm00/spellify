@@ -3,6 +3,7 @@ import GameHeader from './GameHeader';
 import GameProgressStrip from './GameProgressStrip';
 import RestartButton from './RestartButton';
 import GameResults from './GameResults';
+import DevCompleteButton from './DevCompleteButton';
 import './WriteIt.css';
 import './WordListHub.css';
 import { speakWord as speak } from '../utils/speech';
@@ -529,12 +530,8 @@ function WriteIt({
         />
       )}
 
-      {/* DEV-only: instant complete — stripped by webpack in production builds */}
-      {process.env.NODE_ENV === 'development' && (
-        <button onClick={handleDevComplete} style={{ position: 'fixed', bottom: 16, right: 16, zIndex: 9999, background: '#ff6b35', color: 'white', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 13, cursor: 'pointer', fontFamily: 'monospace' }}>
-          ⚡ DEV: Complete
-        </button>
-      )}
+      {/* DEV-only: instant complete — fills every row so the end screen shows. */}
+      <DevCompleteButton onClick={handleDevComplete} />
     </div>
   );
 }

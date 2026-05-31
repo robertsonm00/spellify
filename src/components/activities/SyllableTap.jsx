@@ -5,6 +5,7 @@ import { syllableCount, syllableChunks } from '../../utils/syllableCount';
 import GameHeader from '../GameHeader';
 import GameProgressStrip from '../GameProgressStrip';
 import GameResults from '../GameResults';
+import DevCompleteButton from '../DevCompleteButton';
 import './SyllableTap.css';
 
 // Themed background — injected via CSS custom property at runtime.
@@ -132,6 +133,18 @@ function SyllableTap({ words, onComplete, onExit, savedProgress = null, onSavePr
     }
   };
 
+  // ── DEV-only: instant complete ─────────────────────────────────────────────
+  // Mark every word correct and jump to the shared results screen, so the
+  // celebration + Continue → onComplete (points / lumens / reward) flow can be
+  // tested without tapping out every word.
+  const handleDevComplete = () => {
+    setResults(queue.map((w) => {
+      const expected = syllableCount(w);
+      return { word: w, correct: true, taps: expected, expected };
+    }));
+    setPhase('complete');
+  };
+
   // When the answer is wrong, auto-play the word broken into syllables so
   // the child hears the structure they missed.
   useEffect(() => {
@@ -212,6 +225,7 @@ function SyllableTap({ words, onComplete, onExit, savedProgress = null, onSavePr
   return (
     <div className="st-wrap game-magical-bg" style={BG_STYLE}>
       <GameHeader title="Syllable Tap" onExit={onExit} />
+      <DevCompleteButton onClick={handleDevComplete} />
       <GameProgressStrip percent={(wordIndex / queue.length) * 100}>
         Word {wordIndex + 1} of {queue.length}
       </GameProgressStrip>

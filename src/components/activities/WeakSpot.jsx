@@ -5,6 +5,7 @@ import GameHeader from '../GameHeader';
 import GameProgressStrip from '../GameProgressStrip';
 import BuddyAvatar from '../BuddyAvatar';
 import RestartButton from '../RestartButton';
+import DevCompleteButton from '../DevCompleteButton';
 import { speakWord } from '../../utils/speech';
 import { letterBoxSize } from '../../utils/letterBoxSize';
 import '../MemorySpell.css';
@@ -79,6 +80,15 @@ function WeakSpot({ words, childCharacter = null, onComplete, onExit }) {
     setPhase('flash');
   };
 
+  // ── DEV-only: instant complete ─────────────────────────────────────────────
+  // Mark every word correct and jump to the results screen, so the Back to Hub
+  // → onComplete (points / lumens / reward) flow can be tested without filling
+  // in each word's tricky spot.
+  const handleDevComplete = () => {
+    setResults(queue.map((w) => ({ word: w, correct: true })));
+    setPhase('complete');
+  };
+
   const hasProgress = wordIndex > 0 || results.length > 0;
 
   // ── Complete screen ──────────────────────────────────────────────────────
@@ -142,6 +152,7 @@ function WeakSpot({ words, childCharacter = null, onComplete, onExit }) {
     <>
       <GameHeader title="Weak Spot" onExit={onExit}
         rightSlot={<RestartButton hasProgress={hasProgress} onRestart={restart} />} />
+      <DevCompleteButton onClick={handleDevComplete} />
       <GameProgressStrip percent={(wordIndex / queue.length) * 100}>
         Word {wordIndex + 1} of {queue.length}
       </GameProgressStrip>

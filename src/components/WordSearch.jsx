@@ -6,6 +6,7 @@ import GameHeader from './GameHeader';
 import GameProgressStrip from './GameProgressStrip';
 import RestartButton from './RestartButton';
 import GameResults from './GameResults';
+import DevCompleteButton from './DevCompleteButton';
 import { formatDuration } from '../utils/formatDuration';
 import { WordDetailModal, preSeedWordInfoCache } from './WordListHub';
 import './WordSearch.css';
@@ -575,12 +576,8 @@ export default function WordSearch({ words, wordObjects = [], year = null, saved
         />
       )}
 
-      {/* DEV-only: instant complete — stripped by webpack in production builds */}
-      {process.env.NODE_ENV === 'development' && (
-        <button onClick={handleDevComplete} style={{ position: 'fixed', bottom: 16, right: 16, zIndex: 9999, background: '#ff6b35', color: 'white', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 13, cursor: 'pointer', fontFamily: 'monospace' }}>
-          ⚡ DEV: Complete
-        </button>
-      )}
+      {/* DEV-only: instant complete — fills the grid so the end screen shows. */}
+      <DevCompleteButton onClick={handleDevComplete} />
 
     </div>
   );
