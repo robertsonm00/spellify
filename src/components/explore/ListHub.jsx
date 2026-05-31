@@ -25,23 +25,21 @@ import '../WordListHub.css';
 import './ListHub.css';
 import './ListHubCards.css';
 
-// Painted card art for the cards view. Prefers a dedicated *_gametile.png
-// where supplied (Word Search, Memory Spell, Crossword, Quiz Quest), falls
-// back to the matching full-scene background PNG otherwise, and finally to
-// the emoji placeholder defined on the activity for games with no art yet.
-// Filenames mirror the live public/adventure/ folder; URL-encoded at use
-// site so spaces and the stray trailing space on some filenames are safe.
+// Painted card art for the cards view — one dedicated *_gametile.webp per
+// game (every activity now has bespoke tile art). Filenames mirror the live
+// public/adventure/ folder; still passed through encodeArtUrl so the shared
+// helper keeps working even though these names have no spaces.
 const GAME_ART = {
-  wordsearch:  '/adventure/Wordsearch_gametile.png',
-  memoryspell: '/adventure/Memory_spell_gametile.png',
-  crossword:   '/adventure/Crossword_gametile.png',
-  quizquest:   '/adventure/Quiz_quest_gametile.png',
-  // Fallbacks — full-scene background images. Swap to *_gametile.png as
-  // dedicated tiles are produced.
-  hangman:     '/adventure/Spell Duel background .png',
-  syllabletap: '/adventure/Sylaball tap background.png',
-  writeit:     '/adventure/Write it background.png',
-  // weakspot + wordforge currently have no painted art → emoji placeholder.
+  wordsearch:  '/adventure/wordsearch_gametile.webp',
+  memoryspell: '/adventure/memory_spell_gametile.webp',
+  hangman:     '/adventure/spell_duel_gametile.webp',
+  memorymatch: '/adventure/memory_match_gametile.webp',
+  syllabletap: '/adventure/sylable_tap_gametile.webp',
+  writeit:     '/adventure/write_it_gametile.webp',
+  weakspot:    '/adventure/weak_spot_gametile.webp',
+  crossword:   '/adventure/crossword_gametile.webp',
+  quizquest:   '/adventure/quiz_quest_gametile.webp',
+  wordforge:   '/adventure/word_forge_gametile.webp',
 };
 const encodeArtUrl = (path) =>
   path ? `${process.env.PUBLIC_URL || ''}${path.replace(/ /g, '%20')}` : null;
