@@ -107,6 +107,10 @@ function App() {
   // would otherwise re-route + re-query children + re-clear state on
   // every fire. We only act on the first SIGNED_IN for a given user.
   const lastSignedInUserIdRef = useRef(null);
+  // Mirrors the active child's Supabase id so progress-sync can run from
+  // callbacks defined before the `session` state itself, and survives a
+  // restore-from-localStorage session (kept current by an effect below).
+  const activeChildIdRef = useRef(null);
 
   useEffect(() => {
   let cancelled = false;
@@ -396,6 +400,12 @@ function App() {
       localStorage.setItem('spellify_player_stats', JSON.stringify({
         totalPoints:    child.points ?? 0,
         totalLumens:    child.lumens ?? 0,
+        // Level is derived from totalGames, so it MUST be seeded too or the
+        // footer recomputes Level 1 on every re-login. total_games /
+        // total_mastered come from the children-progress migration; they
+        // fall back to 0 on deployments that predate it.
+        totalGames:     child.total_games ?? 0,
+        totalMastered:  child.total_mastered ?? 0,
         lastPlayedDate: child.last_played_date ?? null,
       }));
       localStorage.setItem('spellify_streak', JSON.stringify({
@@ -412,16 +422,60 @@ function App() {
     setActiveActivity(null);
   }, [sessionFromChild]);
 
+  // Persist the active child's progression (points / lumens / level /
+  // games / streak) back to their Supabase row. Without this, gameplay
+  // only ever updated localStorage, so the canonical child row stayed at
+  // 0 — and handleSelectChild then re-seeded localStorage FROM that row on
+  // the next login, wiping the child back to Level 1 / 0 points / 0 lumens.
+  // Best-effort and non-blocking: localStorage remains the in-session
+  // source of truth; this just makes it durable across logins/devices.
+  const syncActiveChildProgress = React.useCallback(async () => {
+    const childId = activeChildIdRef.current;
+    if (!childId || !isSupabaseEnabled || !supabase) return;
+    try {
+      const s      = getPlayerStats();
+      const streak = getStreak();
+      // Columns that exist on every deployment of `children`.
+      const safe = {
+        points:           s.totalPoints ?? 0,
+        lumens:           s.totalLumens ?? 0,
+        level:            getLevelFromGames(s.totalGames ?? 0),
+        last_played_date: s.lastPlayedDate ?? streak.lastPlayedDate ?? null,
+        current_streak:   streak.currentStreak ?? 0,
+        longest_streak:   streak.longestStreak ?? 0,
+      };
+      // total_games / total_mastered arrived with the children-progress
+      // migration; needed so level can be reconstructed on re-login.
+      const full = {
+        ...safe,
+        total_games:    s.totalGames ?? 0,
+        total_mastered: s.totalMastered ?? 0,
+      };
+      let { error } = await supabase.from('children').update(full).eq('id', childId);
+      if (error) {
+        // Older deployments lack the two extra columns — retry with only
+        // the always-present set so points/lumens/level/streak still persist.
+        ({ error } = await supabase.from('children').update(safe).eq('id', childId));
+      }
+      if (error) console.error('[progress] child sync failed', error);
+    } catch (err) {
+      console.error('[progress] child sync threw', err);
+    }
+  }, []);
+
   // Exit button (in-game) → returns to ProfileSelector. Does NOT sign
   // out: the parent stays authenticated, we just clear the active
   // child so the selector can show "who's playing?" again.
   const handleExitToSelector = React.useCallback(() => {
+    // Flush the latest totals to the child row before we drop the session,
+    // so leaving mid-progress (without finishing a game) still persists.
+    syncActiveChildProgress();
     setSession(null);
     setActiveActivity(null);
     setShowExitModal(false);
     setSection('home');
     setScreen('profileSelector');
-  }, []);
+  }, [syncActiveChildProgress]);
 
   // Quick Start from the selector (guest path) → onboarding.
   const handleQuickStart = React.useCallback(() => {
@@ -703,6 +757,14 @@ function App() {
 
   const [session,        setSession]        = useState(() => loadSession());
 
+  // Keep the active-child ref in lockstep with the session, no matter how
+  // the session was set (profile selection, child creation, or a
+  // restore-from-localStorage on reload). syncActiveChildProgress reads
+  // this ref, so progress persists in every one of those cases.
+  useEffect(() => {
+    activeChildIdRef.current = session?._childId ?? null;
+  }, [session]);
+
   // Once-per-app-open streak popup — runs in a useEffect (not in the
   // render body) so render-time setState can't conflict with
   // StrictMode's double-invoke. Depends only on `session` so it fires
@@ -853,6 +915,10 @@ function App() {
     setTimeout(fireBuddyCheer, 150);
     // Notify the footer to re-read live points from the engine.
     window.dispatchEvent(new CustomEvent('spellify-points-update'));
+    // Persist the freshly-earned totals to the child's Supabase row so they
+    // survive sign-out / re-login / another device (the engines above only
+    // wrote localStorage).
+    syncActiveChildProgress();
   };
 
   const handleExit = () => setActiveActivity(null);
