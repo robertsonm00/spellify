@@ -41,8 +41,8 @@ Consequences for the items below:
 | RES-02 | Results | Every completed game returns with a celebration | Enhancement / Polish | High | ✅ Done (31 May) |
 | RES-03 | Results | Post-game levels/lumens readout — ensure it exists on card design | Bug | High | ✅ Done |
 | PRAC-01 | Practice list | Reintroduce the practice list for struggling words | Enhancement | High | ✅ Done (31 May) |
-| LVL-01 | Levelling | Rebalance the level-up curve | Bug | High | Open |
-| LVL-02 | Levelling | Add a level-up celebration moment | Enhancement / Polish | High | Open |
+| LVL-01 | Levelling | Rebalance the level-up curve | Bug | High | ✅ Done (31 May) |
+| LVL-02 | Levelling | Add a level-up celebration moment | Enhancement / Polish | High | ✅ Done (31 May) |
 | MAS-01 | Mastery & progress | Show progress toward mastery + restore hover pop-up (0/14 is correct) | Enhancement | High | ✅ Done |
 | MAS-02 | Mastery & progress | Port classic "mastered" bar onto the card design | Enhancement | Med | ✅ Done |
 | ONB-01 | Onboarding | Raccoon mascot slow to load (blank first) | Bug | Med | Open |
@@ -242,7 +242,7 @@ Areas for Claude Code to check:
 ## Levelling
 
 ### LVL-01 — Rebalance the level-up curve
-**Type:** Bug · **Priority:** High · **Status:** Open
+**Type:** Bug · **Priority:** High · **Status:** ✅ Done (31 May)
 
 Currently far too fast: one Word Search + one Spell Draw and the player was already at **Level 4**. Completion should grant progress, not instant levels.
 
@@ -265,8 +265,10 @@ This maps cleanly to a points model: each completed game = 1 point; thresholds a
 
 > **Resolved (31 May):** **one global level** — every game feeds the same shared level (recommended option taken). Unit = one completed game. Saved in localStorage now, Supabase later.
 
+> **Built (31 May):** level is now derived purely from `stats.totalGames` (never stored) via `buildLevelThresholds()` / `getLevelFromGames()` / `getLevelProgress()` in `gamificationEngine.js`. Thresholds: L1=0, L2=1, L3=3, L4=5, L5=7, then +3/+4/+5… (gap grows by one each level). The footer XP bar reads real games-into-level progress (App.jsx `getLevelProgress`), replacing the hardcoded 650/1000 placeholder. Verified live: `totalGames=5` → footer "LVL 4" with "0 / 2 XP → Level 5" (the old points curve would have shown ~L6).
+
 ### LVL-02 — Add a level-up celebration moment
-**Type:** Enhancement / Polish · **Priority:** High · **Status:** Open
+**Type:** Enhancement / Polish · **Priority:** High · **Status:** ✅ Done (31 May)
 
 Nothing currently signals a level-up — needs "a piece of magic" that clearly announces it, in the pixelated retro-arcade style.
 
@@ -277,6 +279,8 @@ Suggested ingredients (all already in the stack):
 - Make it a **reusable** moment so it fires identically across all games (build it inside the RES-01 shared results flow).
 
 > **Observed (30 May):** returning from **Syllable Tap** *and* **Write It** produced **no celebration at all**. Two distinct moments are involved — see **RES-02** (a completion celebration on *every* finished game) vs LVL-02 here (the *level-up* flourish, only when a threshold is crossed). Both should live in the shared RES-01 flow so they fire consistently across all games rather than per-game.
+
+> **Built (31 May):** the level-up flourish lives inside the hub's `RewardSequence` (the DESIGN-01 keeper surface, where RES-03's points/lumens readout already runs), so it fires identically for every game. The phase flow is now **points → lumens → levelup → done**, with the `levelup` phase gated on `leveledUp` (returned from `recordGameCompleted` by comparing level before vs after the games increment). It shows an **"⬆ LEVEL UP! Level N"** banner (retro pixel pill, purple→magenta→amber gradient, gold level number), a 140-particle `canvas-confetti` burst with twin side bursts, and an ascending C-E-G-C AudioContext fanfare. Verified live crossing the L4 threshold (5th game): banner, confetti and footer "LVL 4" all fired. *(Note: the animated counter uses `requestAnimationFrame`, which is paused in a backgrounded/headless tab — verification required shimming rAF; in a real visible tab the sequence plays normally.)*
 
 ---
 
