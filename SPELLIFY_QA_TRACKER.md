@@ -37,8 +37,8 @@ Consequences for the items below:
 | SD-01 | Spell Duel | Add distractor letters to keyboard | Bug / Enhancement | High | ✅ Already implemented (31 May) |
 | SD-02 | Spell Duel | Stop adding rounds after 3 words wrong (matches SR-01) | Enhancement | Med | ✅ Done (31 May) |
 | SDR-01 | Crossword | Read the Crossword clue aloud (TTS, site voice) | Enhancement | Med | ✅ Done |
-| RES-01 | Results | Unified end-of-game results — full 2-variant spec (Memory Spell base) | Enhancement | High | Specced |
-| RES-02 | Results | Every completed game returns with a celebration | Enhancement / Polish | High | Open |
+| RES-01 | Results | Unified end-of-game results — full 2-variant spec (Memory Spell base) | Enhancement | High | ✅ Done (31 May) — Write It end screen folded into WRT-01 |
+| RES-02 | Results | Every completed game returns with a celebration | Enhancement / Polish | High | ✅ Done (31 May) |
 | RES-03 | Results | Post-game levels/lumens readout — ensure it exists on card design | Bug | High | ✅ Done |
 | PRAC-01 | Practice list | Reintroduce the practice list for struggling words | Enhancement | High | ✅ Done (31 May) |
 | LVL-01 | Levelling | Rebalance the level-up curve | Bug | High | Open |
@@ -123,7 +123,9 @@ Read the **Crossword clue** aloud to the player. Auto-play on reveal plus a repl
 ## End-of-game results
 
 ### RES-01 — Unified end-of-game results (full spec)
-**Type:** Enhancement (cross-cutting) · **Priority:** High · **Status:** Specced — ready to build
+**Type:** Enhancement (cross-cutting) · **Priority:** High · **Status:** ✅ Done (31 May)
+
+> **Built (31 May):** shared `GameResults` component (`GameResults.jsx`/`.css`) with both variants. **Variant A** (word boxes): Memory Spell, Quiz Quest, Spell Duel, Syllable Tap. **Variant B** (stat tiles): Crossword (Time · Hints used), Word Search (Time · Words found), Memory Match (Time · Moves) — `formatDuration()` added for the Time tile. Single star, single "Continue" CTA always outside the containers, "Play Again" removed everywhere. Word Search / Memory Match overlay the results over a live board, so their scrims were taken to near-opaque (0.92 + blur 6px) since the shared panel is semi-transparent; Crossword resolves to its dark themed background. Browser-verified on all three Variant B games (star · Completed · tiles · Continue → hub, mastery credited). **Write It's** Variant B end screen is folded into **WRT-01** (it reworks Write It's whole flow) and Write It already celebrates today, so RES-02 stays satisfied.
 
 **Template decided:** **Memory Spell** is the canonical end screen. Every game uses **one shared results component** with **two variants**. The big parked question (which template) is now answered.
 
@@ -205,7 +207,9 @@ Stat tiles per game:
 > **Integrates with:** RES-02 (completion celebration), RES-03 (points/level/lumens readout), LVL-02 (level-up flourish) — these layer into this same shared moment. Worth confirming the **order** on screen: e.g. celebration → results screen → Continue, with the points/level readout shown where? Parked until the shell is built.
 
 ### RES-02 — Every completed game returns with a celebration
-**Type:** Enhancement / Polish · **Priority:** High · **Status:** Open
+**Type:** Enhancement / Polish · **Priority:** High · **Status:** ✅ Done (31 May)
+
+> **Built (31 May):** the completion celebration (confetti burst + ascending AudioContext fanfare) now lives in `GameResults` and fires once on mount via a `firedRef` guard, so it plays identically on **every** finished game and no game can skip it. Each game's own end-of-game fanfare was removed to avoid double-firing (per-word confetti kept). LVL-02's level-up flourish still layers on top — tracked separately.
 
 **Universal requirement:** *every* completed game returns the child with a celebration moment — not just on level-up. Confirmed missing on **Syllable Tap** and **Write It**; assume it's missing or inconsistent across the board until verified.
 
