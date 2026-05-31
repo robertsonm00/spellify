@@ -95,7 +95,56 @@ function playChaChing(ctx) {
   } catch { /* noop */ }
 }
 
-function RewardSequence({ fromPoints, toPoints, fromLumens, toLumens, onDone }) {
+// Triumphant ascending arpeggio for a level-up (LVL-02) — brighter and
+// bigger than the per-game chimes so the level-up clearly stands apart.
+function playLevelUpFanfare(ctx) {
+  try {
+    // C-E-G-C major arpeggio climbing up, then a shimmering high octave.
+    [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'triangle';
+      osc.frequency.value = freq;
+      const t = ctx.currentTime + i * 0.12;
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.25, t + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+      osc.start(t); osc.stop(t + 0.55);
+    });
+    // Sparkle on top once the arpeggio lands.
+    [1568, 2093].forEach((freq, i) => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      const t = ctx.currentTime + 0.48 + i * 0.08;
+      gain.gain.setValueAtTime(0.12, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+      osc.start(t); osc.stop(t + 0.45);
+    });
+  } catch { /* noop */ }
+}
+
+function fireLevelUpConfetti() {
+  try {
+    confetti({
+      particleCount: 140,
+      spread: 100,
+      startVelocity: 45,
+      origin: { y: 0.5 },
+      colors: ['#ffd93d', '#ff9f43', '#c77dff', '#6bcb77', '#4d96ff', '#ff6b6b'],
+    });
+    // Twin side bursts a beat later for a fuller "pop".
+    setTimeout(() => {
+      confetti({ particleCount: 60, angle: 60,  spread: 70, origin: { x: 0, y: 0.6 } });
+      confetti({ particleCount: 60, angle: 120, spread: 70, origin: { x: 1, y: 0.6 } });
+    }, 180);
+  } catch { /* noop */ }
+}
+
+function RewardSequence({ fromPoints, toPoints, fromLumens, toLumens, leveledUp = false, toLevel = null, onDone }) {
   const [displayPoints, setDisplayPoints] = useState(fromPoints);
   const [displayLumens, setDisplayLumens] = useState(fromLumens);
   const [phase, setPhase] = useState('points'); // 'points' | 'lumens' | 'done'
@@ -131,12 +180,16 @@ function RewardSequence({ fromPoints, toPoints, fromLumens, toLumens, onDone }) 
     return () => { cancelled = true; };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Where to go once lumens settle: into the level-up flourish if the player
+  // crossed a threshold (LVL-02), otherwise straight to done.
+  const afterLumens = leveledUp ? 'levelup' : 'done';
+
   // Lumens counter — fires after points settle
   useEffect(() => {
     if (phase !== 'lumens') return;
     let cancelled = false;
     const lumensDelta = toLumens - fromLumens;
-    if (lumensDelta <= 0) { setPhase('done'); return; }
+    if (lumensDelta <= 0) { setPhase(afterLumens); return; }
 
     try {
       const ctx = audioCtxRef.current || new (window.AudioContext || window.webkitAudioContext)();
@@ -152,10 +205,24 @@ function RewardSequence({ fromPoints, toPoints, fromLumens, toLumens, onDone }) 
       const eased = 1 - (1 - t) ** 2;
       setDisplayLumens(Math.round(fromLumens + eased * lumensDelta));
       if (t < 1) requestAnimationFrame(tick);
-      else setTimeout(() => { if (!cancelled) setPhase('done'); }, 900);
+      else setTimeout(() => { if (!cancelled) setPhase(afterLumens); }, 900);
     };
     requestAnimationFrame(tick);
     return () => { cancelled = true; };
+  }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Level-up flourish (LVL-02) — confetti + fanfare, then settle to done.
+  useEffect(() => {
+    if (phase !== 'levelup') return;
+    let cancelled = false;
+    fireLevelUpConfetti();
+    try {
+      const ctx = audioCtxRef.current || new (window.AudioContext || window.webkitAudioContext)();
+      audioCtxRef.current = ctx;
+      playLevelUpFanfare(ctx);
+    } catch { /* noop */ }
+    const t = setTimeout(() => { if (!cancelled) setPhase('done'); }, 2100);
+    return () => { cancelled = true; clearTimeout(t); };
   }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-dismiss after 'done'
@@ -172,6 +239,15 @@ function RewardSequence({ fromPoints, toPoints, fromLumens, toLumens, onDone }) 
     <div className="lh-reward-overlay" role="status" aria-live="polite" onClick={onDone}>
       <div className="lh-reward-card" onClick={e => e.stopPropagation()}>
         <p className="lh-reward-heading">🎉 Game complete!</p>
+
+        {/* Level-up banner (LVL-02) — only once lumens have settled and the
+            player actually crossed a threshold. */}
+        {leveledUp && (phase === 'levelup' || phase === 'done') && (
+          <div className="lh-reward-levelup" role="status">
+            <span className="lh-reward-levelup__label">⬆ LEVEL UP!</span>
+            <span className="lh-reward-levelup__num">Level {toLevel}</span>
+          </div>
+        )}
 
         {/* Points row */}
         <div className={`lh-reward-row${phase === 'points' ? ' lh-reward-row--active' : ''}`}>
@@ -567,6 +643,8 @@ export default function ListHub({
           toPoints:   (statsBefore.totalPoints || 0) + (rewardInfo.pointsAwarded || 0),
           fromLumens: statsBefore.totalLumens  || 0,
           toLumens:   (statsBefore.totalLumens  || 0) + (rewardInfo.lumensAwarded || 0),
+          leveledUp:  !!rewardInfo.leveledUp,
+          toLevel:    rewardInfo.level,
         });
       }, 1000);
     }
@@ -1078,6 +1156,8 @@ export default function ListHub({
             toPoints={rewardSequence.toPoints}
             fromLumens={rewardSequence.fromLumens}
             toLumens={rewardSequence.toLumens}
+            leveledUp={rewardSequence.leveledUp}
+            toLevel={rewardSequence.toLevel}
             onDone={() => setRewardSequence(null)}
           />
         )}

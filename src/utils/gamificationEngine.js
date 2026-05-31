@@ -98,24 +98,62 @@ function emptyStats() {
 }
 
 /* ── Level milestones ─────────────────────────────────────────────────── */
-// Derived from points — never stored. Supabase will eventually store the
-// computed level for analytics but localStorage stays the source for
-// points and lumens; level is a view over points.
-export const LEVEL_THRESHOLDS = [
-  0, 50, 120, 220, 360, 550, 800, 1100, 1500, 2000,
-  2700, 3500, 4400, 5500, 6700, 8000, 9500, 11000, 12700, 14600,
-  17000, 19600, 22400, 25400, 28700, 32300, 36200, 40500, 45200, 50300,
-  56000, 62000, 68500, 75500, 83000, 91000, 99500, 108500, 118000, 128000,
-  139000, 151000, 164000, 178000, 193000, 209000, 226000, 244000, 263000, 283000,
-];
+// Level is derived from the number of GAMES COMPLETED, not points (LVL-01).
+// One finished game = one step toward the next level. Early levels come
+// quickly so a child feels momentum immediately, then the gap widens so
+// levelling stays meaningful instead of rocketing (the old points curve gave
+// Level 4 after just two games):
+//
+//   Level 2 at 1 game · L3 at 3 · L4 at 5 · L5 at 7, then the gap grows by
+//   one each level — L6 at 10 (+3), L7 at 14 (+4), L8 at 19 (+5), L9 at 25…
+//
+// LEVEL_THRESHOLDS[i] = cumulative games needed to REACH level (i + 1).
+// Derived, never stored: level is a pure view over totalGames.
+function buildLevelThresholds(maxLevel = 120) {
+  const thresholds = [0];          // Level 1 = 0 games
+  const earlyGaps  = [1, 2, 2, 2]; // gaps to reach L2, L3, L4, L5
+  let cumulative = 0;
+  for (let level = 2; level <= maxLevel; level++) {
+    const gap = level - 2 < earlyGaps.length
+      ? earlyGaps[level - 2]
+      : 3 + (level - 6);           // L6 gap = 3, then +1 each level after
+    cumulative += gap;
+    thresholds.push(cumulative);
+  }
+  return thresholds;
+}
 
-export function getLevelFromPoints(points) {
+export const LEVEL_THRESHOLDS = buildLevelThresholds();
+
+export function getLevelFromGames(games) {
+  const g = Math.max(0, Math.floor(games || 0));
   let level = 1;
   for (let i = 0; i < LEVEL_THRESHOLDS.length; i++) {
-    if (points >= LEVEL_THRESHOLDS[i]) level = i + 1;
+    if (g >= LEVEL_THRESHOLDS[i]) level = i + 1;
     else break;
   }
   return level;
+}
+
+/**
+ * Progress within the current level, for the footer XP bar (LVL-01). Each
+ * completed game advances the bar by one, so a game that doesn't level the
+ * player up still visibly moves them forward.
+ *
+ * @returns {{ level, gamesIntoLevel, gamesForLevel, percent, nextLevelAt, isMax }}
+ */
+export function getLevelProgress(games) {
+  const g = Math.max(0, Math.floor(games || 0));
+  const level     = getLevelFromGames(g);
+  const currentAt = LEVEL_THRESHOLDS[level - 1] ?? 0;
+  const nextAt    = LEVEL_THRESHOLDS[level] ?? null;
+  if (nextAt == null) {
+    return { level, gamesIntoLevel: g - currentAt, gamesForLevel: 0, percent: 100, nextLevelAt: null, isMax: true };
+  }
+  const span = nextAt - currentAt;
+  const into = g - currentAt;
+  const percent = span > 0 ? Math.max(0, Math.min(100, Math.round((into / span) * 100))) : 0;
+  return { level, gamesIntoLevel: into, gamesForLevel: span, percent, nextLevelAt: nextAt, isMax: false };
 }
 
 // Lumens per 5 points (integer floor).
@@ -249,6 +287,9 @@ export function recordGameCompleted(
   // 2) Player stats roll-forward (games, streak, mastered tally)
   let stats     = getPlayerStats();
   const streak  = rollStreak(stats);
+  // Snapshot the games count BEFORE the increment so we can detect a
+  // level-up (LVL-02). Level is derived purely from games completed.
+  const gamesBefore = stats.totalGames || 0;
   stats = {
     ...stats,
     totalGames:     stats.totalGames + 1,
@@ -298,5 +339,13 @@ export function recordGameCompleted(
   if (isTestAll)           fire('testAllCompleted');
   if (listCompleted)       fire('listCompleted');
 
-  return { pointsAwarded, lumensAwarded, newBadges, wordsMastered, listCompleted };
+  // 6) Level transition (LVL-01/LVL-02) — derived from games completed.
+  const previousLevel = getLevelFromGames(gamesBefore);
+  const level         = getLevelFromGames(gamesBefore + 1);
+  const leveledUp     = level > previousLevel;
+
+  return {
+    pointsAwarded, lumensAwarded, newBadges, wordsMastered, listCompleted,
+    previousLevel, level, leveledUp,
+  };
 }

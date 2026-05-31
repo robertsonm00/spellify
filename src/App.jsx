@@ -6,7 +6,7 @@ import SpellingQuiz   from './components/SpellingQuiz';
 import { loadSession, saveSession, createSession, INITIAL_STATUSES, updateMastery, rebuildReviewQueue, getActivityProgress, setActivityProgress } from './data/spelling/sessionSchema';
 import { getActivity } from './data/activities';
 import { isActivityAvailable } from './utils/activityAvailability';
-import { recordGameCompleted, getPlayerStats, getLevelFromPoints } from './utils/gamificationEngine';
+import { recordGameCompleted, getPlayerStats, getLevelFromGames, getLevelProgress } from './utils/gamificationEngine';
 import { recordPlayToday, getStreak, getStreakStatus } from './utils/streakEngine';
 import SpellifyLogo   from './components/SpellifyLogo';
 import { fireBuddyCheer } from './components/BuddyAvatar';
@@ -609,7 +609,16 @@ function App() {
   const livePoints = React.useMemo(() => getPlayerStats().totalPoints, [pointsTick]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const liveLumens = React.useMemo(() => getPlayerStats().totalLumens || 0, [pointsTick]);
-  const liveLevel  = React.useMemo(() => getLevelFromPoints(livePoints), [livePoints]);
+  // Level is derived from games completed, not points (LVL-01). The footer XP
+  // bar shows progress within the level — one game = one notch toward the next.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const liveGames  = React.useMemo(() => getPlayerStats().totalGames || 0, [pointsTick]);
+  const liveLevel  = React.useMemo(() => getLevelFromGames(liveGames), [liveGames]);
+  const levelXp    = React.useMemo(() => {
+    const p = getLevelProgress(liveGames);
+    // Max level reached → show a full bar rather than "/ 0".
+    return p.isMax ? { current: 1, max: 1 } : { current: p.gamesIntoLevel, max: p.gamesForLevel };
+  }, [liveGames]);
 
   // Keep session.lumens mirrored to the gamification engine so it
   // persists with the rest of the session (Supabase syncs from here).
@@ -1268,8 +1277,8 @@ function App() {
             lumens={liveLumens}
             level={liveLevel}
             levelTitle={`LVL ${liveLevel}`}
-            xpCurrent={650}
-            xpMax={1000}
+            xpCurrent={levelXp.current}
+            xpMax={levelXp.max}
             buddyId={session?.childCharacter?.id || 'raccoon'}
             buddyFallback={session?.childCharacter?.emoji || '🦝'}
             section={section}
@@ -1283,8 +1292,8 @@ function App() {
             lumens={liveLumens}
             level={liveLevel}
             levelTitle={`LVL ${liveLevel}`}
-            xpCurrent={650}
-            xpMax={1000}
+            xpCurrent={levelXp.current}
+            xpMax={levelXp.max}
             buddyId={session?.childCharacter?.id || 'raccoon'}
             buddyFallback={session?.childCharacter?.emoji || '🦝'}
             onSignInClick={() => setShowSignIn(true)}
@@ -1393,8 +1402,8 @@ function App() {
         lumens={liveLumens}
         level={liveLevel}
         levelTitle={`LVL ${liveLevel}`}
-        xpCurrent={650}
-        xpMax={1000}
+        xpCurrent={levelXp.current}
+        xpMax={levelXp.max}
         buddyId={session?.childCharacter?.id || 'raccoon'}
         buddyFallback={session?.childCharacter?.emoji || '🦝'}
         section={section}
@@ -1408,8 +1417,8 @@ function App() {
         lumens={liveLumens}
         level={liveLevel}
         levelTitle={`LVL ${liveLevel}`}
-        xpCurrent={650}
-        xpMax={1000}
+        xpCurrent={levelXp.current}
+        xpMax={levelXp.max}
         buddyId={session?.childCharacter?.id || 'raccoon'}
         buddyFallback={session?.childCharacter?.emoji || '🦝'}
       />
