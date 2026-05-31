@@ -389,6 +389,21 @@ export default function ListHub({
     }
   }, [coachPhase, wordsDrawerOpen]);
 
+  // First time a child opens a given list, pop the words drawer so they see
+  // the words before starting. Runs once per list (persisted). Skipped while
+  // the first-visit coach is running — it already walks them through the
+  // drawer — but we still mark the list handled so it never double-opens once
+  // the coach finishes.
+  useEffect(() => {
+    const seenKey = `spellify_lh_words_seen_${list.id}`;
+    try {
+      if (window.localStorage.getItem(seenKey)) return;
+      window.localStorage.setItem(seenKey, '1');
+    } catch { /* private mode — fall through and just open it */ }
+    if (coachPhase !== 'off') return;
+    setWordsDrawerOpen(true);
+  }, [list.id, coachPhase]);
+
   // ── Word Mastery modal (Part 4) ───────────────────────────────────────────
   // Show once when ALL words in the list are mastered during this session.
   // We compare the previous listProgress.status to detect the transition.

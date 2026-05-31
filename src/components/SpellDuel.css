@@ -43,8 +43,15 @@
   justify-content: center;
 }
 
+/* Sticker shadow + a soft halo so both fighters (player buddy + opponent
+   wizard) lift off the busy background. The state animations below only
+   touch `transform`, so this glow rides through attack/defeat/triumph; KO
+   deliberately overrides `filter` to grey the loser out (no glow). */
 .sd-portrait > :first-child {
-  filter: drop-shadow(2px 3px 0 rgba(0, 0, 0, 0.28));
+  filter:
+    drop-shadow(2px 3px 0 rgba(0, 0, 0, 0.28))
+    drop-shadow(0 0 7px rgba(255, 255, 255, 0.4))
+    drop-shadow(0 0 16px rgba(199, 125, 255, 0.45));
 }
 
 /* Opponent wizard sprite (replaces the placeholder emoji). Sits in the same

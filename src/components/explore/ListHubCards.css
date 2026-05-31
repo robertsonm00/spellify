@@ -537,7 +537,12 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
+  padding-top: 24px;
   margin-bottom: 18px;
+}
+/* Breathing room above the word chips so they don't crowd the header. */
+.lh-words-drawer .hub-chips {
+  padding-top: 24px;
 }
 .lh-words-drawer__label {
   display: block;
