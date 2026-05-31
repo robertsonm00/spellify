@@ -69,7 +69,6 @@ export default function FileUpload({ onWordsConfirmed, onCancel }) {
   const [isDragging,  setIsDragging] = useState(false);
   const [pendingFile, setPendingFile] = useState(null);
   const fileInputRef   = useRef(null);
-  const cameraInputRef = useRef(null);
 
   // ── Run OCR / PDF / text extraction ──────────────────────────────────────
   const runExtraction = useCallback(async (file) => {
@@ -230,26 +229,14 @@ export default function FileUpload({ onWordsConfirmed, onCancel }) {
           <p className="fu-dropzone-types">JPG · PNG · PDF · TXT · CSV — max 5 MB</p>
         </div>
 
-        <button
-          className="fu-camera-btn"
-          onClick={() => cameraInputRef.current?.click()}
-          type="button"
-        >
-          📷 Take Photo
-        </button>
+        {/* WL-01: "Take Photo" (device camera capture) hidden for now —
+            no working scan/OCR-from-camera path yet. On the post-QA
+            roadmap; restore this button + the camera input then. */}
 
         <input
           ref={fileInputRef}
           type="file"
           accept=".jpg,.jpeg,.png,.webp,.gif,.pdf,.txt,.csv"
-          onChange={handleFileChange}
-          style={{ display: 'none' }}
-        />
-        <input
-          ref={cameraInputRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
           onChange={handleFileChange}
           style={{ display: 'none' }}
         />

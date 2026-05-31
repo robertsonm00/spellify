@@ -140,14 +140,9 @@ function AddWordsManual({ onWordsReady, collectTestDate = false }) {
         >
           <span>📁</span> Upload from File
         </button>
-        {/* Camera: opens FileUpload which handles the camera input internally */}
-        <button
-          className="aw-upload-btn aw-camera-btn"
-          onClick={() => setShowUpload(true)}
-          type="button"
-        >
-          <span>📷</span> Take Photo
-        </button>
+        {/* WL-01: "Take Photo" hidden for now — there's no working
+            camera/OCR scan path behind it yet. The scan-a-word-list
+            feature is on the post-QA roadmap; restore this button then. */}
       </div>
 
       {/* ── Optional test date (creation flow only) ── */}

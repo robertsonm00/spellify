@@ -47,21 +47,21 @@ Consequences for the items below:
 | MAS-02 | Mastery & progress | Port classic "mastered" bar onto the card design | Enhancement | Med | ✅ Done |
 | ONB-01 | Onboarding | Raccoon mascot slow to load (blank first) | Bug | Med | Open |
 | MAP-01 | Home / Map | Map image not visible on home load (black flash) | Bug | High | Open |
-| MAP-02 | Home / Map | Ember Isle badge glow too strong on mobile | Bug / Polish | Med | Open |
-| MAP-03 | Home / Map | Remove dev streak from home page | Change | Med | Open |
-| NAV-01 | Footer nav | Footer navigation not working | Bug | High | Open |
-| NAV-02 | Footer nav | Move "Shop" from footer nav into hamburger (mobile) | Change | Med | Open |
-| NAV-03 | Footer nav | Add 8px top padding to footer nav icons | Polish | Low | Open |
+| MAP-02 | Home / Map | Ember Isle badge glow too strong on mobile | Bug / Polish | Med | ✅ Done |
+| MAP-03 | Home / Map | Remove dev streak from home page | Change | Med | ✅ Done |
+| NAV-01 | Footer nav | Footer navigation not working | Bug | High | Not reproduced (31 May) |
+| NAV-02 | Footer nav | Move "Shop" from footer nav into hamburger (mobile) | Change | Med | ✅ Done |
+| NAV-03 | Footer nav | Add 8px top padding to footer nav icons | Polish | Low | ✅ Done |
 | PROF-01 | Profiles & persistence | Name not shown on Map/home (display only — data is saved) | Bug | Med | ✅ Done |
-| WL-01 | Word lists | Hide "Take photo" until feature exists (roadmap after QA) | Change | Med | Open |
+| WL-01 | Word lists | Hide "Take photo" until feature exists (roadmap after QA) | Change | Med | ✅ Done |
 | WL-02 | Word lists | Created lists don't save or appear in My Lists (photo + random) | Bug | **Critical** | ✅ Done (via PROF-04) |
-| PROF-02 | Profiles & persistence | Hide avatar from menu (not deployable yet) | Change | Med | Open |
+| PROF-02 | Profiles & persistence | Hide avatar from menu (not deployable yet) | Change | Med | ✅ Done |
 | SYL-01 | Syllable Tap | Hide game when word set lacks syllable variety | Enhancement | Med | Open |
 | PROF-03 | Profiles & persistence | Persisted progress not shown until point-status refresh (stale UI) | Bug | Low | Not reproduced |
 | PROF-04 | Profiles & persistence | "Quick Start" wipes all saved data for returning users | Bug | **Critical** | ✅ Done |
 | SR-01 | Spaced repetition | Cap retry rounds for wrong words (currently unbounded → round 22) | Enhancement | High | Open |
 | WRT-01 | Write It | One practise per visit, locked in, spaced over days (4 then opt-in) | Change | Med | Open |
-| WRT-02 | Write It | Practise labels wrap to two lines on desktop (widen column) | Bug / Polish | Low | Open |
+| WRT-02 | Write It | Practise labels wrap to two lines on desktop (widen column) | Bug / Polish | Low | ✅ Done |
 
 ---
 
@@ -331,7 +331,7 @@ Likely fixes for Claude Code to check:
 > Same class of issue as ONB-01 (asset-load flash) — worth fixing both with one preload/placeholder approach.
 
 ### MAP-02 — Ember Isle badge glow too strong on mobile
-**Type:** Bug / Polish · **Priority:** Med · **Status:** Open
+**Type:** Bug / Polish · **Priority:** Med · **Status:** ✅ Done (31 May)
 
 On mobile, the **Ember Isle** badge has too much glow/halo (the blue) — it spreads so far it renders as a visible **outer box** around the badge. Pull it right back so there's no outer box.
 
@@ -340,7 +340,7 @@ The **HFW island ("The Enchanted Words")** badge is correct — match that one.
 > **Resolved (31 May):** confirmed — it's the **glow/box-shadow spreading to the edge of the visible box**. Just reduce the spread so it no longer reaches/forms the box edge.
 
 ### MAP-03 — Remove dev streak from home page
-**Type:** Change · **Priority:** Med · **Status:** Open
+**Type:** Change · **Priority:** Med · **Status:** ✅ Done (31 May)
 
 Remove the **dev streak** indicator from the home page — a development/debug artifact that shouldn't be showing.
 
@@ -351,19 +351,26 @@ Remove the **dev streak** indicator from the home page — a development/debug a
 ## Footer navigation
 
 ### NAV-01 — Footer navigation not working
-**Type:** Bug · **Priority:** High · **Status:** Open
+**Type:** Bug · **Priority:** High · **Status:** Not reproduced (31 May)
 
 The footer nav doesn't function — taps/clicks aren't routing as expected.
 
 > **Note (31 May):** Shop is moving to the hamburger on mobile (NAV-02), not deleted — so it's not the "broken item." Claude Code should still diagnose whether *all* footer items fail or only some, and confirm each remaining item's destination.
 
+**Diagnosis (31 May):** Could not reproduce as an app bug. Every footer destination routes correctly through its React `onClick` → `onSectionChange` → App section routing:
+- **Desktop footer (`ArcadeFooter`):** HOME, ASSIGN, MY LISTS, EXPLORE, SHOP, AVATAR all navigate and update the active-tab highlight; icon tabs (Favourites, Recently viewed, Alerts) navigate too.
+- **Mobile bottom nav (`MobileBottomNav`):** Home, Explore, Shop, My Lists, Avatar all navigate; the menu tab opens the drawer.
+- **No overlay/pointer interception:** on the Adventure Map (the screen where it looked broken), `elementFromPoint` at each tab centre returns the tab itself at both desktop (1280px) and mobile (375px) widths. Footer/nav are `position:fixed; z-index:50` and sit clear of the map layer (map root ends at `bottom:80px` desktop / `bottom: safe+96px` mobile).
+
+The earlier "real clicks don't navigate" signal was a **preview-tool artifact**: the automated clicker fires at ~1.756× scaled coordinates (devicePixelRatio 2) and lands off-target/off-screen, so it never hit the buttons. Real browser/device hit-testing is correct. The app applies no `transform`/`zoom` on html/body/#root (verified), so real users are unaffected. **No code change made.** If a real device still misbehaves, capture the exact screen + tab so it can be reproduced.
+
 ### NAV-02 — Move "Shop" from footer nav into the hamburger (mobile)
-**Type:** Change · **Priority:** Med · **Status:** Open
+**Type:** Change · **Priority:** Med · **Status:** ✅ Done (31 May)
 
 On **mobile**, take the **Shop** entry **out of the footer nav** and **into the hamburger menu**. Not deleted — relocated, so the footer is less crowded while Shop stays reachable.
 
 ### NAV-03 — Add 8px top padding to footer nav icons
-**Type:** Polish · **Priority:** Low · **Status:** Open
+**Type:** Polish · **Priority:** Low · **Status:** ✅ Done (31 May)
 
 Add **8px padding at the top** of the footer nav icons for better spacing.
 
@@ -385,7 +392,7 @@ The actual fix (small, display-only):
 > ~~Earlier "partial save" / "stale UI" theories~~ — superseded by the live diagnosis above. Data is not lost.
 
 ### PROF-02 — Hide avatar from menu (not deployable yet)
-**Type:** Change · **Priority:** Med · **Status:** Open
+**Type:** Change · **Priority:** Med · **Status:** ✅ Done (31 May)
 
 Hide the **avatar** from the menu for now — it needs a lot more work before it's deployable. Hide rather than remove, so it can be switched back on when ready.
 
@@ -505,7 +512,7 @@ So the four core practises are **sequential and spaced** (one per visit, each lo
 > **Minor open detail (Claude Code can decide sensibly):** exactly how completed/locked-in practises are shown vs the current one (e.g. ticked + greyed vs hidden). Keep it uncluttered.
 
 ### WRT-02 — Practise labels wrap to two lines on desktop
-**Type:** Bug / Polish · **Priority:** Low · **Status:** Open
+**Type:** Bug / Polish · **Priority:** Low · **Status:** ✅ Done (31 May)
 
 On **desktop**, the "Practise" labels (1–4) wrap onto **two lines** when completed. Widen those columns a little so each label sits on **one line**.
 
@@ -518,7 +525,7 @@ Tested fix: **~120px** column width got "Practise 1" onto a single line (with th
 ## Word lists (add your own)
 
 ### WL-01 — Hide "Take photo" until the feature exists
-**Type:** Change · **Priority:** Med · **Status:** Open
+**Type:** Change · **Priority:** Med · **Status:** ✅ Done (31 May)
 
 The "Take photo" option has **no working camera/OCR path behind it** — the photo references are just tile styling.
 
@@ -568,5 +575,5 @@ Areas for Claude Code to check:
 **✅ All product decisions resolved.** Nothing left for you to decide.
 
 **Still requires Claude Code investigation (not a you-decision):**
-- **NAV-01** — diagnose whether *all* footer items fail or only some.
+- ~~**NAV-01** — diagnose whether *all* footer items fail or only some.~~ → **Done (31 May): none fail.** All desktop + mobile nav items route correctly; the "broken" signal was a preview-tool click-coordinate artifact, not an app bug. See NAV-01 above.
 - **PRAC-01 / RES-03 / MAS bar** — find what existed before in git history and restore vs rebuild.

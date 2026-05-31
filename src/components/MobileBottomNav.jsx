@@ -3,15 +3,15 @@
 //   ┌───────────────────────────────────────────────────────────┐
 //   │  [buddy]   4,710          Grand Wordmancer ▓▓▓▓▒▒        │  ← status
 //   ├───────────────────────────────────────────────────────────┤
-//   │   🏠      🔍      ⭐      🔔      ☰                       │  ← 5 tabs
+//   │     🏠        🔍        📓        ☰                        │  ← 4 tabs
 //   └───────────────────────────────────────────────────────────┘
 //
 // Buddy sits in the top row alongside the points. The raccoon is sized
 // so its body bursts out the BOTTOM of the bar (overhanging the safe
 // area) — every future buddy is rendered at the same scale.
 //
-// The 5th tab is a hamburger that opens an account/profile drawer
-// (Sign In / Sign Up / Settings / Profile / Favourites / Recently
+// The last tab is a hamburger that opens an account/profile drawer
+// (Sign In / Sign Up / Settings / Shop / Profile / Favourites / Recently
 // viewed / Recently added). Previously the drawer lived in
 // MobileTopBar; the top bar is now just the floating Spellify wordmark.
 
@@ -73,34 +73,23 @@ const IconMenu = (props) => (
   </svg>
 );
 
-const IconAvatar = (props) => (
-  <svg {...ICON_PROPS} {...props}>
-    {/* Person bust — head circle + shoulders arc */}
-    <circle cx="12" cy="8" r="4" />
-    <path d="M4 20c1.5-4 5-6 8-6s6.5 2 8 6" />
-  </svg>
-);
-
-const IconShop = (props) => (
-  <svg {...ICON_PROPS} {...props}>
-    {/* Shopping bag — handle arcs + bag body */}
-    <path d="M6 8 V7 a3 3 0 0 1 12 0 V8" />
-    <path d="M4.5 8 H19.5 L18 20 H6 Z" />
-  </svg>
-);
-
+// NAV-02: Shop moved OUT of the bottom-nav tabs and INTO the hamburger
+// drawer (below). PROF-02: Avatar Builder also hidden for now. The bar is
+// 4 tabs (Home / Explore / My Lists / hamburger); the menu is always last.
 const TABS = [
   { key: 'home',             Icon: IconHome,     label: 'Home',         kind: 'nav' },
   { key: 'exploreDashboard', Icon: IconExplore,  label: 'Explore',      kind: 'nav' },
-  { key: 'spellShop',        Icon: IconShop,     label: 'Shop',         kind: 'nav' },
   { key: 'mylists',          Icon: IconNotebook, label: 'My Lists',     kind: 'nav' },
-  { key: 'avatar',           Icon: IconAvatar,   label: 'Avatar',       kind: 'nav' },
+  // PROF-02: Avatar Builder hidden for now (needs more work before it's
+  // deployable). Hidden (not removed); to restore, re-add an IconAvatar
+  // SVG and: { key: 'avatar', Icon: IconAvatar, label: 'Avatar', kind: 'nav' }.
   { key: '__menu__',         Icon: IconMenu,     label: 'Account menu', kind: 'menu' },
 ];
 
 const DRAWER_ITEMS = [
   { key: 'signin',         label: 'Sign In / Sign Up', type: 'action' },
   { key: 'settings',       label: '⚙️ Settings',       type: 'action' },
+  { key: 'spellShop',      label: '🪄 Shop',           type: 'nav'    },
   { key: 'profile',        label: 'Profile',           type: 'soon'   },
   { key: 'favourites',     label: '❤ Favourites',      type: 'nav'    },
   { key: 'recent',         label: '🕒 Recently viewed', type: 'nav'    },

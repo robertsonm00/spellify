@@ -165,12 +165,14 @@
     transition: width 0.3s ease;
   }
 
-  /* ── Bottom row: 5 icon-only tabs (full width) ─────────────────── */
+  /* ── Bottom row: 4 icon-only tabs (full width) ─────────────────────
+     Home / Explore / My Lists / hamburger. Shop now lives in the drawer
+     (NAV-02) and Avatar is hidden (PROF-02). */
 
   .mbn__tabs {
     background: #0f0820;
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     align-items: stretch;
     height: 52px;
   }
@@ -184,7 +186,9 @@
     color: #a99bd1;
     opacity: 0.6;
     cursor: pointer;
-    padding: 0;
+    /* NAV-03: 8px top padding gives the icons more breathing room from the
+       status row above, rather than sitting flush-centred in the strip. */
+    padding: 8px 0 0;
     height: 100%;
     position: relative;
     transition: color 0.15s, opacity 0.15s;

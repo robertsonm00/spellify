@@ -14,8 +14,9 @@ const NAV_TABS = [
   { key: 'mylists',          label: 'MY LISTS' },
   { key: 'exploreDashboard', label: 'EXPLORE' },
   { key: 'spellShop',        label: 'SHOP' },
-  // Temporary entry point — Avatar Builder page (Prompt: avatar builder)
-  { key: 'avatar',           label: 'AVATAR' },
+  // PROF-02: Avatar Builder hidden for now — it needs more work before
+  // it's deployable. Hidden (not removed) so it can be switched back on:
+  // { key: 'avatar', label: 'AVATAR' },
 ];
 
 export default function ArcadeFooter({

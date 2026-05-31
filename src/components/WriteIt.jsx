@@ -136,6 +136,21 @@ function WriteIt({
     );
   });
 
+  // WRT-02: on desktop the completed "Practice N" header labels wrapped to
+  // two lines in the old 80px column. Widen those columns to 120px on
+  // desktop only (mobile is unaffected — narrower screens want the 80px).
+  const [isDesktop, setIsDesktop] = useState(
+    () => typeof window !== 'undefined'
+      && window.matchMedia?.('(min-width: 769px)').matches
+  );
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return undefined;
+    const mq = window.matchMedia('(min-width: 769px)');
+    const onChange = (e) => setIsDesktop(e.matches);
+    mq.addEventListener?.('change', onChange);
+    return () => mq.removeEventListener?.('change', onChange);
+  }, []);
+
   // Pre-seed the clue cache with any list-provided definitions so the word
   // detail modal resolves instantly without hitting the external API.
   useEffect(() => {
@@ -161,10 +176,11 @@ function WriteIt({
 
   const baseAllDone = currentRound >= NUM_BASE;
 
+  const doneColWidth = isDesktop ? '120px' : '80px'; // WRT-02
   const gridTemplate = [
     'minmax(200px, 260px)',
     ...Array.from({ length: numPractices }, (_, i) => {
-      if (i < currentRound || currentRound >= numPractices) return '80px';
+      if (i < currentRound || currentRound >= numPractices) return doneColWidth;
       if (i === currentRound) return 'minmax(156px, 1fr)';
       return '72px';
     }),
