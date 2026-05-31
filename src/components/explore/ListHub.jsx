@@ -748,49 +748,37 @@ export default function ListHub({
             </section>
           </header>
 
-          {/* Practice Quest — list-scoped (ported from classic). Sits directly
-              beneath the mastery bar so struggling words are addressable before
-              the games, matching the classic placement. Visible only when this
-              list has ≥1 struggling word. */}
-          {strugglingEntries.length > 0 && (
-            <section className="hub-practice-quest hub-practice-quest--listpane lh-cards-practice">
-              <div
-                className="pq-card pq-card--compact"
-                role="button"
-                tabIndex={0}
-                onClick={launchPracticeQuest}
-                onKeyDown={(e) => { if (e.key === 'Enter') launchPracticeQuest(); }}
-              >
-                <div className="pq-card-row pq-card-row--top">
-                  <div className="pq-card-headline">
-                    <span className="pq-card-icon" aria-hidden="true">🎯</span>
-                    <h3 className="pq-card-title">Practice Quest</h3>
-                  </div>
-                  <div className="pq-card-meta">
-                    <span className="pq-card-subtitle">Spells to Master</span>
-                    <span className="pq-card-count">
-                      {strugglingEntries.length} word
-                      {strugglingEntries.length === 1 ? '' : 's'} need practice
-                    </span>
-                  </div>
-                </div>
-                <div className="pq-card-row pq-card-row--bottom">
-                  <p className="pq-card-preview">
-                    {strugglingEntries.length <= 3
-                      ? strugglingEntries.map(e => e.word).join(', ')
-                      : `including ${strugglingEntries.slice(0, 2).map(e => e.word).join(', ')}…`}
-                  </p>
-                  <span className="pq-card-go">Start ▶</span>
-                </div>
-              </div>
-            </section>
-          )}
-
           {/* Game cards — rounded, photo-led tiles. One row of three on
               desktop, single column on mobile. Uses existing click +
               locked + completion logic so behaviour is identical to the
-              classic grid. */}
+              classic grid. The Practice Quest tile (PRAC-01) is rendered
+              FIRST, with the same visual treatment as the game tiles, when
+              the child has any words on the global practice list. */}
           <section className="lh-cards-grid" aria-label="Games">
+            {strugglingEntries.length > 0 && (
+              <button
+                type="button"
+                className="lh-game-card lh-game-card--practice"
+                style={{ '--card-accent': '#d97706', '--card-accent-light': '#fbbf24' }}
+                onClick={launchPracticeQuest}
+                title="Practise the spells you're still mastering"
+              >
+                <div
+                  className="lh-game-card__art lh-game-card__art--placeholder"
+                  aria-hidden="true"
+                >
+                  <span className="lh-game-card__art-emoji">🎯</span>
+                </div>
+                <div className="lh-game-card__body">
+                  <h3 className="lh-game-card__name">Practice Quest</h3>
+                  <p className="lh-game-card__time">
+                    {strugglingEntries.length} spell
+                    {strugglingEntries.length === 1 ? '' : 's'} to master
+                  </p>
+                  <span className="lh-game-card__cta">Start ▶</span>
+                </div>
+              </button>
+            )}
             {ACTIVITIES
               .filter(a => getActivityAvailability(a, { session: exploreSession, user }).reason !== 'unsupported')
               .map(activity => {

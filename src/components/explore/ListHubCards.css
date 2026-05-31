@@ -156,6 +156,13 @@
   transform: none;
 }
 
+/* Practice Quest tile (PRAC-01) — same card treatment as the games, with a
+   slightly warmer amber wash so it reads as the "spells to master" tile
+   without shouting. Accent colours are supplied inline on the element. */
+.lh-game-card--practice {
+  background: linear-gradient(180deg, rgba(120, 53, 15, 0.55), rgba(15, 6, 32, 0.85));
+}
+
 /* Card art — painted background image (game-themed PNG) or accent-tinted
    gradient with an emoji glyph for games without dedicated art yet. */
 .lh-game-card__art {
