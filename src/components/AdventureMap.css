@@ -1212,6 +1212,42 @@
   }
 }
 
+/* Player greeting badge — top-left, mirrors the chapter pill's glassy
+   treatment. Confirms to the child that their named profile persisted. */
+.am-v2-player-badge {
+  position: fixed;        /* anchor to viewport, directly beneath the logo */
+  top: 56px;              /* logo sits at top:22px, ~24px tall → clears it */
+  left: 32px;             /* left-aligned with the SPELLIFY wordmark */
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px 6px 8px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(255, 217, 61, 0.5);
+  background: rgba(20, 8, 32, 0.78);
+  color: #ffe9a8;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  z-index: 1099;          /* just under the logo (1100) */
+  white-space: nowrap;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+.am-v2-player-badge__name {
+  line-height: 1;
+  padding-top: 1px;
+}
+@media (max-width: 640px) {
+  .am-v2-player-badge {
+    top: 50px;
+    left: 16px;
+    font-size: 0.55rem;
+    padding: 5px 11px 5px 5px;
+    gap: 6px;
+  }
+}
+
 /* ── Isle sign board — bottom-left corner, above the footer ────────────────
    The sign image floats in place with a warm amber backlight that breathes
    gently, simulating a torch or lantern glowing behind the wooden post. */

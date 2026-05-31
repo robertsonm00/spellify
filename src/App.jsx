@@ -700,18 +700,21 @@ function App() {
   }, [session?.dyslexiaMode]);
 
   const handleWelcomeStart = () => {
-    // Brand-new profile via Quick Start → wipe ALL leftover guest data
-    // so old custom lists, mastery, points etc. from a previous local
-    // session don't bleed into the new one. We don't touch sb-* (Supabase
-    // auth) keys — a signed-in parent choosing Quick Start would already
-    // have been signed out via the welcome flow.
-    try {
-      Object.keys(localStorage)
-        .filter((k) => k.startsWith('spellify_'))
-        .forEach((k) => localStorage.removeItem(k));
-    } catch { /* ignore */ }
+    // Quick Start is NON-DESTRUCTIVE for returning guests (QA PROF-04).
+    //
+    // This previously wiped EVERY spellify_* key — custom lists, mastery,
+    // points, badges, streak, even the mute preference — to give a "clean
+    // slate". But the welcome screen is also where returning guests land
+    // after Exit-to-welcome or sign-out, so that blanket clear silently
+    // destroyed their saved work. A brand-new device has nothing to wipe,
+    // so the wipe only ever harmed people who had data to lose.
+    //
+    // We reset the in-memory session so onboarding starts fresh; completing
+    // onboarding writes a new spellify_session_v2. All other persisted guest
+    // data (lists, progress, points, streak, preferences) is left intact so
+    // a returning child keeps everything they earned.
     setSession(null);
-    setPointsTick((t) => t + 1);   // force getPlayerStats() re-read → 0
+    setPointsTick((t) => t + 1);   // re-read live points after the reset
     setScreen('onboarding');
   };
 

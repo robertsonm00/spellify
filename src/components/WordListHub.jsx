@@ -263,7 +263,9 @@ export function HubPlayerCard({ childName, childCharacter, year, activityStatuse
   return (
     <section className={`hub-player-card${collapsed ? ' hub-player-card--collapsed' : ''}`}>
       <div className="hub-player-header">
-        <span>PLAYER</span>
+        {/* Personalised so the collapsed card (header-only) still identifies
+            whose profile it is. Falls back to the generic label pre-name. */}
+        <span>{childName ? childName.toUpperCase().replace(/-/g, '‑') : 'PLAYER'}</span>
         <button
           className="hub-player-toggle"
           onClick={() => setCollapsed(c => !c)}
