@@ -48,11 +48,25 @@ export function useCustomLists(user) {
   // ── Add list ───────────────────────────────────────────────────────────────
   const addList = useCallback(async ({ name, words, testDate = null }) => {
     if (useCloud) {
-      const { data, error } = await supabase
+      // `test_date` is optional metadata and was added to this insert before
+      // the column existed on every deployment of the custom_lists table.
+      // When it's missing, PostgREST rejects the whole insert and the list
+      // silently never saves (the bug behind "new lists never save"). So:
+      //   • only send test_date when we actually have one, and
+      //   • if the insert is still rejected, retry WITHOUT it so the list
+      //     persists regardless. Apply supabase/migrations/*_custom_lists_
+      //     test_date.sql to enable cloud test-date persistence.
+      const base = { user_id: user.id, name, words };
+      let res = await supabase
         .from('custom_lists')
-        .insert({ user_id: user.id, name, words, test_date: testDate })
+        .insert(testDate != null ? { ...base, test_date: testDate } : base)
         .select()
         .single();
+      if (res.error && testDate != null) {
+        res = await supabase.from('custom_lists').insert(base).select().single();
+      }
+      const { data, error } = res;
+      if (error) console.error('[customLists] cloud save failed', error);
       if (!error && data) setLists(prev => [data, ...prev]);
       return { error, list: data || null };
     } else {
