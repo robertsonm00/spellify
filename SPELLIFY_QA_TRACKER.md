@@ -33,18 +33,18 @@ Consequences for the items below:
 
 | ID | Area | Title | Type | Priority | Status |
 |----|------|-------|------|----------|--------|
-| DESIGN-01 | Design direction | Retire classic hub; commit to card design | Change | High | Open |
+| DESIGN-01 | Design direction | Retire classic hub; commit to card design | Change | High | ✅ Done |
 | SD-01 | Spell Duel | Add distractor letters to keyboard | Bug / Enhancement | High | Open |
 | SD-02 | Spell Duel | Stop adding rounds after 3 words wrong (matches SR-01) | Enhancement | Med | Open |
 | SDR-01 | Crossword | Read the Crossword clue aloud (TTS, site voice) | Enhancement | Med | Open |
 | RES-01 | Results | Unified end-of-game results — full 2-variant spec (Memory Spell base) | Enhancement | High | Specced |
 | RES-02 | Results | Every completed game returns with a celebration | Enhancement / Polish | High | Open |
-| RES-03 | Results | Post-game levels/lumens readout — ensure it exists on card design | Bug | High | Open |
+| RES-03 | Results | Post-game levels/lumens readout — ensure it exists on card design | Bug | High | ✅ Done |
 | PRAC-01 | Practice list | Reintroduce the practice list for struggling words | Enhancement | High | Open |
 | LVL-01 | Levelling | Rebalance the level-up curve | Bug | High | Open |
 | LVL-02 | Levelling | Add a level-up celebration moment | Enhancement / Polish | High | Open |
-| MAS-01 | Mastery & progress | Show progress toward mastery + restore hover pop-up (0/14 is correct) | Enhancement | High | Open |
-| MAS-02 | Mastery & progress | Port classic "mastered" bar onto the card design | Enhancement | Med | Open |
+| MAS-01 | Mastery & progress | Show progress toward mastery + restore hover pop-up (0/14 is correct) | Enhancement | High | ✅ Done |
+| MAS-02 | Mastery & progress | Port classic "mastered" bar onto the card design | Enhancement | Med | ✅ Done |
 | ONB-01 | Onboarding | Raccoon mascot slow to load (blank first) | Bug | Med | Open |
 | MAP-01 | Home / Map | Map image not visible on home load (black flash) | Bug | High | Open |
 | MAP-02 | Home / Map | Ember Isle badge glow too strong on mobile | Bug / Polish | Med | Open |
@@ -68,7 +68,7 @@ Consequences for the items below:
 ## Design direction
 
 ### DESIGN-01 — Retire classic hub; commit to card design
-**Type:** Change · **Priority:** High · **Status:** Open
+**Type:** Change · **Priority:** High · **Status:** ✅ Done
 
 Decision (30 May): **the card design is the product going forward; the classic hub is retired.**
 
@@ -216,7 +216,7 @@ Build both in the shared RES-01 flow so they're identical everywhere and no game
 > **Resolved (31 May):** **same warm celebration every time** — does not scale with performance. A child who struggled still gets the same encouraging finish.
 
 ### RES-03 — Post-game levels/lumens readout (ensure it exists on card design)
-**Type:** Bug · **Priority:** High · **Status:** Open
+**Type:** Bug · **Priority:** High · **Status:** ✅ Done
 
 The **levels + lumens counter** that popped up after completing a game stopped appearing. It lived on the **classic hub** — which is now being retired (see DESIGN-01).
 
@@ -275,7 +275,7 @@ Suggested ingredients (all already in the stack):
 ## Mastery & progress
 
 ### MAS-01 — Show progress toward mastery + restore hover pop-up
-**Type:** Enhancement · **Priority:** High · **Status:** Open
+**Type:** Enhancement · **Priority:** High · **Status:** ✅ Done
 
 The only mastery signal is "X of 14 words mastered", which gives children no sense of *being on their way*. After two completed games it still reads **0 of 14**, so it feels like nothing happened.
 
@@ -288,7 +288,7 @@ Two parts:
 > **Update (30 May — diagnosed):** "0 of 14" is **correct behaviour** — mastery requires ≥2.0 credit across **≥2 different game types**, so two games can legitimately leave it at 0. **Not a bug**; the work is the feature gap above (progress bar + hover tip).
 
 ### MAS-02 — Port classic "mastered" bar onto the card design
-**Type:** Enhancement · **Priority:** Med · **Status:** Open
+**Type:** Enhancement · **Priority:** Med · **Status:** ✅ Done
 
 Bring the **"mastered" bar from the classic design** onto the **card design**. Originally framed as a test — but with the card design now confirmed as the keeper (DESIGN-01), this is a proper port, not just an experiment.
 

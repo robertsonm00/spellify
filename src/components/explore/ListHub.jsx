@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { ACTIVITIES, PHASES } from '../../data/activities';
+import { ACTIVITIES } from '../../data/activities';
 import { getActivityAvailability } from '../../utils/activityAvailability';
 import { renderExploreActivity } from './exploreActivityRunner';
 import {
@@ -18,10 +18,9 @@ import { recordGameCompleted, getPlayerStats } from '../../utils/gamificationEng
 import { recordPlayToday } from '../../utils/streakEngine';
 import { fireBuddyCheer } from '../BuddyAvatar';
 import confetti from 'canvas-confetti';
-import ActivityIcon from '../ActivityIcon';
 import CompletionTicks from '../CompletionTicks';
 import PracticeWriteIt from '../PracticeWriteIt';
-import { HubPlayerCard, WordDetailModal, preSeedWordInfoCache } from '../WordListHub';
+import { WordDetailModal, preSeedWordInfoCache } from '../WordListHub';
 import '../WordListHub.css';
 import './ListHub.css';
 import './ListHubCards.css';
@@ -274,30 +273,6 @@ export default function ListHub({
 
   // ── Mastery progress tooltip ──────────────────────────────────────────────
   const [masteryTipOpen, setMasteryTipOpen] = useState(false);
-
-  // ── Alternative "cards" view — big rounded game tiles with painted art ──
-  // Cards is now the default landing layout (painted, photo-led tiles); the
-  // classic split-pane layout is opt-in via the floating toggle button.
-  // Preference persists per device.
-  const [viewMode, setViewMode] = useState(() => {
-    try {
-      if (typeof window !== 'undefined') {
-        return window.localStorage.getItem('spellify.listhub.view') || 'cards';
-      }
-    } catch { /* ignore */ }
-    return 'cards';
-  });
-  const cycleViewMode = useCallback(() => {
-    setViewMode(prev => {
-      const next = prev === 'cards' ? 'classic' : 'cards';
-      try {
-        if (typeof window !== 'undefined') {
-          window.localStorage.setItem('spellify.listhub.view', next);
-        }
-      } catch { /* ignore */ }
-      return next;
-    });
-  }, []);
 
   // Words drawer open/closed in cards view (secondary panel — the user
   // explicitly asked for words to remain accessible but not dominate).
@@ -639,34 +614,22 @@ export default function ListHub({
     setActiveActivity(gameId);
   };
 
-  // Toggle button — rendered in both views, positioned via CSS. Lets the
-  // child flip between the classic split-pane layout and the cards-led
-  // layout. Preference persists per device.
-  const viewToggleButton = (
-    <button
-      type="button"
-      className="lh-view-toggle"
-      onClick={cycleViewMode}
-      aria-label={viewMode === 'cards' ? 'Switch to classic view' : 'Switch to cards view'}
-      title={viewMode === 'cards' ? 'Classic view' : 'Cards view'}
-    >
-      <span aria-hidden="true">{viewMode === 'cards' ? '📋' : '🎮'}</span>
-      <span className="lh-view-toggle__label">{viewMode === 'cards' ? 'Classic' : 'Cards'}</span>
-    </button>
-  );
-
-  // ── Cards view ───────────────────────────────────────────────────────────
+  // ── Card hub (the only hub) ──────────────────────────────────────────────
   // Big centred title (matches the SpellShop heading treatment), photo-led
   // game cards as the primary affordance, and a collapsible secondary word
   // list panel that reuses all the existing chip/mastery functionality.
-  if (viewMode === 'cards') {
-    const masteredCount = fullWords.reduce((acc, w) =>
-      masteryState.words?.[w.toLowerCase()]?.mastered ? acc + 1 : acc, 0);
+  // gamesNeeded — estimate of how many more games to full mastery: each
+  // unmastered word needs ~ceil(2.0 - credit) more games.
+  const gamesNeeded = listProgress.status === 'completed' ? 0
+      : fullWords.reduce((acc, w) => {
+          const entry = masteryState.words?.[w.toLowerCase()];
+          if (entry?.mastered) return acc;
+          const credit = entry?.totalCredit || 0;
+          return acc + Math.max(1, Math.ceil(2.0 - credit));
+        }, 0);
     return (
       <>
         <div className={`lh-cards-root${coachPhase !== 'off' ? ' lh-cards-root--coach-locked' : ''}`}>
-          {viewToggleButton}
-
           {/* Dev: re-trigger onboarding. Remove before shipping. */}
           <button
             type="button"
@@ -687,10 +650,91 @@ export default function ListHub({
             <h1 className="lh-cards-title">
               <span>{list.name}</span>
             </h1>
-            <p className="lh-cards-subtitle">
-              <strong>{masteredCount}</strong> of <strong>{fullWords.length}</strong> words mastered
-            </p>
+            {/* Mastery progress — ported from the classic hub (MAS-01/MAS-02):
+                a progress-toward-mastery bar plus the hover/tap tooltip,
+                replacing the old plain "X of N words mastered" subtitle so a
+                child sees movement toward mastery, not just a count. */}
+            <section
+              className={`hub-mastery-pipeline lh-cards-mastery${listProgress.status === 'completed' ? ' hub-mastery-pipeline--complete' : ''}`}
+              onMouseEnter={() => setMasteryTipOpen(true)}
+              onMouseLeave={() => setMasteryTipOpen(false)}
+              onClick={() => setMasteryTipOpen(o => !o)}
+            >
+              {listProgress.status === 'completed' && (
+                <p className="hub-mastery-complete-msg">
+                  🎉 You've mastered every word — well done! Keep practising to stay sharp.
+                </p>
+              )}
+              <div className="hub-mastery-row">
+                <span className="hub-mastery-text">
+                  <strong>{listProgress.masteredCount}</strong>
+                  <span className="hub-mastery-dim"> of {listProgress.totalCount} words mastered</span>
+                </span>
+                <span className="hub-mastery-pct">{masteryPct}%</span>
+              </div>
+              <div
+                className="hub-mastery-bar"
+                role="progressbar"
+                aria-valuenow={listProgress.masteredCount}
+                aria-valuemin={0}
+                aria-valuemax={listProgress.totalCount}
+              >
+                <div className="hub-mastery-bar-fill" style={{ width: `${masteryPct}%` }} />
+              </div>
+              {/* Tooltip — hover (desktop) / tap (mobile). Restores MAS-01's
+                  "Complete some more" pop-up that prompts how to progress. */}
+              {masteryTipOpen && (
+                <div className="hub-mastery-tip" role="tooltip">
+                  <p className="hub-mastery-tip-static">Complete games to achieve Word Mastery</p>
+                  {listProgress.status === 'completed' ? (
+                    <p className="hub-mastery-tip-dynamic">You've achieved Word Mastery on this list! 🌟</p>
+                  ) : (
+                    <p className="hub-mastery-tip-dynamic">
+                      Play {gamesNeeded} more game{gamesNeeded !== 1 ? 's' : ''} to reach Word Mastery
+                    </p>
+                  )}
+                </div>
+              )}
+            </section>
           </header>
+
+          {/* Practice Quest — list-scoped (ported from classic). Sits directly
+              beneath the mastery bar so struggling words are addressable before
+              the games, matching the classic placement. Visible only when this
+              list has ≥1 struggling word. */}
+          {strugglingEntries.length > 0 && (
+            <section className="hub-practice-quest hub-practice-quest--listpane lh-cards-practice">
+              <div
+                className="pq-card pq-card--compact"
+                role="button"
+                tabIndex={0}
+                onClick={launchPracticeQuest}
+                onKeyDown={(e) => { if (e.key === 'Enter') launchPracticeQuest(); }}
+              >
+                <div className="pq-card-row pq-card-row--top">
+                  <div className="pq-card-headline">
+                    <span className="pq-card-icon" aria-hidden="true">🎯</span>
+                    <h3 className="pq-card-title">Practice Quest</h3>
+                  </div>
+                  <div className="pq-card-meta">
+                    <span className="pq-card-subtitle">Spells to Master</span>
+                    <span className="pq-card-count">
+                      {strugglingEntries.length} word
+                      {strugglingEntries.length === 1 ? '' : 's'} need practice
+                    </span>
+                  </div>
+                </div>
+                <div className="pq-card-row pq-card-row--bottom">
+                  <p className="pq-card-preview">
+                    {strugglingEntries.length <= 3
+                      ? strugglingEntries.map(e => e.word).join(', ')
+                      : `including ${strugglingEntries.slice(0, 2).map(e => e.word).join(', ')}…`}
+                  </p>
+                  <span className="pq-card-go">Start ▶</span>
+                </div>
+              </div>
+            </section>
+          )}
 
           {/* Game cards — rounded, photo-led tiles. One row of three on
               desktop, single column on mobile. Uses existing click +
@@ -868,11 +912,35 @@ export default function ListHub({
                     );
                   })}
                 </div>
+                {/* Test all words — ported from the classic hub. Tests every
+                    still-unmastered word in one go via a chosen game; lives in
+                    the word drawer because it operates on the listed words. */}
+                {unmasteredWords.length > 0 && (
+                  <button
+                    type="button"
+                    className="lh-drawer-testall"
+                    onClick={() => { setWordsDrawerOpen(false); setTestAllStage('choose'); }}
+                  >
+                    <span className="lh-drawer-testall__icon" aria-hidden="true">📝</span>
+                    <span className="lh-drawer-testall__label">Test all words</span>
+                    <span className="lh-drawer-testall__count">{unmasteredWords.length}</span>
+                  </button>
+                )}
                 {listFooter}
               </aside>
             </>
           )}
         </div>
+
+        {/* Test-All game picker — ported from classic; opens after the drawer
+            "Test all words" button. Reuses the same launch + completion path. */}
+        {testAllStage === 'choose' && (
+          <TestAllModal
+            unmasteredWords={unmasteredWords}
+            onPick={launchTestAll}
+            onClose={() => setTestAllStage('idle')}
+          />
+        )}
 
         {/* Re-use the existing word definition modal mount from below. */}
         {activeWord && (
@@ -884,343 +952,27 @@ export default function ListHub({
           />
         )}
 
-        {/* DEV-only: force all words in this list to mastered state */}
-        {process.env.NODE_ENV === 'development' && (
-          <button
-            onClick={handleDevForceMastery}
-            style={{
-              position: 'fixed', bottom: 16, left: 16, zIndex: 9999,
-              background: '#6c3fc5', color: 'white', border: 'none',
-              borderRadius: 8, padding: '8px 14px', fontSize: 13,
-              cursor: 'pointer', fontFamily: 'monospace',
-            }}
-          >
-            ⚡ DEV: Master all words
-          </button>
-        )}
-      </>
-    );
-  }
-
-  // ── List hub view ────────────────────────────────────────────────────────
-  return (
-    <>
-    <div className="hub-shell hub-shell--split">
-    {viewToggleButton}
-    <div className="hub hub--split">
-
-      {/* ── Left column ── */}
-      <div className="hub-split-left">
-
-        {/* Player card — uses the active My Words session if available */}
-        <HubPlayerCard
-          childName={session?.childName || ''}
-          childCharacter={session?.childCharacter || null}
-          year={session?.year ?? null}
-          activityStatuses={session?.activityStatuses || {}}
-          mastery={session?.mastery || {}}
-          welcomeBonus={session?.welcomeBonus || 0}
-          user={user}
-          onCreateAccount={onCreateAccount}
-        />
-
-        <div className="hub-sticky-block">
-          {/* Word list — the only thing in the left column on the list page;
-              Test All and the back CTA have moved to the right column under
-              the games (see below). */}
-          <section className="hub-words">
-            <div className="hub-section-header">
-              <div className="hub-section-title-block">
-                <span className="hub-section-label">WORD LIST</span>
-                <span className="hub-list-title">{list.name}</span>
-              </div>
-              <span className="hub-section-count" aria-label={`${fullWords.length} words`}>
-                {fullWords.length}
-              </span>
-            </div>
-            {listNamePanel}
-            <div className="hub-chips">
-              {fullWords.map((w, i) => {
-                const { bg, border } = WORD_CHIP_COLORS[i % WORD_CHIP_COLORS.length];
-                const entry = masteryState.words?.[w.toLowerCase()];
-                const mastered = !!entry?.mastered;
-                const level = mastered ? 'mastered' : (entry?.attempts > 0 ? 'learning' : 'new');
-                return (
-                  <button
-                    key={i}
-                    className={`hub-chip${mastered ? ' hub-chip--mastered' : ''}`}
-                    style={{ background: bg, borderColor: border }}
-                    onClick={() => setActiveWord({ word: w, chipColor: border })}
-                  >
-                    <span className="hub-chip-word">{w}</span>
-                    <span
-                      className={`hub-chip-mastery hub-chip-mastery--${level}`}
-                      aria-label={level}
-                      title={MASTERY_LABELS[level]}
-                    >★</span>
-                  </button>
-                );
-              })}
-            </div>
-            {listFooter}
-          </section>
-        </div>
-      </div>
-
-      {/* ── Right column ── */}
-      <div className="hub-split-right">
-
-        {/* Mastery progress — words mastered only. When every word in the
-            list is mastered the bar renders at 100% with a green-tint and
-            a celebratory line appears above it. Crucially nothing locks:
-            the child can keep playing every game to stay sharp. */}
-        {(() => {
-          // Calculate how many more games are needed to reach full mastery.
-          // Each word needs totalCredit ≥ 2.0 from ≥ 2 game types. Each game
-          // earns roughly 1.0 credit per correct word, so estimate games
-          // remaining = sum of ceil(2.0 - credit) per unmastered word.
-          const gamesNeeded = listProgress.status === 'completed' ? 0
-            : fullWords.reduce((acc, w) => {
-                const entry = masteryState.words?.[w.toLowerCase()];
-                if (entry?.mastered) return acc;
-                const credit = entry?.totalCredit || 0;
-                return acc + Math.max(1, Math.ceil(2.0 - credit));
-              }, 0);
-
-          return (
-            <section
-              className={`hub-mastery-pipeline${listProgress.status === 'completed' ? ' hub-mastery-pipeline--complete' : ''}`}
-              onMouseEnter={() => setMasteryTipOpen(true)}
-              onMouseLeave={() => setMasteryTipOpen(false)}
-              onClick={() => setMasteryTipOpen(o => !o)}
-            >
-              {listProgress.status === 'completed' && (
-                <p className="hub-mastery-complete-msg">
-                  🎉 You've mastered every word — well done! Keep practising to stay sharp.
-                </p>
-              )}
-              <div className="hub-mastery-row">
-                <span className="hub-mastery-text">
-                  <strong>{listProgress.masteredCount}</strong>
-                  <span className="hub-mastery-dim"> of {listProgress.totalCount} words mastered</span>
-                </span>
-                <span className="hub-mastery-pct">{masteryPct}%</span>
-              </div>
-              <div
-                className="hub-mastery-bar"
-                role="progressbar"
-                aria-valuenow={listProgress.masteredCount}
-                aria-valuemin={0}
-                aria-valuemax={listProgress.totalCount}
-              >
-                <div
-                  className="hub-mastery-bar-fill"
-                  style={{ width: `${masteryPct}%` }}
-                />
-              </div>
-              {/* Tooltip — shown on hover (desktop) / tap (mobile) */}
-              {masteryTipOpen && (
-                <div className="hub-mastery-tip" role="tooltip">
-                  <p className="hub-mastery-tip-static">Complete games to achieve Word Mastery</p>
-                  {listProgress.status === 'completed' ? (
-                    <p className="hub-mastery-tip-dynamic">You've achieved Word Mastery on this list! 🌟</p>
-                  ) : (
-                    <p className="hub-mastery-tip-dynamic">
-                      Play {gamesNeeded} more game{gamesNeeded !== 1 ? 's' : ''} to reach Word Mastery
-                    </p>
-                  )}
-                </div>
-              )}
-            </section>
-          );
-        })()}
-
-        {/* ── Practice Quest — list-level scope.
-              Sits directly beneath the mastery progress bar so it
-              reads as part of the progress context for this list,
-              rather than buried below all the games.
-              Visibility: appears whenever this list has ≥1 struggling
-              word. The 3-attempt minimum in masteryEngine already
-              prevents day-1 surfacing; no further gate is applied at
-              list-level scope. */}
-        {strugglingEntries.length > 0 && (
-          <section className="hub-practice-quest hub-practice-quest--listpane">
-            <div
-              className="pq-card pq-card--compact"
-              role="button"
-              tabIndex={0}
-              onClick={launchPracticeQuest}
-              onKeyDown={(e) => { if (e.key === 'Enter') launchPracticeQuest(); }}
-            >
-              <div className="pq-card-row pq-card-row--top">
-                <div className="pq-card-headline">
-                  <span className="pq-card-icon" aria-hidden="true">🎯</span>
-                  <h3 className="pq-card-title">Practice Quest</h3>
-                </div>
-                <div className="pq-card-meta">
-                  <span className="pq-card-subtitle">Spells to Master</span>
-                  <span className="pq-card-count">
-                    {strugglingEntries.length} word
-                    {strugglingEntries.length === 1 ? '' : 's'} need practice
-                  </span>
-                </div>
-              </div>
-              <div className="pq-card-row pq-card-row--bottom">
-                <p className="pq-card-preview">
-                  {strugglingEntries.length <= 3
-                    ? strugglingEntries.map(e => e.word).join(', ')
-                    : `including ${strugglingEntries.slice(0, 2).map(e => e.word).join(', ')}…`}
-                </p>
-                <span className="pq-card-go">Start ▶</span>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* Activity cards grouped by phase */}
-        <section className="hub-activities">
-          <span className="hub-section-label">ACTIVITIES</span>
-          {PHASES.map((phase, phaseIdx) => {
-            const phaseActivities = ACTIVITIES.filter((a) => {
-              if (a.phase !== phase.key) return false;
-              const avail = getActivityAvailability(a, { session: exploreSession, user });
-              return avail.reason !== 'unsupported';
-            });
-            if (phaseActivities.length === 0) return null;
-            return (
-              <div key={phase.key} className="hub-phase">
-                <div className="hub-grid">
-                  {phaseActivities.map((activity) => {
-                    const avail  = getActivityAvailability(activity, { session: exploreSession, user });
-                    const locked = avail.locked;
-                    const completions = progress?.[activity.id]?.completions
-                      || (progress?.[activity.id]?.status === 'completed' ? 1 : 0);
-                    const inProgress = startedActivities.has(activity.id);
-                    return (
-                      <div
-                        key={activity.id}
-                        className={`hub-card${locked ? ' hub-card--locked' : ''}${completions > 0 ? ' hub-card--complete' : ''}`}
-                        style={{
-                          borderColor:    activity.dark,
-                          boxShadow:      `5px 5px 0 ${activity.color}`,
-                          '--card-color': activity.color,
-                          opacity:        locked ? 0.55 : 1,
-                          cursor:         locked ? 'not-allowed' : 'pointer',
-                        }}
-                        onClick={() => {
-                          if (locked) return;
-                          if (!lockedWords[activity.id]) {
-                            setLockedWords(prev => ({ ...prev, [activity.id]: words }));
-                          }
-                          setStartedActivities(prev => new Set(prev).add(activity.id));
-                          setActiveActivity(activity.id);
-                        }}
-                        role="button"
-                        tabIndex={locked ? -1 : 0}
-                        aria-disabled={locked}
-                        title={locked ? avail.message : undefined}
-                        onKeyDown={(e) => {
-                          if (locked || e.key !== 'Enter') return;
-                          if (!lockedWords[activity.id]) {
-                            setLockedWords(prev => ({ ...prev, [activity.id]: words }));
-                          }
-                          setStartedActivities(prev => new Set(prev).add(activity.id));
-                          setActiveActivity(activity.id);
-                        }}
-                      >
-                        <div className="hub-card-header" style={{ background: activity.color }}>
-                          <span className="hub-card-icon hub-card-icon--emoji">{activity.icon}</span>
-                          <span className="hub-card-icon hub-card-icon--svg" aria-hidden="true">
-                            <ActivityIcon id={activity.id} size={28} />
-                          </span>
-                          {locked && <span className="hub-card-lock" aria-hidden="true">🔒</span>}
-                        </div>
-                        <div className="hub-card-body">
-                          <h3 className="hub-card-name">{activity.name}</h3>
-                          <p className="hub-card-time">⏱ {activity.timeEstimate}</p>
-                          {!locked && <CompletionTicks count={completions} />}
-                          {!locked && (
-                            <span
-                              className="hub-card-play"
-                              style={{ background: activity.dark }}
-                              aria-hidden="true"
-                            >
-                              {inProgress ? 'Continue ▶' : 'Play ▶'}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-        </section>
-
-        {/* Test All Words — floating round button fixed at the bottom-right
-            of the viewport. Three stacked words, no icon, no count.
-            Hidden once every word is mastered. */}
-        {unmasteredWords.length > 0 && (
-          <section className="hub-testall">
-            <button
-              type="button"
-              className="hub-testall-btn"
-              onClick={() => setTestAllStage('choose')}
-              aria-label="Test all words"
-            >
-              <span>Test</span>
-              <span>All</span>
-              <span>Words</span>
-            </button>
-          </section>
-        )}
-
-        {/* Word detail modal */}
-        {activeWord && (
-          <WordDetailModal
-            word={activeWord.word}
-            chipColor={activeWord.chipColor}
-            onClose={() => setActiveWord(null)}
-          />
-        )}
-
-        {/* Test All game picker modal */}
-        {testAllStage === 'choose' && (
-          <TestAllModal
-            unmasteredWords={unmasteredWords}
-            onPick={launchTestAll}
-            onClose={() => setTestAllStage('idle')}
-          />
-        )}
-
-        {/* ── Word Mastery modal (Part 4) ────────────────────────────────── */}
+        {/* ── Word Mastery modal (ported from classic) — fires once when every
+            word in the list becomes mastered this session. */}
         {showMasteryModal && (
           <div
             className="lh-mastery-overlay"
             role="dialog"
             aria-modal="true"
-            aria-labelledby="lh-mastery-title"
+            aria-labelledby="lh-mastery-title-cards"
           >
             <div className="lh-mastery-card">
               <div className="lh-mastery-emoji" aria-hidden="true">🌟</div>
-              <h2 id="lh-mastery-title" className="lh-mastery-title">Word Master!</h2>
+              <h2 id="lh-mastery-title-cards" className="lh-mastery-title">Word Master!</h2>
               <p className="lh-mastery-sub">
                 You've mastered every word in <strong>{list.name}</strong>. Amazing work — keep going!
               </p>
-
               <div className="lh-mastery-actions">
                 {listOrigin === 'map' && (
                   <button
                     className="lh-mastery-btn lh-mastery-btn--primary"
                     onClick={() => {
                       setShowMasteryModal(false);
-                      // Dispatch the map-return signal so AdventureMap can run
-                      // the staged reveal + buddy hop if it is already mounted
-                      // in the background. If the map is currently unmounted
-                      // (the common case — the section switch happens in onBack)
-                      // the event fires into the void; AdventureMap's own mount
-                      // effect detects the stage advance via position comparison.
                       window.dispatchEvent(new CustomEvent('spellify-map-return', {
                         detail: { listId: list.id },
                       }));
@@ -1240,22 +992,34 @@ export default function ListHub({
             </div>
           </div>
         )}
-      </div>
 
-    </div>
+        {/* ── Animated reward sequence — points then lumens counter (RES-03).
+            Ported so the post-game points/lumens readout appears on the card
+            design (it previously rendered only in the classic branch). */}
+        {rewardSequence && (
+          <RewardSequence
+            fromPoints={rewardSequence.fromPoints}
+            toPoints={rewardSequence.toPoints}
+            fromLumens={rewardSequence.fromLumens}
+            toLumens={rewardSequence.toLumens}
+            onDone={() => setRewardSequence(null)}
+          />
+        )}
 
-    </div>
-
-    {/* ── Animated reward sequence — points then lumens counter ─────────── */}
-    {rewardSequence && (
-      <RewardSequence
-        fromPoints={rewardSequence.fromPoints}
-        toPoints={rewardSequence.toPoints}
-        fromLumens={rewardSequence.fromLumens}
-        toLumens={rewardSequence.toLumens}
-        onDone={() => setRewardSequence(null)}
-      />
-    )}
-    </>
-  );
+        {/* DEV-only: force all words in this list to mastered state */}
+        {process.env.NODE_ENV === 'development' && (
+          <button
+            onClick={handleDevForceMastery}
+            style={{
+              position: 'fixed', bottom: 16, left: 16, zIndex: 9999,
+              background: '#6c3fc5', color: 'white', border: 'none',
+              borderRadius: 8, padding: '8px 14px', fontSize: 13,
+              cursor: 'pointer', fontFamily: 'monospace',
+            }}
+          >
+            ⚡ DEV: Master all words
+          </button>
+        )}
+      </>
+    );
 }

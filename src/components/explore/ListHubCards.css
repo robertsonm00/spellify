@@ -565,6 +565,43 @@
   border-color: rgba(199, 125, 255, 0.7);
 }
 
+/* Test all words — ported from the classic hub, lives at the foot of the
+   word drawer. Full-width pill so it reads as a clear primary action under
+   the word chips. */
+.lh-drawer-testall {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 16px;
+  padding: 13px 16px;
+  border-radius: 14px;
+  border: 1.5px solid rgba(199, 125, 255, 0.55);
+  background: linear-gradient(135deg, rgba(199, 125, 255, 0.22), rgba(124, 77, 255, 0.22));
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.14s, border-color 0.14s, transform 0.08s;
+}
+.lh-drawer-testall:hover {
+  background: linear-gradient(135deg, rgba(199, 125, 255, 0.38), rgba(124, 77, 255, 0.38));
+  border-color: rgba(199, 125, 255, 0.85);
+}
+.lh-drawer-testall:active { transform: scale(0.98); }
+.lh-drawer-testall__icon { font-size: 1.1rem; }
+.lh-drawer-testall__label { flex: 1 1 auto; text-align: left; }
+.lh-drawer-testall__count {
+  flex: 0 0 auto;
+  min-width: 24px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.28);
+  font-size: 0.82rem;
+  text-align: center;
+}
+
 /* Reuse the existing .hub-chips / .hub-chip rules from WordListHub.css —
    they get a slight contrast bump inside the dark drawer. */
 .lh-words-drawer .hub-chips {
