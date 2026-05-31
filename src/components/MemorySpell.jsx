@@ -5,6 +5,7 @@ import { letterBoxSize } from '../utils/letterBoxSize';
 import GameHeader from './GameHeader';
 import GameProgressStrip from './GameProgressStrip';
 import BuddyAvatar from './BuddyAvatar';
+import GameResults from './GameResults';
 import './MemorySpell.css';
 import { speakWord as speak } from '../utils/speech';
 import { SESSION_RETRY_CEILING } from '../utils/retryCeiling';
@@ -279,16 +280,6 @@ export default function MemorySpell({
     setBuddyCheering(false);
   }, [lastResult]);
 
-  const handlePlayAgain = () => {
-    onSaveProgress?.(null); // wipe snapshot
-    setWordIdx(0);
-    setResults([]);
-    setLastResult(null);
-    setInput('');
-    setHints({ ...INITIAL_HINTS });
-    setPhase('intro');
-  };
-
   const handleComplete = () => {
     onSaveProgress?.(null); // wipe snapshot — activity is fully done
     // Aggregate per-word for the credit framework. A word can appear up
@@ -365,51 +356,18 @@ export default function MemorySpell({
     const unique = Array.from(byWord.values());
     const correctWords = unique.filter(e =>  e.correct).map(e => e.word);
     const wrongWords   = unique.filter(e => !e.correct).map(e => e.word);
-    const score        = correctWords.length;
-    const perfect      = score === words.length;
 
     return (
       <div className={wrapClass} style={BG_STYLE}>
         {topbar}
         {progressBar}
-        <div className="ms-results">
-          <div className="ms-results-score">
-            <span className="ms-score-emoji">
-              {perfect ? '⭐' : score >= Math.ceil(words.length / 2) ? '🌟' : '💪'}
-            </span>
-            <span className="ms-score-num">{score} / {words.length}</span>
-            <span className="ms-score-label">
-              {perfect ? 'Perfect — every word recalled!' : 'words recalled correctly'}
-            </span>
-          </div>
-
-          {correctWords.length > 0 && (
-            <div className="ms-results-section">
-              <h3 className="ms-results-heading ms-results-heading--good">✅ Words you got right</h3>
-              <div className="ms-results-chips">
-                {correctWords.map(w => (
-                  <span key={w} className="ms-results-chip ms-results-chip--good">{w}</span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {wrongWords.length > 0 && (
-            <div className="ms-results-section">
-              <h3 className="ms-results-heading ms-results-heading--practice">📝 Words to practise</h3>
-              <div className="ms-results-chips">
-                {wrongWords.map(w => (
-                  <span key={w} className="ms-results-chip ms-results-chip--practice">{w}</span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="ms-results-btns">
-            <button className="ms-btn ms-btn--secondary" onClick={handlePlayAgain}>↺ Play again</button>
-            <button className="ms-btn ms-btn--primary"   onClick={handleComplete}>Back to Hub ▶</button>
-          </div>
-        </div>
+        <GameResults
+          variant="A"
+          correctWords={correctWords}
+          practiceWords={wrongWords}
+          total={words.length}
+          onContinue={handleComplete}
+        />
       </div>
     );
   }
