@@ -4,6 +4,7 @@ import { speakWord, speakSyllables } from '../../utils/speech';
 import { syllableCount, syllableChunks } from '../../utils/syllableCount';
 import GameHeader from '../GameHeader';
 import GameProgressStrip from '../GameProgressStrip';
+import GameResults from '../GameResults';
 import './SyllableTap.css';
 
 // Themed background — injected via CSS custom property at runtime.
@@ -169,30 +170,30 @@ function SyllableTap({ words, onComplete, onExit, savedProgress = null, onSavePr
   }, [phase]);
 
   if (phase === 'complete') {
-    const wins = results.filter((r) => r.correct).length;
+    // Roll to one entry per word (most-recent outcome) and split into the two
+    // boxes. The per-word tap-count detail ("you tapped 2 · was 1") is left
+    // out for now — parked, see RES-01.
+    const byWord = new Map();
+    for (const r of results) {
+      byWord.set(String(r.word).toLowerCase(), { word: r.word, correct: !!r.correct });
+    }
+    const unique        = Array.from(byWord.values());
+    const correctWords  = unique.filter((e) =>  e.correct).map((e) => e.word);
+    const practiceWords = unique.filter((e) => !e.correct).map((e) => e.word);
+
     return (
       <div className="st-wrap game-magical-bg" style={BG_STYLE}>
         <GameHeader title="Syllable Tap" onExit={onExit} />
         <GameProgressStrip percent={100}>
           {results.length} of {queue.length} words done
         </GameProgressStrip>
-        <div className="st-shell st-complete">
-          <h2 className="st-title">All done!</h2>
-          <p className="st-score">{wins} / {results.length} correct</p>
-          <ul className="st-summary">
-            {results.map((r, i) => (
-              <li key={i} className={r.correct ? 'st-summary-row st-summary-row--ok' : 'st-summary-row st-summary-row--bad'}>
-                <span className="st-summary-word">{r.word}</span>
-                <span className="st-summary-counts">you tapped {r.taps} · was {r.expected}</span>
-              </li>
-            ))}
-          </ul>
-          <div className="st-cta-row">
-            <button className="st-cta" onClick={() => onComplete(results.map((r) => ({ word: r.word, correct: r.correct })))}>
-              Back to Hub
-            </button>
-          </div>
-        </div>
+        <GameResults
+          variant="A"
+          correctWords={correctWords}
+          practiceWords={practiceWords}
+          total={unique.length}
+          onContinue={() => onComplete(results.map((r) => ({ word: r.word, correct: r.correct })))}
+        />
       </div>
     );
   }

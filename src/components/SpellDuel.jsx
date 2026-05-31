@@ -5,6 +5,7 @@ import GameHeader from './GameHeader';
 import GameProgressStrip from './GameProgressStrip';
 import RestartButton from './RestartButton';
 import BuddyAvatar from './BuddyAvatar';
+import GameResults from './GameResults';
 import { getSupportTip } from '../data/spelling/dyslexiaPatterns';
 import { resolveDefinition } from '../utils/wordDefinitions';
 import { generateSpellDuelKeyboard } from '../utils/generateSpellDuelKeyboard';
@@ -317,66 +318,59 @@ function SpellDuel({
   // ── Complete screen ────────────────────────────────────────────────────────
 
   if (phase === 'complete') {
-    const wins = wordResults.filter((r) => r.won).length;
-    const encouragements = [
-      'Fantastic!', 'Great work!', "You're amazing!",
-      'Brilliant playing!', 'Well done!', 'Awesome job!',
-    ];
-    const encouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
+    // Roll the per-attempt list down to one entry per word, keeping the
+    // most-recent outcome (a word can appear twice via the in-session
+    // re-queue). This feeds both the on-screen boxes and the credit payload.
+    const byWord = new Map();
+    for (const r of wordResults) {
+      byWord.set(String(r.word).toLowerCase(), { word: r.word, won: !!r.won });
+    }
+    const unique        = Array.from(byWord.values());
+    const correctWords  = unique.filter((e) =>  e.won).map((e) => e.word);
+    const practiceWords = unique.filter((e) => !e.won).map((e) => e.word);
+
+    const handleComplete = () => {
+      onSaveProgress?.(null);
+      // Aggregate per-word for the credit framework. A word may appear twice
+      // in wordResults because of the in-session re-queue (first loss, second
+      // attempt). For the credit framework we want:
+      //   - attempts: total tries (1 or 2)
+      //   - correct:  most-recent outcome
+      //   - wrongCount drives the attempts bucket on a single try: ≤2 wrong =
+      //     1st-attempt feel, 3+ = 2nd-attempt feel. Re-queued runs always
+      //     carry attempts ≥ 2.
+      const credit = {};
+      for (const r of wordResults) {
+        const key = r.word.toLowerCase();
+        const wc  = Number.isFinite(r.wrongCount) ? r.wrongCount : 0;
+        const prev = credit[key];
+        if (!prev) {
+          let attempts;
+          if (!r.won)        attempts = 2;
+          else if (wc <= 2)  attempts = 1;
+          else               attempts = 2;
+          credit[key] = { word: r.word, correct: !!r.won, attempts, hintUsed: false };
+        } else {
+          prev.attempts = Math.min(prev.attempts + 1, 3);
+          prev.correct  = !!r.won; // most-recent outcome wins
+        }
+      }
+      onComplete(Object.values(credit));
+    };
 
     return (
       <div className="hm-wrap game-magical-bg" style={BG_STYLE}>
         {topbar}
         <GameProgressStrip percent={100}>
-          {wordResults.filter(r => r.won).length} of {wordResults.length} words guessed
+          {correctWords.length} of {unique.length} words guessed
         </GameProgressStrip>
-        <div className="hm-complete">
-          {childCharacter && <div className="hm-complete-emoji">{childCharacter.emoji}</div>}
-          <h2>Duel Complete!</h2>
-          {childName && <p className="hm-child-name">{childName}, {encouragement}</p>}
-          <p className="hm-score-big">{wins} / {wordResults.length} words guessed</p>
-          <ul className="hm-result-list">
-            {wordResults.map((r, i) => (
-              <li key={i} className={r.won ? 'won' : 'lost'}>
-                <span>{r.word}</span>
-                <span className="hm-result-icon">{r.won ? '✓' : '✗'}</span>
-              </li>
-            ))}
-          </ul>
-          <div className="hm-done-actions">
-            <button onClick={restart}>Play Again</button>
-            <button onClick={() => {
-              onSaveProgress?.(null);
-              // Aggregate per-word: a word may appear twice in wordResults
-              // because of the in-session re-queue (first loss, second
-              // attempt). For the credit framework we want:
-              //   - attempts: total tries (1 or 2)
-              //   - correct:  most-recent outcome
-              //   - wrongCount drives the attempts bucket on a single
-              //     try: ≤2 wrong = 1st-attempt feel, 3+ = 2nd-attempt
-              //     feel. Re-queued runs always carry attempts ≥ 2.
-              const byWord = {};
-              for (const r of wordResults) {
-                const key = r.word.toLowerCase();
-                const wc  = Number.isFinite(r.wrongCount) ? r.wrongCount : 0;
-                const prev = byWord[key];
-                if (!prev) {
-                  let attempts;
-                  if (!r.won)        attempts = 2;
-                  else if (wc <= 2)  attempts = 1;
-                  else               attempts = 2;
-                  byWord[key] = { word: r.word, correct: !!r.won, attempts, hintUsed: false };
-                } else {
-                  prev.attempts = Math.min(prev.attempts + 1, 3);
-                  prev.correct  = !!r.won; // most-recent outcome wins
-                }
-              }
-              onComplete(Object.values(byWord));
-            }}>
-              Back to Hub
-            </button>
-          </div>
-        </div>
+        <GameResults
+          variant="A"
+          correctWords={correctWords}
+          practiceWords={practiceWords}
+          total={unique.length}
+          onContinue={handleComplete}
+        />
       </div>
     );
   }

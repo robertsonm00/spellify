@@ -7,6 +7,7 @@ import GameHeader from './GameHeader';
 import GameProgressStrip from './GameProgressStrip';
 import RestartButton from './RestartButton';
 import BuddyAvatar from './BuddyAvatar';
+import GameResults from './GameResults';
 import { SESSION_RETRY_CEILING } from '../utils/retryCeiling';
 import './QuizQuest.css';
 import { speakWord as speak } from '../utils/speech';
@@ -606,43 +607,28 @@ export default function QuizQuest({
   // ── Results screen ─────────────────────────────────────────────────────────
 
   if (phase === 'results') {
-    const correctCount = results.filter((r) => r.correct).length;
-    const total        = results.length;
-    const pct          = Math.round((correctCount / total) * 100);
-    const wrongWords   = [...new Set(results.filter((r) => !r.correct).map((r) => r.word))];
-
-    let summary = "Keep practising — you're getting stronger!";
-    let emoji   = '💪';
-    if (pct === 100)      { summary = 'A perfect quest!'; emoji = '⭐'; }
-    else if (pct >= 70)   { summary = 'Great work!';      emoji = '🌟'; }
-    else if (pct >= 50)   { summary = 'Nice progress!';   emoji = '👍'; }
+    // Roll multiple per-question results down to one entry per word, keeping
+    // the most-recent outcome (matches the credit aggregation in
+    // handleComplete and Memory Spell's results display). This also adds the
+    // correct-word playback Quiz Quest was missing — both boxes now populate.
+    const byWord = new Map();
+    for (const r of results) {
+      byWord.set(String(r.word).toLowerCase(), { word: r.word, correct: !!r.correct });
+    }
+    const unique        = Array.from(byWord.values());
+    const correctWords  = unique.filter((e) =>  e.correct).map((e) => e.word);
+    const practiceWords = unique.filter((e) => !e.correct).map((e) => e.word);
 
     return (
       <div className={wrapClass} style={BG_STYLE}>
         {topbar}
-        <div className="qq-results">
-          <div className="qq-results-score">
-            <span className="qq-score-emoji">{emoji}</span>
-            <span className="qq-score-num">{correctCount} / {total}</span>
-            <span className="qq-score-label">{summary}</span>
-          </div>
-
-          {wrongWords.length > 0 && (
-            <div className="qq-results-section">
-              <h3 className="qq-results-heading">📝 Words to practise</h3>
-              <div className="qq-results-chips">
-                {wrongWords.map((w) => (
-                  <span key={w} className="qq-results-chip">{w}</span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="qq-results-btns">
-            <button className="qq-btn qq-btn--secondary" onClick={handlePlayAgain}>↺ Play again</button>
-            <button className="qq-btn qq-btn--primary"   onClick={handleComplete}>Back to Hub ▶</button>
-          </div>
-        </div>
+        <GameResults
+          variant="A"
+          correctWords={correctWords}
+          practiceWords={practiceWords}
+          total={unique.length}
+          onContinue={handleComplete}
+        />
       </div>
     );
   }
