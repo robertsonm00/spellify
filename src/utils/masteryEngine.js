@@ -310,6 +310,20 @@ export function recordWordResult(listId, word, gameName, credit) {
   }
   // else: struggling stays true, counters already updated above.
 
+  // ── Mastery graduation (PRAC-01) ──────────────────────────────────────
+  // A mastered word is, by definition, off the practice list. Reaching a
+  // mastery tier graduates it immediately — even if it hasn't yet logged
+  // the usual two clean post-flag sessions — because mastery (≥ 2.0 credit
+  // from ≥ 2 game types) is a stronger signal than the clean-session
+  // counter. This preserves PRAC-01's invariant: nothing surfaced on the
+  // practice list is mastered. Applied last so it overrides the struggling
+  // bookkeeping above.
+  if (updated.mastered && updated.struggling) {
+    updated.struggling = false;
+    updated.consecutiveMisses = 0;
+    updated.cleanSessionsPostFlag = 0;
+  }
+
   state.words[key] = updated;
   saveMasteryState(listId, state);
   return { wordMastered, listCompleted: false };

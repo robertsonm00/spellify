@@ -471,7 +471,7 @@ This is computable from the existing `syllables` field on each word, so no new d
 ## Practice list
 
 ### PRAC-01 — Reintroduce the practice list for struggling words
-**Type:** Enhancement · **Priority:** High · **Status:** Open
+**Type:** Enhancement · **Priority:** High · **Status:** 🔄 In progress (31 May)
 
 Bring back the **practice list**: the place words go once a child has had their attempts (the SR-01 single retry, or once over the session ceiling) and is still getting them wrong. This is the destination that SR-01, SD-02, and RES-01 all refer to — so it needs to actually exist and be wired up.
 
@@ -483,6 +483,16 @@ Bring back the **practice list**: the place words go once a child has had their 
 - **Persistence:** must survive reload and must **not** be wiped by Quick Start (now fixed via PROF-04 ✅).
 
 **Action for Claude Code:** investigate what the practice list *used* to be (git history / existing components) — this is a *re*introduction, so there may be code to restore rather than build fresh. Report what was there, then build the first-tile version above.
+
+> **Investigation (31 May):** No git restore needed — ~80% of this already exists and is live. The struggling-word engine (`src/utils/masteryEngine.js`) tracks per-word struggle state and persists it under `spellify_mastery_<listId>` (survives reload; already exempt from the Quick Start wipe via PROF-04). A **global** pool selector already exists — `getStrugglingWordsAcrossLists(refs)` — alongside the per-list `getStrugglingWordEntries(listId)`. `ListHub.jsx` already renders a **Practice Quest** card (L705–737) and a working host (`launchPracticeQuest` → `PracticeWriteIt` → `handlePracticeComplete`). So the destination, the persistence, and a runnable practice flow are all present today.
+>
+> **Four pieces remain to match the resolved spec:**
+> 1. **Scope swap** — the ListHub tile currently sources from the *per-list* `getStrugglingWordEntries(list.id)`; switch it to the *global* `getStrugglingWordsAcrossLists` so it's one pool across every list.
+> 2. **Batches of 3 + "next set" modal** — currently `PRACTICE_QUEST_MAX = 5`, single slice; needs the SR-01 set-of-3 behaviour with a continue-modal offering the next set.
+> 3. **Game-tile visual treatment** — currently a compact `.pq-card--compact` banner; the spec wants it as the **first tile** with the same look as the game cards (placeholder art OK).
+> 4. **Explicit graduation** — add an unambiguous "reaching a mastery tier removes the word from the struggling pool" step in `masteryEngine.js`, so words leave the practice list deterministically.
+>
+> Building these incrementally, smallest-risk first, coordinated with SR-01 (#29) since they share the batches-of-3 / ceiling-of-3 logic.
 
 **Cross-refs:** the shared sink for **SR-01** (failed retry / over ceiling) and **SD-02** (Spell Duel ceiling), and the practice destination referenced by **RES-01**. Tied to **MAS-01/02** — a word on the practice list is, by definition, not yet mastered.
 
