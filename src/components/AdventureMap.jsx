@@ -794,22 +794,6 @@ export default function AdventureMap({ session, onSectionChange, onOpenList, onG
         <div className="am-v2-chapter-badge" aria-hidden="true">
           Chapter {chapterIdx + 1}
         </div>
-
-        {/* Player greeting — surfaces the child's name on the map so a
-            returning child can see their profile was remembered. The name
-            lives in session storage; this is the only place the map shows it. */}
-        {session?.childName && (
-          <div className="am-v2-player-badge">
-            <BuddyAvatar
-              id={session?.childCharacter?.id || 'raccoon'}
-              fallback={session?.childCharacter?.emoji || '🦝'}
-              size={26}
-            />
-            <span className="am-v2-player-badge__name">
-              {session.childName.toUpperCase().replace(/-/g, '‑')}
-            </span>
-          </div>
-        )}
       </div>
 
       {lockedMsg && (
