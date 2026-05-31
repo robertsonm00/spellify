@@ -654,13 +654,24 @@ function App() {
       if (!m || milestoneShownRef.current === m) return;
       milestoneShownRef.current = m;
       // Confetti burst — uses the same lib the rest of the app uses.
+      // R2-07: this burst fires as the child lands back on the home/map
+      // screen, so it competed for the main thread with that screen's
+      // mount render (and previously a heavy PNG background decode). The
+      // oversized backgrounds are now WebP (R2-08), removing the main
+      // cause of the stutter. Two defensive tweaks keep it smooth:
+      //   1) particleCount trimmed 160 → 110 (still a big celebration;
+      //      every other confetti call in the app uses ≤ 90) so each
+      //      animation frame has less to draw over the map.
+      //   2) fire on the next frame via requestAnimationFrame so the
+      //      home screen has painted before the animation loop starts,
+      //      instead of starting mid-mount.
       import('canvas-confetti').then(({ default: confetti }) => {
-        confetti({
-          particleCount: 160,
+        requestAnimationFrame(() => confetti({
+          particleCount: 110,
           spread: 110,
           origin: { y: 0.45 },
           colors: ['#ffd93d', '#ff9f43', '#c77dff', '#6bcb77', '#4d96ff', '#ff6b6b'],
-        });
+        }));
       }).catch(() => {});
       setStreakPopup({ kind: 'milestone', streak: m, dismissAt: Date.now() + 4500 });
     };

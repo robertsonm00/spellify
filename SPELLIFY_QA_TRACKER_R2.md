@@ -21,13 +21,13 @@ _Created: 31 May 2026_
 |----|------|-------|------|----------|--------|
 | R2-01 | Word Forge | Gate when list lacks prefixes/suffixes; restyle to Memory Spell | Enhancement / UI | Med | Open |
 | R2-02 | Weak Spot | Restyle to Memory Spell + new background; Variant A end screen | UI | Med | Open |
-| R2-03 | Word Mastery | Hover text describes mastery wrongly ("play 14 more games") | Bug | High | Open |
+| R2-03 | Word Mastery | Hover text describes mastery wrongly ("play 14 more games") | Bug | High | ✅ Done (removed) |
 | R2-04 | Cross-game | Persistent word-list panel (right side) in all games, collapsible | Feature | High | Open |
-| R2-05 | Avatars / Profile | Avatar packs — pick a character, unlock/buy themed packs with lumens | Feature | Med | Open |
+| R2-05 | Avatars / Profile | Avatar packs — pick a character, unlock/buy themed packs with lumens | Feature | Med | → Moved to R3-02 |
 | R2-06 | Parent / Auth | Force parent PIN setup at profile creation (not deferred) | Bug / Security | High | Open |
-| R2-07 | Performance | Confetti slow/janky returning to home after mastering a list | Bug | High | Open |
-| R2-08 | Performance | Audit asset/file sizes site-wide; convert world backgrounds to WebP | Enhancement | High | Open |
-| R2-09 | Quiz Quest / Memory Spell | Align in-game header UI (font, colour, pill) | UI | Med | Done |
+| R2-07 | Performance | Confetti slow/janky returning to home after mastering a list | Bug | High | ✅ Done |
+| R2-08 | Performance | Audit asset/file sizes site-wide; convert world backgrounds to WebP | Enhancement | High | ✅ Done |
+| R2-09 | Quiz Quest / Memory Spell | Align in-game header UI (font, colour, pill) | UI | Med | ✅ Done |
 
 ---
 
@@ -59,7 +59,9 @@ Weak Spot: plays the word, then plays it back with **some letters/parts missing*
 > **Note:** when the UI detail comes, the refresh should align with the **card design** direction (DESIGN-01, R1) since classic is being retired.
 
 ### R2-03 — Word Mastery hover text describes mastery incorrectly
-**Type:** Bug · **Priority:** High · **Status:** Open — needs code verification first
+**Type:** Bug · **Priority:** High · **Status:** ✅ Done — removed (31 May)
+
+> **Resolved (31 May):** the misleading hover ("play X more games to reach Word Mastery") has been **removed entirely** rather than rewritten. The investigation into the true mastery rule is no longer needed for this item. If a mastery-progress message is wanted later, it can be re-specced then against the confirmed rule.
 
 Hovering over Word Mastery shows **"play 14 more games to reach Word Mastery."** That contradicts how mastery is actually meant to work.
 
@@ -103,7 +105,9 @@ Bring the **word list** (the one from the word-list hub) **into every game**, pi
 > 4. **Spelling visible during play** — is there any game where showing the exact spelling defeats the point (e.g. a "spell from memory" mode), or is the word always fair to show? (Per the principle above, leaning: always show — it's a spelling aid, not a cheat.)
 
 ### R2-05 — Avatar packs (pick a character; unlock/buy themed packs with lumens)
-**Type:** Feature · **Priority:** Med · **Status:** Open — concept evolving
+**Type:** Feature · **Priority:** Med · **Status:** → Moved to R3 (R3-02) — paused 31 May
+
+> **Moved to Round 3 (31 May):** paused for now; the full spec below lives on as **R3-02**. Kept here for history.
 
 **Evolved from an interim picker into a progression system.** Instead of just "choose from 80," characters are grouped into **themed packs** that children **unlock with lumens** (or are awarded through progress). This plugs the existing avatar art straight into the **lumens economy** and the **mastery-unlock** idea already in the gamification design.
 
@@ -161,7 +165,9 @@ Requirements:
 > 3. **Reset flow** — confirm it goes via the parent's signed-in account (email), not something a child could trigger.
 
 ### R2-07 — Confetti slow/janky returning home after mastering a list
-**Type:** Bug · **Priority:** High · **Status:** Open
+**Type:** Bug · **Priority:** High · **Status:** ✅ Done (31 May)
+
+> **Resolved (31 May):** root cause was the milestone confetti burst firing over the heavy home/map background as that screen mounted. **R2-08** (world backgrounds → WebP) removed the main culprit — the large PNG decode that starved the main thread. Two defensive tweaks added on top so the burst stays smooth regardless: particle count trimmed from 160 → 110 (every other confetti call in the app already uses ≤ 90), and the burst now fires on the next `requestAnimationFrame` so the home screen has painted before the animation loop starts (no longer competing with the mount render). `src/App.jsx` milestone listener.
 
 On mastering a word list and returning to the home screen, the **confetti explosion runs really slowly** (low frame rate / stutter).
 
@@ -175,7 +181,7 @@ Areas for Claude Code to check:
 > **Cross-ref:** almost certainly the same root cause as **R2-08** (oversized assets). Fix the asset sizes first, then re-test confetti — it may resolve without touching the confetti code. Also related to R1 **MAP-01** (map image black-flash on load) — both point at heavy/unoptimised images on the home/map screen.
 
 ### R2-08 — Audit asset sizes site-wide; convert world backgrounds to WebP
-**Type:** Enhancement · **Priority:** High · **Status:** Open
+**Type:** Enhancement · **Priority:** High · **Status:** ✅ Done (31 May — WebP backgrounds sorted)
 
 Suspected performance drag from **oversized assets**, especially **world background images**. Plan: provide **WebP versions of all world backgrounds** (much smaller than PNG/JPG at equivalent quality) and audit file sizes across the app.
 
@@ -190,7 +196,9 @@ Suspected performance drag from **oversized assets**, especially **world backgro
 > **Open question:** do you want a hard budget per asset (e.g. "no background over 200KB")? Useful as a standard to hold the line on going forward.
 
 ### R2-09 — Align Quiz Quest & Memory Spell in-game header UI
-**Type:** UI · **Priority:** Med · **Status:** Done
+**Type:** UI · **Priority:** Med · **Status:** ✅ Done (31 May)
+
+> **Resolved (31 May):** both games now share one header style. Memory Spell's H1 (`.ms-phase .ms-h1`) and Quiz Quest's H1 (`.qq-h1`) are identical — Nunito, weight 800, white (`#ffffff`) with a soft drop-shadow (no more pixel font / yellow). The pixel-font amber pill is kept only on the small counter above each H1: Memory Spell's "Word 1 / 14" (`.ms-word-counter`) and Quiz Quest's "10 questions" (`.qq-question-pill`) share the same styling.
 
 Make the two games' in-game headers consistent.
 
