@@ -14,8 +14,62 @@ import { SESSION_RETRY_CEILING } from '../utils/retryCeiling';
 
 // Themed background — injected via CSS custom property at runtime.
 const BG_STYLE = {
-  '--bg-image-url': `url("${process.env.PUBLIC_URL || ''}/adventure/Spell%20Duel%20background%20.png")`,
+  '--bg-image-url': `url("${process.env.PUBLIC_URL || ''}/adventure/backgrounds/spell-duel-background.png")`,
 };
+
+// Opponent wizard sprite — three poses swapped by duel outcome.
+//   idle      → default standing pose while a round is in play
+//   defeated  → child solved the word (the wizard loses the round)
+//   win       → child ran out of guesses (the wizard wins the round)
+const PUBLIC = process.env.PUBLIC_URL || '';
+const WIZARD_IMG = {
+  idle:     `${PUBLIC}/adventure/characters/spell-duel-wizard-default.webp`,
+  defeated: `${PUBLIC}/adventure/characters/spell-duel-wizard-defeated.webp`,
+  win:      `${PUBLIC}/adventure/characters/spell-duel-wizard-win.webp`,
+};
+
+// Playful magic-lightning zap — synthesised (no audio file): a bright noise
+// crackle layered over a fast downward "electric" sweep. Fires when the wizard
+// wins a round. Kept light/sparky rather than a deep ominous boom so it reads
+// as fun magic, not a scary punishment.
+function playLightningZap() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const now = ctx.currentTime;
+
+    // Crackle — short burst of high-passed white noise.
+    const dur  = 0.5;
+    const size = Math.floor(ctx.sampleRate * dur);
+    const buffer = ctx.createBuffer(1, size, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < size; i++) data[i] = Math.random() * 2 - 1;
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.setValueAtTime(2600, now);
+    hp.frequency.exponentialRampToValueAtTime(800, now + 0.3);
+    const nGain = ctx.createGain();
+    nGain.gain.setValueAtTime(0.0001, now);
+    nGain.gain.exponentialRampToValueAtTime(0.22, now + 0.01);
+    nGain.gain.exponentialRampToValueAtTime(0.001, now + 0.34);
+    noise.connect(hp); hp.connect(nGain); nGain.connect(ctx.destination);
+
+    // Electric zap — fast downward sawtooth sweep.
+    const osc   = ctx.createOscillator();
+    const oGain = ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(900, now);
+    osc.frequency.exponentialRampToValueAtTime(70, now + 0.28);
+    oGain.gain.setValueAtTime(0.0001, now);
+    oGain.gain.exponentialRampToValueAtTime(0.16, now + 0.02);
+    oGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+    osc.connect(oGain); oGain.connect(ctx.destination);
+
+    noise.start(now); noise.stop(now + dur);
+    osc.start(now);   osc.stop(now + 0.42);
+  } catch {}
+}
 
 function playWordChime() {
   try {
@@ -171,6 +225,15 @@ function SpellDuel({
   const playerAttack   = lastCorrectLetter != null;
   const opponentAttack = lastWrongLetter != null;
 
+  // Opponent wizard pose: idle during play, defeated when the child solves the
+  // word (wizard loses), triumphant when the child runs out of guesses (wizard
+  // wins). The 'complete' phase returns early, so this only matters in play /
+  // word-result.
+  const opponentState =
+    phase === 'word-result' && won  ? 'defeated' :
+    phase === 'word-result' && lost ? 'win'      :
+    'idle';
+
   // Cheer pose lingers a beat longer than the lunge so the swapped frame reads,
   // then snaps back to the default still pose.
   const [playerCheering, setPlayerCheering] = useState(false);
@@ -246,6 +309,26 @@ function SpellDuel({
       fireWordConfetti();
     }
   }, [phase, won]);
+
+  // Wizard win — fire the lightning zap once per lost round (guarded so a
+  // re-render in word-result doesn't replay it).
+  const zappedRef = useRef(false);
+  useEffect(() => {
+    if (phase === 'playing') { zappedRef.current = false; return; }
+    if (phase === 'word-result' && lost && !zappedRef.current) {
+      zappedRef.current = true;
+      playLightningZap();
+    }
+  }, [phase, lost]);
+
+  // Preload the win/defeat sprites so the pose swap is instant (no flash on the
+  // first round that ends).
+  useEffect(() => {
+    [WIZARD_IMG.idle, WIZARD_IMG.defeated, WIZARD_IMG.win].forEach((src) => {
+      const img = new Image();
+      img.src = src;
+    });
+  }, []);
 
   const handleGuess = useCallback(
     (letter) => {
@@ -441,13 +524,20 @@ function SpellDuel({
           />
         </div>
 
-        {/* Opponent portrait (right) */}
+        {/* Opponent portrait (right) — wizard sprite swaps pose on win/lose */}
         <div className={[
           'sd-portrait sd-portrait--opponent',
           opponentAttack ? 'sd-portrait--attack' : '',
-          phase === 'word-result' && won ? 'sd-portrait--ko' : '',
+          opponentState === 'defeated' ? 'sd-portrait--defeated' : '',
+          opponentState === 'win' ? 'sd-portrait--triumph' : '',
         ].filter(Boolean).join(' ')}>
-          <span className="sd-portrait-emoji">🧙‍♂️</span>
+          <img
+            className="sd-wizard-img"
+            src={WIZARD_IMG[opponentState]}
+            alt=""
+            aria-hidden="true"
+            draggable="false"
+          />
         </div>
       </div>
 

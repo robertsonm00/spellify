@@ -16,7 +16,7 @@ import { WordDetailModal } from './WordListHub';
 
 // Themed background — same pattern as the other adventure screens.
 const BG_STYLE = {
-  '--bg-image-url': `url("${process.env.PUBLIC_URL || ''}/adventure/Write%20it%20background.png")`,
+  '--bg-image-url': `url("${process.env.PUBLIC_URL || ''}/adventure/backgrounds/write-it-background.png")`,
 };
 
 // ── Constants ────────────────────────────────────────────────────────────────

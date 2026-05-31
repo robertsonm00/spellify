@@ -40,7 +40,7 @@ const DEFAULT_CHAPTER_COORDS = [
 const ISLE_CHAPTERS = {
   ember: [
     {
-      bg:     '/adventure/ember-isle-vertical.webp',
+      bg:     '/adventure/backgrounds/ember-isle-vertical.webp',
       ratio:  941 / 1672,
       coords: DEFAULT_CHAPTER_COORDS,
       landmarks: {
@@ -50,13 +50,13 @@ const ISLE_CHAPTERS = {
       },
     },
     {
-      bg:     '/adventure/ember-isle-vertical-2.webp',
+      bg:     '/adventure/backgrounds/ember-isle-vertical-2.webp',
       ratio:  941 / 1672,
       coords: DEFAULT_CHAPTER_COORDS,
       landmarks: {},
     },
     {
-      bg:     '/adventure/ember-isle-vertical-3.webp',
+      bg:     '/adventure/backgrounds/ember-isle-vertical-3.webp',
       ratio:  941 / 1672,
       coords: DEFAULT_CHAPTER_COORDS,
       landmarks: {},
@@ -67,13 +67,13 @@ const ISLE_CHAPTERS = {
 // Sign board image for each isle — drop in a new entry when new art arrives.
 // Keyed by isle theme; value is the public path to the sign image.
 const ISLE_SIGNS = {
-  ember: '/adventure/ember_isle_sign.webp',
-  flare: '/adventure/flare_isle_sign.webp',
+  ember: '/adventure/characters/ember-isle-sign.webp',
+  flare: '/adventure/characters/flare-isle-sign.webp',
   // blaze, aurora: add sign art here when ready
 };
 
 // Fixed right-hand sign for the HFW Island — always visible on the map.
-const HFW_SIGN = '/adventure/High-frequency_island_sign.png';
+const HFW_SIGN = '/adventure/characters/high-frequency-island-sign.png';
 
 // ── Module-level persistence (survives React unmount/remount cycles) ─────────
 // When the user taps an active stop the orb position is saved here so the

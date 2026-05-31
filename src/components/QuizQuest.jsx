@@ -15,7 +15,7 @@ import { speakWord as speak } from '../utils/speech';
 
 // Themed background — injected via CSS custom property at runtime.
 const BG_STYLE = {
-  '--bg-image-url': `url("${process.env.PUBLIC_URL || ''}/adventure/Quiz%20quest%20background.png")`,
+  '--bg-image-url': `url("${process.env.PUBLIC_URL || ''}/adventure/backgrounds/quiz-quest-background.png")`,
 };
 
 const QUESTION_H1 = {
@@ -590,7 +590,9 @@ export default function QuizQuest({
             </span>
             <h1 className="qq-h1">Let's do Quiz Quest!</h1>
             <p className="qq-start-sub">Solve quick word challenges with your buddy</p>
-            <p className="qq-start-meta">{questions.length} questions</p>
+            <span className="qq-question-pill" aria-label={`${questions.length} questions`}>
+              {questions.length} questions
+            </span>
             <button className="qq-btn qq-btn--primary qq-btn--large" onClick={handleStart}>
               Start quest ▶
             </button>

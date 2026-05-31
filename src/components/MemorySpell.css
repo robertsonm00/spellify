@@ -729,18 +729,20 @@
 }
 .ms-word-counter__sep { opacity: 0.55; margin: 0 2px; }
 
-/* Headings + body copy on the dark card */
+/* Headings + body copy on the dark card. Header H1 uses the normal Nunito
+   font in white (matched to Quiz Quest's .qq-h1) — R2-09 aligns the two
+   games' in-game headers. The pixel font + amber glow is kept only on the
+   small word-counter pill above. */
 .ms-phase .ms-h1 {
-  color: #fde68a;
-  text-shadow:
-    0 0 10px rgba(253, 230, 138, 0.55),
-    2px 2px 0 rgba(0, 0, 0, 0.55);
-  font-family: 'Press Start 2P', 'Nunito', monospace;
-  font-size: 1.15rem;
-  line-height: 1.45;
-  letter-spacing: 0.03em;
+  color: #ffffff;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  font-family: 'Nunito', sans-serif;
+  font-size: 1.8rem;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: normal;
 }
-.ms-wrap--es .ms-phase .ms-h1 { font-size: 1.35rem; }
+.ms-wrap--es .ms-phase .ms-h1 { font-size: 2rem; }
 
 /* Word reveal — big glowing word in the normal Nunito body font (kept
    non-pixel so the spelling stays as readable as possible). */

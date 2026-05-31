@@ -40,7 +40,7 @@ import './ExploreDashboard.css';
 // the actual visible container (an earlier attempt on .hub-shell was killed
 // by a higher-specificity override inside ExploreDashboard.css).
 const WORDLIST_BG_STYLE = {
-  '--bg-image-url': `url("${process.env.PUBLIC_URL || ''}/adventure/Word%20list%20background.png")`,
+  '--bg-image-url': `url("${process.env.PUBLIC_URL || ''}/adventure/backgrounds/word-list-background.png")`,
 };
 
 const CATEGORY_COLOURS = {

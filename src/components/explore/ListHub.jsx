@@ -30,16 +30,16 @@ import './ListHubCards.css';
 // public/adventure/ folder; still passed through encodeArtUrl so the shared
 // helper keeps working even though these names have no spaces.
 const GAME_ART = {
-  wordsearch:  '/adventure/wordsearch_gametile.webp',
-  memoryspell: '/adventure/memory_spell_gametile.webp',
-  hangman:     '/adventure/spell_duel_gametile.webp',
-  memorymatch: '/adventure/memory_match_gametile.webp',
-  syllabletap: '/adventure/sylable_tap_gametile.webp',
-  writeit:     '/adventure/write_it_gametile.webp',
-  weakspot:    '/adventure/weak_spot_gametile.webp',
-  crossword:   '/adventure/crossword_gametile.webp',
-  quizquest:   '/adventure/quiz_quest_gametile.webp',
-  wordforge:   '/adventure/word_forge_gametile.webp',
+  wordsearch:  '/adventure/tiles/wordsearch-gametile.webp',
+  memoryspell: '/adventure/tiles/memory-spell-gametile.webp',
+  hangman:     '/adventure/tiles/spell-duel-gametile.webp',
+  memorymatch: '/adventure/tiles/memory-match-gametile.webp',
+  syllabletap: '/adventure/tiles/syllable-tap-gametile.webp',
+  writeit:     '/adventure/tiles/write-it-gametile.webp',
+  weakspot:    '/adventure/tiles/weak-spot-gametile.webp',
+  crossword:   '/adventure/tiles/crossword-gametile.webp',
+  quizquest:   '/adventure/tiles/quiz-quest-gametile.webp',
+  wordforge:   '/adventure/tiles/word-forge-gametile.webp',
 };
 const encodeArtUrl = (path) =>
   path ? `${process.env.PUBLIC_URL || ''}${path.replace(/ /g, '%20')}` : null;
@@ -393,6 +393,16 @@ export default function ListHub({
   // Show once when ALL words in the list are mastered during this session.
   // We compare the previous listProgress.status to detect the transition.
   const [showMasteryModal, setShowMasteryModal] = useState(false);
+  // The "Word Master! → Next word list" modal is the list-UNLOCK notification.
+  // When a list-completing game ALSO awards points / lumens / a level-up, that
+  // unlock notice must land LAST — after the reward sequence has fully played
+  // out. So mastery defers into `pendingMasteryModal`, and a handoff effect
+  // promotes it to the real modal once no reward is showing or pending.
+  const [pendingMasteryModal, setPendingMasteryModal] = useState(false);
+  // Set synchronously the instant a game completion schedules a reward
+  // sequence, so the mastery effect (which can fire BEFORE the reward overlay
+  // actually mounts ~1s later) knows a reward is on its way and holds back.
+  const rewardPendingRef = useRef(false);
   // Ref stores the status from the PREVIOUS render cycle so we can detect
   // a transition to 'completed' rather than re-showing on every render.
   const prevListStatusRef = useRef(null);   // null = not yet initialised
@@ -483,8 +493,11 @@ export default function ListHub({
       return;
     }
     if (current === 'completed' && prevListStatusRef.current !== 'completed') {
-      // List just became fully mastered this session!
-      setShowMasteryModal(true);
+      // List just became fully mastered this session! Queue the unlock modal
+      // rather than showing it now — the handoff effect releases it once any
+      // points / lumens / level-up reward sequence has finished, so the
+      // "Next word list" notice always comes last.
+      setPendingMasteryModal(true);
       // Celebration sequence: buddy cheer + confetti burst
       setTimeout(() => fireBuddyCheer(), 200);
       setTimeout(() => {
@@ -502,6 +515,20 @@ export default function ListHub({
     }
     prevListStatusRef.current = current;
   }, [listProgress.status, list.id]);
+
+  // ── Release the deferred list-unlock modal (notification ordering) ────────
+  // The "Word Master! → Next word list" notice must land LAST — after the
+  // post-game reward sequence (points → lumens → level-up). Promote the
+  // pending flag to the real modal only once nothing is showing or queued:
+  // rewardSequence is null (no overlay on screen) AND rewardPendingRef is
+  // false (none scheduled in the ~1s pre-mount window). When no reward was
+  // earned this fires immediately, preserving the old timing.
+  useEffect(() => {
+    if (pendingMasteryModal && !rewardSequence && !rewardPendingRef.current) {
+      setShowMasteryModal(true);
+      setPendingMasteryModal(false);
+    }
+  }, [pendingMasteryModal, rewardSequence]);
 
   // ── Practice Quest launch / completion ─────────────────────────────────
   // Practice is delivered in short, winnable batches (SR-01 Rule 3) drawn
@@ -635,6 +662,9 @@ export default function ListHub({
 
     // Trigger animated reward counter ~1 s after the celebration fires
     if (rewardInfo && (rewardInfo.pointsAwarded > 0 || rewardInfo.lumensAwarded > 0)) {
+      // Flag synchronously so a list-mastery transition firing in this same
+      // render cycle defers its unlock modal until the reward sequence ends.
+      rewardPendingRef.current = true;
       setTimeout(() => {
         setRewardSequence({
           fromPoints: statsBefore.totalPoints || 0,
@@ -1167,7 +1197,7 @@ export default function ListHub({
             toLumens={rewardSequence.toLumens}
             leveledUp={rewardSequence.leveledUp}
             toLevel={rewardSequence.toLevel}
-            onDone={() => setRewardSequence(null)}
+            onDone={() => { rewardPendingRef.current = false; setRewardSequence(null); }}
           />
         )}
 

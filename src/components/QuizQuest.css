@@ -337,10 +337,23 @@
   margin: 0;
 }
 
-.qq-start-meta {
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: #6b7280;
+/* Question-count pill — mirrors Memory Spell's .ms-word-counter so both
+   games share one in-game header treatment (R2-09). */
+.qq-question-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(46, 16, 101, 0.85), rgba(15, 6, 32, 0.85));
+  border: 1.5px solid rgba(199, 125, 255, 0.55);
+  box-shadow: 0 0 14px rgba(199, 125, 255, 0.25);
+  font-family: 'Press Start 2P', 'Nunito', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  color: #fde68a;
+  text-shadow: 0 0 6px rgba(253, 230, 138, 0.45);
+  text-transform: uppercase;
   margin: 0;
 }
 
@@ -807,7 +820,6 @@
   text-shadow: 0 0 10px rgba(253, 230, 138, 0.55), 2px 2px 0 rgba(0, 0, 0, 0.55);
 }
 .qq-start-sub  { color: #d8b4fe; }
-.qq-start-meta { color: #d8b4fe; opacity: 0.85; }
 
 /* Prompts + definitions on the dark card */
 .qq-prompt { color: #f5ecff; }

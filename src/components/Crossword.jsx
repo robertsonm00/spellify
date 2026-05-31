@@ -14,7 +14,7 @@ import { speakWord, speakSentence } from '../utils/speech';
 // Themed background — injected via a CSS custom property so css-loader
 // doesn't try to resolve a public/ path at build time.
 const BG_STYLE = {
-  '--bg-image-url': `url("${process.env.PUBLIC_URL || ''}/adventure/Crossword%20Castle%20background%20.png")`,
+  '--bg-image-url': `url("${process.env.PUBLIC_URL || ''}/adventure/backgrounds/crossword-castle-background.png")`,
 };
 
 function playWordChime() {
