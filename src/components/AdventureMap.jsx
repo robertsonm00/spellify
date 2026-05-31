@@ -40,7 +40,7 @@ const DEFAULT_CHAPTER_COORDS = [
 const ISLE_CHAPTERS = {
   ember: [
     {
-      bg:     '/adventure/ember-isle-vertical.png',
+      bg:     '/adventure/ember-isle-vertical.webp',
       ratio:  941 / 1672,
       coords: DEFAULT_CHAPTER_COORDS,
       landmarks: {
@@ -50,13 +50,13 @@ const ISLE_CHAPTERS = {
       },
     },
     {
-      bg:     '/adventure/ember-isle-vertical-2.png',
+      bg:     '/adventure/ember-isle-vertical-2.webp',
       ratio:  941 / 1672,
       coords: DEFAULT_CHAPTER_COORDS,
       landmarks: {},
     },
     {
-      bg:     '/adventure/ember-isle-vertical-3.png',
+      bg:     '/adventure/ember-isle-vertical-3.webp',
       ratio:  941 / 1672,
       coords: DEFAULT_CHAPTER_COORDS,
       landmarks: {},
