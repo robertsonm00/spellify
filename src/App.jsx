@@ -88,10 +88,15 @@ function App() {
   //   parentProfile  : profiles row for the signed-in parent (has the
   //                    parent_pin_hash column).
   //   pinGateMode    : 'closed' | 'entry' | 'setup' | 'change'
+  //   pinSetupMandatory : true when a PIN-less parent first opens the
+  //                    grown-up area — setup then has no skip/cancel so
+  //                    the gate can't be left open (R2-06). False for the
+  //                    optional "Change PIN" flow inside the dashboard.
   //   pinBusy        : disable inputs while we hash/write
   //   pinError       : surfaced under the PIN inputs
   const [parentProfile, setParentProfile] = useState(null);
   const [pinGateMode,   setPinGateMode]   = useState('closed');
+  const [pinSetupMandatory, setPinSetupMandatory] = useState(false);
   const [pinBusy,       setPinBusy]       = useState(false);
   const [pinError,      setPinError]      = useState(null);
 
@@ -148,6 +153,7 @@ function App() {
     lastSignedInUserIdRef.current = null;
     setParentProfile(null);
     setPinGateMode('closed');
+    setPinSetupMandatory(false);
     setPinError(null);
     try {
       localStorage.removeItem('spellify_session_v2');
@@ -473,11 +479,20 @@ function App() {
     setPinError(null);
     if (!parentProfile) {
       // Profile row missing — open setup so the parent can set a PIN
-      // from scratch. The first save will upsert the row.
+      // from scratch. The first save will upsert the row. Mandatory:
+      // a profile with no PIN can't be allowed past this gate (R2-06).
+      setPinSetupMandatory(true);
       setPinGateMode('setup');
       return;
     }
-    setPinGateMode(parentProfile.parent_pin_hash ? 'entry' : 'setup');
+    if (parentProfile.parent_pin_hash) {
+      setPinGateMode('entry');
+      return;
+    }
+    // PIN-less parent (e.g. account created before R2-06) — force them
+    // to set one before the grown-up area opens. No skip, no back-door.
+    setPinSetupMandatory(true);
+    setPinGateMode('setup');
   }, [parentProfile]);
 
   const handlePinSubmit = React.useCallback(async (pin) => {
@@ -510,6 +525,7 @@ function App() {
         return;
       }
       setParentProfile((prev) => ({ ...(prev || {}), id: authUser.id, parent_pin_hash: hash }));
+      setPinSetupMandatory(false);
       setPinGateMode('closed');
       setScreen('parentDashboard');
     } catch (e) {
@@ -521,9 +537,11 @@ function App() {
   }, [authUser?.id]);
 
   const handlePinSkip = React.useCallback(() => {
+    setPinSetupMandatory(false);
     setPinGateMode('closed');
-    // Spec: PIN setup is skippable; if they skip, grown-up area is
-    // open-access. Route them straight into the dashboard.
+    // Only reachable from the optional "Change PIN" flow (mandatory
+    // first-time setup passes no onSkip — R2-06). Backing out keeps the
+    // existing PIN and returns to the dashboard.
     setScreen('parentDashboard');
   }, []);
 
@@ -556,9 +574,12 @@ function App() {
   }, [authUser?.id]);
 
   // ParentDashboard → Change PIN. Already inside the gate, so jump
-  // straight to PINSetup (re-confirm flow inside the component).
+  // straight to PINSetup (re-confirm flow inside the component). This is
+  // the one setup path that stays skippable — backing out just returns
+  // to the dashboard with the existing PIN intact (R2-06).
   const handleChangePin = React.useCallback(() => {
     setPinError(null);
+    setPinSetupMandatory(false);
     setPinGateMode('setup');
   }, []);
 
@@ -1017,7 +1038,21 @@ function App() {
       {pinGateMode === 'setup' && (
         <PINSetup
           onSave={handlePinSave}
-          onSkip={handlePinSkip}
+          onSkip={pinSetupMandatory ? undefined : handlePinSkip}
+          onCancel={() => {
+            // Back out of the gate without entering. Mandatory setup
+            // leaves the parent safely OUTSIDE the grown-up area (no PIN
+            // was set, so the area stays locked); the optional change-PIN
+            // flow drops back to the dashboard with its PIN unchanged.
+            setPinSetupMandatory(false);
+            setPinError(null);
+            if (pinSetupMandatory) {
+              setPinGateMode('closed');
+            } else {
+              handlePinSkip();
+            }
+          }}
+          isMandatory={pinSetupMandatory}
           busy={pinBusy}
         />
       )}

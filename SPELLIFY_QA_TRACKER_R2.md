@@ -24,7 +24,7 @@ _Created: 31 May 2026_
 | R2-03 | Word Mastery | Hover text describes mastery wrongly ("play 14 more games") | Bug | High | ✅ Done (removed) |
 | R2-04 | Cross-game | Persistent word-list panel (right side) in all games, collapsible | Feature | High | ✅ Done |
 | R2-05 | Avatars / Profile | Avatar packs — pick a character, unlock/buy themed packs with lumens | Feature | Med | → Moved to R3-02 |
-| R2-06 | Parent / Auth | Force parent PIN setup at profile creation (not deferred) | Bug / Security | High | Open |
+| R2-06 | Parent / Auth | Force parent PIN setup at profile creation (not deferred) | Bug / Security | High | ✅ Done |
 | R2-07 | Performance | Confetti slow/janky returning to home after mastering a list | Bug | High | ✅ Done |
 | R2-08 | Performance | Audit asset/file sizes site-wide; convert world backgrounds to WebP | Enhancement | High | ✅ Done |
 | R2-09 | Quiz Quest / Memory Spell | Align in-game header UI (font, colour, pill) | UI | Med | ✅ Done |
@@ -162,7 +162,14 @@ Bring the **word list** (the one from the word-list hub) **into every game**, pi
 > **Sample set:** Martin sending **10–15 characters** to form the free starter pack + inform pack theming. Placeholder locked packs stubbed alongside (decision 3).
 
 ### R2-06 — Force parent PIN setup at profile creation
-**Type:** Bug / Security · **Priority:** High · **Status:** Open
+**Type:** Bug / Security · **Priority:** High · **Status:** ✅ Done (31 May)
+
+> **Resolved (31 May):** the gate is now genuinely closed. The fix is placed at the **grown-up-area entry point** rather than at sign-up, because that's the only surface the PIN protects — and it covers both new and pre-existing accounts in one place:
+> - **No skip-into-the-area.** When a PIN-less parent (a brand-new account *or* one created before this fix) opens the grown-up area, `PINSetup` runs in a new **`isMandatory`** mode: the "Skip for now" button is gone and PINEntry's cancel no longer slips them through. The **only** way *in* is to set a PIN — so requirements 1 (new profiles can't reach the area PIN-less) and 2 (no back-door for existing PIN-less accounts) are both satisfied at a single chokepoint. Driven by new `pinSetupMandatory` state in `App.jsx`, set true from `handleParentCardTap` for any hash-less profile.
+> - **Not a trap.** A parent who tapped in by accident can still back out via the ✕ — but backing out **closes the gate and leaves them outside** the area (no PIN set, area stays locked), exactly like the existing PIN-*entry* gate. It never proceeds into the dashboard without a PIN.
+> - **Change-PIN stays optional.** The dashboard's "Change PIN" action (`handleChangePin`) sets `pinSetupMandatory = false`, so that flow keeps its skip/cancel — the parent is already authenticated past the gate, so backing out (keeping the current PIN) is harmless.
+> - **Hygiene already in place:** 4-digit, **confirm-entry** (PINSetup's two-stage create→confirm), and **reset via the authenticated account** (`handlePinForgot` → Supabase `resetPasswordForEmail`, an out-of-band channel a child can't trigger). Open questions answered: (1) 4 digits — confirmed; (2) protected surface = the grown-up area / parent dashboard (and any future spend/settings it holds); (3) reset is email-only via the parent's sign-in.
+> - **Why entry-point, not sign-up:** forcing a full-screen PIN wall the instant an account is created would interrupt the child-first onboarding ("Who's playing?") for no extra security — the area is provably never reachable without a PIN either way. Files: `src/components/auth/PINSetup.jsx`, `src/App.jsx`.
 
 The parent PIN is currently set **only when the parent later taps into the parent profile** — which means a parent might **never set it**, leaving the parent area (and whatever it gates) **open to the child**.
 
