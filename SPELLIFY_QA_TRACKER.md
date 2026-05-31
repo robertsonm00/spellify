@@ -35,7 +35,7 @@ Consequences for the items below:
 |----|------|-------|------|----------|--------|
 | DESIGN-01 | Design direction | Retire classic hub; commit to card design | Change | High | ✅ Done |
 | SD-01 | Spell Duel | Add distractor letters to keyboard | Bug / Enhancement | High | ✅ Already implemented (31 May) |
-| SD-02 | Spell Duel | Stop adding rounds after 3 words wrong (matches SR-01) | Enhancement | Med | Open |
+| SD-02 | Spell Duel | Stop adding rounds after 3 words wrong (matches SR-01) | Enhancement | Med | ✅ Done (31 May) |
 | SDR-01 | Crossword | Read the Crossword clue aloud (TTS, site voice) | Enhancement | Med | ✅ Done |
 | RES-01 | Results | Unified end-of-game results — full 2-variant spec (Memory Spell base) | Enhancement | High | Specced |
 | RES-02 | Results | Every completed game returns with a celebration | Enhancement / Polish | High | Open |
@@ -59,7 +59,7 @@ Consequences for the items below:
 | SYL-01 | Syllable Tap | Hide game when word set lacks syllable variety | Enhancement | Med | ✅ Done |
 | PROF-03 | Profiles & persistence | Persisted progress not shown until point-status refresh (stale UI) | Bug | Low | Not reproduced |
 | PROF-04 | Profiles & persistence | "Quick Start" wipes all saved data for returning users | Bug | **Critical** | ✅ Done |
-| SR-01 | Spaced repetition | Cap retry rounds for wrong words (currently unbounded → round 22) | Enhancement | High | Open |
+| SR-01 | Spaced repetition | Cap retry rounds for wrong words (currently unbounded → round 22) | Enhancement | High | ✅ Done (31 May) |
 | WRT-01 | Write It | One practise per visit, locked in, spaced over days (4 then opt-in) | Change | Med | Open |
 | WRT-02 | Write It | Practise labels wrap to two lines on desktop (widen column) | Bug / Polish | Low | ✅ Done |
 
@@ -97,13 +97,15 @@ Right now a player can spell the target word by selecting **every** letter on th
 **Diagnosis (31 May):** already in place — no code change needed. `src/utils/generateSpellDuelKeyboard.js` (wired into `SpellDuel.jsx`) guarantees distractors that scale with word length: **min 4** (Y1–2) / **5** (Y3+), and in practice many more (a base keyboard of 12 / 18 / 22 keys, e.g. 9 distractors for "cat", 17 for "rhythm"). The **proper** fix is also done: priority 1 = visual confusables (b/d, p/q, m/n…), priority 2 = phonetic confusables (c/k, s/z, f/v…), random fill last. The fail state is real and reachable in every config (distractors ≥ maxWrong of 8/6/4): once a player makes `maxWrong` wrong taps, `handleGuess` locks out further input and the word is lost — so tapping every key loses rather than wins. *(SD-02's session-level ceiling of 3 is separate and still open — see below.)*
 
 ### SD-02 — Stop adding rounds after the wrong-word ceiling
-**Type:** Enhancement · **Priority:** Med · **Status:** Open
+**Type:** Enhancement · **Priority:** Med · **Status:** ✅ Done (31 May)
 
 Same rule as SR-01, applied to **Spell Duel**: once a player hits the **ceiling of 3 wrong words**, stop adding any further rounds. Remaining wrong words go to the practice list (PRAC-01) rather than extending the session.
 
 Use the **same ceiling (3)** and the same bounded-retry logic as SR-01 — one shared rule across games, not per-game-custom.
 
 > **Resolved (31 May):** ceiling = **3**, matching SR-01.
+>
+> **Built (31 May):** Spell Duel now imports the shared `SESSION_RETRY_CEILING` (3) from `src/utils/retryCeiling.js` and stops re-queuing once three distinct words have been lost — the same one-line guard used by Memory Spell and Quiz Quest (commit `76492a8`). Over-ceiling words finish the session and land on the practice list via the mastery-credit flow.
 
 ---
 
@@ -440,7 +442,7 @@ This is computable from the existing `syllables` field on each word, so no new d
 ## Spaced repetition / retry loop
 
 ### SR-01 — Cap retry rounds for wrong words
-**Type:** Enhancement (design rethink) · **Priority:** High · **Status:** Open
+**Type:** Enhancement (design rethink) · **Priority:** High · **Status:** ✅ Done (31 May)
 
 **Current behaviour:** a 14-word session adds a fresh round to the **end** every time a word is wrong, with no apparent ceiling — a few mistakes pushed the session to **round 21, then 22**. It behaves like an endless retry loop (Hangman-style "keep going until right") rather than true spaced repetition, and a struggling child gets stuck in the game indefinitely.
 
