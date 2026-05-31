@@ -7,6 +7,7 @@ import GameHeader from './GameHeader';
 import GameProgressStrip from './GameProgressStrip';
 import RestartButton from './RestartButton';
 import BuddyAvatar from './BuddyAvatar';
+import { SESSION_RETRY_CEILING } from '../utils/retryCeiling';
 import './QuizQuest.css';
 import { speakWord as speak } from '../utils/speech';
 
@@ -440,12 +441,17 @@ export default function QuizQuest({
       const result = { word: question.word, correct, given, hintUsed: !!meta.hintUsed };
       const next = [...results, result];
 
-      // Silent re-queue: on the first wrong answer for this word in the
-      // session, append a fresh question for that word to the end of
-      // the quiz. The child gets one more shot before the session ends.
+      // Silent re-queue (SR-01): on the first wrong answer for this word in
+      // the session, append a fresh question for that word to the end of the
+      // quiz. Rule 1 — one retry per word (requeuedRef guards repeats).
+      // Rule 2 — stop adding retry rounds once SESSION_RETRY_CEILING distinct
+      // words have already been re-queued; further wrong words just finish
+      // the session and land on the practice list via the mastery-credit flow.
       let nextExtras = extraQuestions;
       const lower = String(question.word || '').toLowerCase();
-      if (!correct && !requeuedRef.current.has(lower)) {
+      if (!correct &&
+          !requeuedRef.current.has(lower) &&
+          requeuedRef.current.size < SESSION_RETRY_CEILING) {
         const followUps = buildQuiz([question.word], { count: 1, year, wordObjects });
         if (followUps.length > 0) {
           requeuedRef.current.add(lower);

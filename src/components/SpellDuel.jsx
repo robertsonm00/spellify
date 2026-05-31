@@ -8,6 +8,7 @@ import BuddyAvatar from './BuddyAvatar';
 import { getSupportTip } from '../data/spelling/dyslexiaPatterns';
 import { resolveDefinition } from '../utils/wordDefinitions';
 import { generateSpellDuelKeyboard } from '../utils/generateSpellDuelKeyboard';
+import { SESSION_RETRY_CEILING } from '../utils/retryCeiling';
 
 // Themed background — injected via CSS custom property at runtime.
 const BG_STYLE = {
@@ -205,12 +206,17 @@ function SpellDuel({
       const currentWordText = queue[wordIndex];
       const updatedResults  = [...wordResults, { word: currentWordText, won, wrongCount }];
 
-      // Silent re-queue: on the first lost word of the session push it to
-      // the end of the queue for a second attempt. Capped at one re-queue
-      // per word.
+      // Silent re-queue (SR-01 / SD-02): on the first lost word of the
+      // session push it to the end of the queue for a second attempt.
+      // Rule 1 — one retry per word (requeuedRef guards repeats). Rule 2 —
+      // stop adding retry rounds once SESSION_RETRY_CEILING distinct words
+      // have already been re-queued; further lost words just finish the
+      // session and land on the practice list via the mastery-credit flow.
       let nextQueue = queue;
       const lower   = currentWordText.toLowerCase();
-      if (!won && !requeuedRef.current.has(lower)) {
+      if (!won &&
+          !requeuedRef.current.has(lower) &&
+          requeuedRef.current.size < SESSION_RETRY_CEILING) {
         requeuedRef.current.add(lower);
         nextQueue = [...queue, currentWordText];
         setQueue(nextQueue);

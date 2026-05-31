@@ -7,6 +7,7 @@ import GameProgressStrip from './GameProgressStrip';
 import BuddyAvatar from './BuddyAvatar';
 import './MemorySpell.css';
 import { speakWord as speak } from '../utils/speech';
+import { SESSION_RETRY_CEILING } from '../utils/retryCeiling';
 
 // Themed background — see Crossword.jsx for the rationale.
 const BG_STYLE = {
@@ -145,9 +146,10 @@ export default function MemorySpell({
   const [hints,      setHints]      = useState({ ...INITIAL_HINTS });
   const [lastResult, setLastResult] = useState(null);
   // Internal session queue — starts as the prop `words` but grows by one
-  // when the child gets a word wrong for the first time (push to the
-  // end). Subsequent wrong answers on the same word do NOT re-queue, so
-  // queue length is capped at words.length * 2.
+  // when the child gets a word wrong for the first time (push to the end).
+  // Subsequent wrong answers on the same word do NOT re-queue, and at most
+  // SESSION_RETRY_CEILING distinct words are ever re-queued (SR-01), so the
+  // queue length is capped at words.length + SESSION_RETRY_CEILING.
   const [queue,      setQueue]      = useState(() => savedProgress?.queue ?? [...words]);
   const requeuedRef = useRef(new Set(savedProgress?.requeued ?? []));
   const inputRef  = useRef(null);
@@ -176,12 +178,17 @@ export default function MemorySpell({
     const result = { word, correct, hintsUsed: { ...hintsRef.current }, typed: value };
     const next = [...results, result];
 
-    // Silent re-queue: on the first wrong attempt for a word, push it to
-    // the end of the session queue so the child gets one more shot. Cap
-    // at one re-queue per word per session.
+    // Silent re-queue (SR-01): on the first wrong attempt for a word, push
+    // it to the end of the session queue so the child gets one more shot.
+    // Rule 1 — one retry per word (requeuedRef guards repeats). Rule 2 —
+    // stop adding retry rounds once SESSION_RETRY_CEILING distinct words
+    // have already been re-queued; further wrong words just finish the
+    // session and land on the practice list via the mastery-credit flow.
     let nextQueue = queue;
     const lower = word.toLowerCase();
-    if (!correct && !requeuedRef.current.has(lower)) {
+    if (!correct &&
+        !requeuedRef.current.has(lower) &&
+        requeuedRef.current.size < SESSION_RETRY_CEILING) {
       requeuedRef.current.add(lower);
       nextQueue = [...queue, word];
       setQueue(nextQueue);
