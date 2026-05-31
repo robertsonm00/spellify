@@ -72,13 +72,27 @@ export function useProgress(user) {
   }, [cache, useCloud, user]);
 
   // ── Mark an activity as complete ───────────────────────────────────────────
+  // `completions` is a running count of how many times this activity has been
+  // finished for the list. It survives across sessions so spaced-practice
+  // games (e.g. Write It — WRT-01, one practice per visit over several days)
+  // can show the correct next practice number on re-entry.
   const markComplete = useCallback(async (listId, activity, { accuracy = null, listType = 'curriculum' } = {}) => {
     const now = new Date().toISOString();
+    // Read the prior list snapshot from the durable store so the completion
+    // count increments (rather than resetting) across reloads. Computing the
+    // whole next-list object here lets us RETURN it, so callers can mirror the
+    // authoritative count without re-incrementing it themselves (which would
+    // double-count — see ListHub.handleComplete).
+    const priorList = useCloud
+      ? (cache[listId] || emptyStatus())
+      : (loadFromLocal()[listId] || emptyStatus());
     const updated = {
       status:      'completed',
       accuracy,
       completedAt: now,
+      completions: (priorList[activity]?.completions || 0) + 1,
     };
+    const nextList = { ...priorList, [activity]: updated };
 
     // Update local cache immediately for snappy UI
     setCache(prev => ({
@@ -108,7 +122,9 @@ export function useProgress(user) {
       };
       saveToLocal(all);
     }
-  }, [useCloud, user]);
+    // Absolute, post-increment list progress — the single source of truth.
+    return nextList;
+  }, [cache, useCloud, user]);
 
   // ── Sync helper: get cached progress synchronously (for UI display) ────────
   const getCachedProgress = useCallback((listId) => {

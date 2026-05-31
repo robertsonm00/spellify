@@ -43,6 +43,12 @@ function buildPseudoSession({ list, words, parentSession }) {
     // belt-and-braces for future activities that might want the flag.
     adaptiveLearning:  parentSession?.adaptiveLearning !== false,
     activityStatuses:  {},   // Explore tracks progress per-list, not per-session
+    // Per-activity completion counts, forwarded from the ListHub's persisted
+    // per-list progress. Spaced-practice games (Write It — WRT-01) read this
+    // via their registry buildProps (s.activityCompletions?.writeit) so the
+    // next practice number is correct on re-entry, the same as the My Words
+    // (App.jsx) launch path.
+    activityCompletions: parentSession?.activityCompletions || {},
     mastery:           {},
     reviewQueue:       [],
     ruleKey:           null,

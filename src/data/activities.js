@@ -83,7 +83,13 @@ export const ACTIVITIES = [
     timeEstimate: '10 mins', color: '#f5c2b8', dark: '#c95d4d',
     phase: 'explore', component: WriteIt,
     minYear: 1, maxYear: 6,
-    buildProps: (s) => ({ childName: s.childName || '' }),
+    // WRT-01: Write It is one practice per visit, spaced over days. The number
+    // of practices already locked in is the activity's completion count, which
+    // persists across visits and resets only when the word list changes.
+    buildProps: (s) => ({
+      childName: s.childName || '',
+      practisesDone: s.activityCompletions?.writeit || 0,
+    }),
   },
   {
     id: 'weakspot', name: 'Weak Spot', icon: '🎯',

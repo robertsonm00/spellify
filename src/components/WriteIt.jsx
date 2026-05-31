@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import confetti from 'canvas-confetti';
 import GameHeader from './GameHeader';
 import GameProgressStrip from './GameProgressStrip';
 import RestartButton from './RestartButton';
+import GameResults from './GameResults';
 import './WriteIt.css';
 import './WordListHub.css';
 import { speakWord as speak } from '../utils/speech';
+import { formatDuration } from '../utils/formatDuration';
 import { preSeedClueCache } from '../utils/clueResolver';
 import { WordDetailModal } from './WordListHub';
 
@@ -70,46 +71,45 @@ const STEPS = [
   { key: 'check', label: 'Check', accent: '#bbf7d0' },
 ];
 
-const NUM_BASE = 3; // base practices that count toward 100%
-
-const CELEBRATE_MSGS = [
-  { emoji: '🎉', text: 'You did it!' },
-  { emoji: '✋', text: 'High five!' },
-  { emoji: '🌟', text: 'Amazing work!' },
-  { emoji: '🎊', text: 'Brilliant!' },
-  { emoji: '💪', text: 'Keep going!' },
-];
+// WRT-01: Write It is spaced over days. Each visit is ONE practice (the child
+// writes every word once, then returns to the hub). Four practices are the
+// structured core; beyond that the child is gently asked if they'd like a
+// bonus practice rather than being auto-presented endless rounds.
+const STRUCTURED_TOTAL = 4;
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function makeInitialState(words) {
-  return words.map(w => ({
+// One cell per word — a single practice per visit (WRT-01). The old model held
+// an array of NUM_BASE practice cells per word and let the child do all rounds
+// in one sitting; that's now spread across visits.
+function makeInitialRows(words) {
+  return words.map((w) => ({
     word:       w,
-    practices:  Array.from({ length: NUM_BASE }, () => ({
-      value:      '',
-      done:       false,
-      attempts:   0,
-      revealHint: false,
-      status:     'idle',
-    })),
-    revealed:   false,
+    value:      '',
+    done:       false,
+    attempts:   0,
+    revealHint: false,
+    status:     'idle',
     celebrated: false,
   }));
 }
 
+// Restore a mid-practice snapshot only if it matches the current word list AND
+// the new single-cell shape. A snapshot from the old multi-column model (rows
+// carry a `practices` array) is ignored so the child simply restarts the
+// current practice — harmless, since the snapshot is ephemeral.
+function restoreRows(savedProgress, words) {
+  const saved = savedProgress?.rows;
+  const valid =
+    Array.isArray(saved) &&
+    saved.length === words.length &&
+    saved.every((r, i) =>
+      r && r.word === words[i] && typeof r.done === 'boolean' && !('practices' in r));
+  return valid ? saved : makeInitialRows(words);
+}
+
 function isCorrect(input, target) {
   return input.trim().toLowerCase() === target.trim().toLowerCase();
-}
-
-function getPracticeLabel(i) {
-  if (i === 0) return '1st Practice';
-  if (i === 1) return '2nd Practice';
-  if (i === 2) return '3rd Practice';
-  return `Extra ${i - 2}`;
-}
-
-function getCompletedLabel(i) {
-  return `Practice ${i + 1}`;
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -119,37 +119,31 @@ function WriteIt({
   wordObjects = [],
   childName = '',
   dyslexiaMode = false,
+  practisesDone = 0,      // WRT-01: how many practices already locked in (across visits)
   savedProgress = null,
   onSaveProgress,
   onComplete,
   onExit,
 }) {
-  const [rows, setRows] = useState(() => savedProgress?.rows ?? makeInitialState(words));
-  const [wordsHidden,     setWordsHidden]     = useState(false);
-  const [activeWord,      setActiveWord]      = useState(null);
-  const [justCompleted, setJustCompleted] = useState(false);
-  const [celebrate, setCelebrate] = useState(null); // { emoji, text, hiding }
-  const [confettiFired, setConfettiFired] = useState(() => {
-    if (!savedProgress?.rows) return false;
-    return savedProgress.rows.every(r =>
-      r.practices.slice(0, NUM_BASE).every(p => p.done)
-    );
-  });
+  const isExtra = practisesDone >= STRUCTURED_TOTAL;
+  const practiceNumber = practisesDone + 1; // the practice being done this visit
 
-  // WRT-02: on desktop the completed "Practice N" header labels wrapped to
-  // two lines in the old 80px column. Widen those columns to 120px on
-  // desktop only (mobile is unaffected — narrower screens want the 80px).
-  const [isDesktop, setIsDesktop] = useState(
-    () => typeof window !== 'undefined'
-      && window.matchMedia?.('(min-width: 769px)').matches
+  const [rows, setRows] = useState(() => restoreRows(savedProgress, words));
+  const [wordsHidden, setWordsHidden] = useState(false);
+  const [activeWord,  setActiveWord]  = useState(null);
+  // Beyond the four structured practices we don't auto-start — we ask first.
+  // (If they'd already begun a bonus practice and have saved progress, skip
+  // straight back into it.)
+  const [started, setStarted] = useState(
+    () => !isExtra || restoreRows(savedProgress, words).some((r) => r.done)
   );
-  useEffect(() => {
-    if (typeof window === 'undefined' || !window.matchMedia) return undefined;
-    const mq = window.matchMedia('(min-width: 769px)');
-    const onChange = (e) => setIsDesktop(e.matches);
-    mq.addEventListener?.('change', onChange);
-    return () => mq.removeEventListener?.('change', onChange);
-  }, []);
+  const [endTime, setEndTime] = useState(null);
+
+  const inputRefs        = useRef({});
+  const onSaveRef        = useRef(onSaveProgress);
+  onSaveRef.current      = onSaveProgress;
+  const startRef         = useRef(null);
+  const celebratedRef    = useRef(new Set());
 
   // Pre-seed the clue cache with any list-provided definitions so the word
   // detail modal resolves instantly without hitting the external API.
@@ -157,119 +151,48 @@ function WriteIt({
     preSeedClueCache(wordObjects);
   }, [words]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const inputRefs          = useRef({});
-  const onSaveRef          = useRef(onSaveProgress);
-  onSaveRef.current        = onSaveProgress;
-  const prevRoundRef       = useRef(null);
-  const celebrateTimerRef  = useRef(null);
-
   // ── Derived ────────────────────────────────────────────────────────────────
 
-  const numPractices = rows[0]?.practices.length ?? NUM_BASE;
+  const total     = rows.length;
+  const doneCount  = rows.filter((r) => r.done).length;
+  const allDone    = started && total > 0 && doneCount === total;
 
-  const currentRound = (() => {
-    for (let r = 0; r < numPractices; r++) {
-      if (rows.some(row => !row.practices[r]?.done)) return r;
-    }
-    return numPractices; // all done
-  })();
+  const gridTemplate = 'minmax(200px, 260px) minmax(156px, 1fr)';
 
-  const baseAllDone = currentRound >= NUM_BASE;
+  // ── Start the clock once the practice is actually under way ────────────────
+  useEffect(() => {
+    if (started && startRef.current == null) startRef.current = Date.now();
+  }, [started]);
 
-  const doneColWidth = isDesktop ? '120px' : '80px'; // WRT-02
-  const gridTemplate = [
-    'minmax(200px, 260px)',
-    ...Array.from({ length: numPractices }, (_, i) => {
-      if (i < currentRound || currentRound >= numPractices) return doneColWidth;
-      if (i === currentRound) return 'minmax(156px, 1fr)';
-      return '72px';
-    }),
-  ].join(' ');
-
+  // ── Freeze the elapsed time the moment the practice is complete ────────────
+  useEffect(() => {
+    if (allDone && endTime == null) setEndTime(Date.now());
+  }, [allDone, endTime]);
 
   // ── Save progress whenever rows change (if any work done) ──────────────────
-
   useEffect(() => {
-    const anyDone = rows.some(r => r.practices.some(p => p.done));
+    const anyDone = rows.some((r) => r.done);
     if (anyDone) onSaveRef.current?.({ rows });
   }, [rows]);
 
-  // ── Completion celebration ─────────────────────────────────────────────────
-
-  useEffect(() => {
-    if (baseAllDone && !confettiFired) {
-      setConfettiFired(true);
-      setJustCompleted(true);
-      const end = Date.now() + 3000;
-      const tick = () => {
-        confetti({
-          particleCount: 4,
-          startVelocity: 35,
-          spread: 60,
-          origin: { x: Math.random(), y: Math.random() * 0.5 },
-          colors: ['#ff6b6b', '#ffd93d', '#6bcb77', '#4d96ff', '#c77dff'],
-        });
-        if (Date.now() < end) requestAnimationFrame(tick);
-      };
-      tick();
-      setTimeout(() => setJustCompleted(false), 3500);
-    }
-  }, [baseAllDone, confettiFired]);
-
-  // ── Celebration dismiss ────────────────────────────────────────────────────
-
-  const dismissCelebration = useCallback(() => {
-    setCelebrate(prev => prev ? { ...prev, hiding: true } : null);
-    setTimeout(() => setCelebrate(null), 450);
-  }, []);
-
-  // ── Round-advance: reset hidden words + show celebration popup ─────────────
-
-  useEffect(() => {
-    if (prevRoundRef.current !== null && prevRoundRef.current !== currentRound) {
-      setWordsHidden(false);
-      if (currentRound > prevRoundRef.current && currentRound < numPractices) {
-        const pool = [
-          ...CELEBRATE_MSGS,
-          ...(childName
-            ? [{ emoji: '🤩', text: `Great job, ${childName}!` }, { emoji: '⭐', text: `Well done, ${childName}!` }]
-            : []),
-        ];
-        const pick = pool[Math.floor(Math.random() * pool.length)];
-        setCelebrate({ ...pick, hiding: false });
-        clearTimeout(celebrateTimerRef.current);
-        celebrateTimerRef.current = setTimeout(() => {
-          setCelebrate(prev => prev ? { ...prev, hiding: true } : null);
-          setTimeout(() => setCelebrate(null), 450);
-        }, 3550);
-      }
-    }
-    prevRoundRef.current = currentRound;
-  }, [currentRound, numPractices, childName]);
-
-  useEffect(() => () => clearTimeout(celebrateTimerRef.current), []);
-
   // ── Per-word celebrate auto-fade ───────────────────────────────────────────
-
   useEffect(() => {
-    const stillCelebrating = rows.some(r => r.celebrated);
-    if (!stillCelebrating) return;
+    const stillCelebrating = rows.some((r) => r.celebrated);
+    if (!stillCelebrating) return undefined;
     const t = setTimeout(() => {
-      setRows(prev => prev.map(r => r.celebrated ? { ...r, celebrated: false } : r));
+      setRows((prev) => prev.map((r) => (r.celebrated ? { ...r, celebrated: false } : r)));
     }, 1500);
     return () => clearTimeout(t);
   }, [rows]);
 
-  // ── Per-word celebration: chime + confetti the first time each word
-  // is fully completed (all NUM_BASE practices marked done). Tracked by
-  // word so we don't fire twice if the row's `celebrated` flag flickers.
-  const celebratedWordsRef = useRef(new Set());
+  // ── Per-word success chime: a light positive cue the first time each word
+  // is written correctly. The big confetti + fanfare is owned by the end
+  // screen (GameResults), so we keep per-word feedback gentle here.
   useEffect(() => {
     rows.forEach((r) => {
-      const allDone = r.practices.slice(0, NUM_BASE).every(p => p.done);
-      if (!allDone) return;
-      if (celebratedWordsRef.current.has(r.word)) return;
-      celebratedWordsRef.current.add(r.word);
+      if (!r.done) return;
+      if (celebratedRef.current.has(r.word)) return;
+      celebratedRef.current.add(r.word);
       try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         [523.25, 659.25, 783.99].forEach((freq, i) => {
@@ -280,145 +203,132 @@ function WriteIt({
           osc.frequency.value = freq;
           const t = ctx.currentTime + i * 0.12;
           gain.gain.setValueAtTime(0, t);
-          gain.gain.linearRampToValueAtTime(0.22, t + 0.04);
+          gain.gain.linearRampToValueAtTime(0.18, t + 0.04);
           gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
           osc.start(t); osc.stop(t + 0.4);
         });
       } catch { /* AudioContext unavailable */ }
-      confetti({
-        particleCount: 80,
-        spread: 65,
-        origin: { y: 0.45 },
-        colors: ['#a855f7', '#c084fc', '#6bcb77', '#ffd93d', '#4d96ff'],
-      });
     });
   }, [rows]);
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
+  const beginPractice = () => setStarted(true);
+
   const doRestart = () => {
     onSaveRef.current?.(null);
-    celebratedWordsRef.current = new Set();
-    setRows(makeInitialState(words));
+    celebratedRef.current = new Set();
+    setRows(makeInitialRows(words));
     setWordsHidden(false);
-    setJustCompleted(false);
-    setConfettiFired(false);
+    setEndTime(null);
+    startRef.current = Date.now();
   };
 
   // ── DEV-only: instant complete ─────────────────────────────────────────────
   const handleDevComplete = () => {
-    setConfettiFired(false); // ensure the celebration fires on next render
-    setRows(prev => prev.map(row => ({
-      ...row,
-      practices: row.practices.map((p, i) =>
-        i < NUM_BASE ? { ...p, done: true, status: 'correct', value: row.word, attempts: 1 } : p
-      ),
-      celebrated: false,
+    setRows((prev) => prev.map((r) => ({
+      ...r, done: true, status: 'success', value: r.word, attempts: 1, celebrated: false,
     })));
   };
 
-  const hasProgress = rows.some(r => r.practices.some(p => p.done));
+  const hasProgress = rows.some((r) => r.done);
 
-  const updatePractice = useCallback((wordIdx, practiceIdx, patch) => {
-    setRows(prev => prev.map((r, i) => {
-      if (i !== wordIdx) return r;
-      const practices = r.practices.map((p, j) =>
-        j === practiceIdx ? { ...p, ...patch } : p
-      );
-      return { ...r, practices };
-    }));
+  const updateCell = useCallback((idx, patch) => {
+    setRows((prev) => prev.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
   }, []);
 
-  const handleChange = (wordIdx, practiceIdx, value) => {
-    const row = rows[wordIdx];
-    if (!row || row.practices[practiceIdx].done) return;
+  const handleChange = (idx, value) => {
+    const row = rows[idx];
+    if (!row || row.done) return;
     if (isCorrect(value, row.word)) {
       setWordsHidden(false);
-      setRows(prev => prev.map((r, i) => {
-        if (i !== wordIdx) return r;
-        const practices = r.practices.map((p, j) =>
-          j === practiceIdx ? { ...p, value, done: true, status: 'success' } : p
-        );
-        const allThree = practices.every(p => p.done);
-        return { ...r, practices, celebrated: allThree ? true : r.celebrated };
-      }));
+      updateCell(idx, { value, done: true, status: 'success', celebrated: true });
     } else {
-      updatePractice(wordIdx, practiceIdx, { value, status: 'idle' });
+      updateCell(idx, { value, status: 'idle' });
     }
   };
 
-  const handleSubmit = (wordIdx, practiceIdx) => {
-    const row = rows[wordIdx];
-    if (!row) return;
-    const cell = row.practices[practiceIdx];
-    if (cell.done) return;
-
-    if (isCorrect(cell.value, row.word)) {
+  const handleSubmit = (idx) => {
+    const row = rows[idx];
+    if (!row || row.done) return;
+    if (isCorrect(row.value, row.word)) {
       setWordsHidden(false);
-
-      setRows(prev => prev.map((r, i) => {
-        if (i !== wordIdx) return r;
-        const practices = r.practices.map((p, j) =>
-          j === practiceIdx ? { ...p, done: true, status: 'success' } : p
-        );
-        const allThree = practices.every(p => p.done);
-        return { ...r, practices, celebrated: allThree ? true : r.celebrated };
-      }));
+      updateCell(idx, { done: true, status: 'success', celebrated: true });
     } else {
-      const next = cell.attempts + 1;
-      // On a wrong answer we reveal the original word back to the child
-      // immediately — both by un-hiding the column and by showing the
-      // helper line under the input. Previous behaviour required two
-      // wrong attempts before the hint appeared, which felt punishing
-      // for the first round.
+      // On a wrong answer, reveal the word straight away — un-hide the column
+      // and show the helper line — so the child can look, then write it.
       setWordsHidden(false);
-      updatePractice(wordIdx, practiceIdx, {
-        attempts:   next,
+      updateCell(idx, {
+        attempts:   (row.attempts || 0) + 1,
         status:     'trying',
         revealHint: true,
       });
     }
   };
 
-  const handleKeyDown = (e, wordIdx, practiceIdx) => {
+  const handleKeyDown = (e, idx) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      handleSubmit(wordIdx, practiceIdx);
+      handleSubmit(idx);
     }
   };
 
-  const handleInputFocus = (wordIdx) => {
+  const handleInputFocus = (idx) => {
     setWordsHidden(true);
     // Auto-play the target word so the child gets an audio cue the moment
     // they're ready to type. Browsers typically allow speech synthesis after
-    // a user gesture (the click that focused the input counts), so this is
-    // safe inside the focus handler.
-    const row = rows[wordIdx];
+    // a user gesture (the click that focused the input counts).
+    const row = rows[idx];
     if (row?.word) speak(row.word);
   };
 
-  const handleComplete = () => {
+  // Continue from the end screen → roll up a per-word result for the credit
+  // framework and hand back to the hub. A practice only completes once every
+  // word is written correctly, so every word is `correct`; attempts/hintUsed
+  // still feed the mastery signal.
+  const handleContinue = () => {
     onSaveRef.current?.(null);
-    // WriteIt tracks per-practice attempts & a one-shot auto-reveal hint.
-    // Roll up to a single per-word result for the credit framework:
-    //   - correct:  every base practice marked done
-    //   - attempts: worst (highest) attempts count across the base practices,
-    //               capped at 2 to keep the framework's buckets aligned
-    //               (1 = no struggle, ≥2 = needed multiple tries)
-    //   - hintUsed: any base practice triggered the auto-reveal helper
-    onComplete(rows.map(r => {
-      const base = r.practices.slice(0, NUM_BASE);
-      const correct  = base.every(p => p.done);
-      const maxTries = base.reduce((m, p) => Math.max(m, Number(p.attempts) || 0), 0);
-      const hintUsed = base.some(p => !!p.revealHint);
-      // attempts counts how many tries it took: 1 means correct on the
-      // first submission; ≥2 means a wrong answer happened along the way.
-      const attempts = maxTries <= 1 ? 1 : 2;
-      return { word: r.word, correct, attempts, hintUsed };
-    }));
+    onComplete(rows.map((r) => ({
+      word:     r.word,
+      correct:  r.done,
+      attempts: (Number(r.attempts) || 0) <= 1 ? 1 : 2,
+      hintUsed: !!r.revealHint,
+    })));
   };
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // ── Render: opt-in prompt past the four structured practices ───────────────
+  if (isExtra && !started) {
+    return (
+      <div className="wi-wrap" style={BG_STYLE}>
+        <div className="wi-no-print">
+          <GameHeader title="Write It" onExit={onExit} />
+        </div>
+        <div className="wi-optin">
+          <div className="wi-optin-card">
+            <div className="wi-optin-emoji" aria-hidden="true">🎉</div>
+            <h2 className="wi-optin-title">All four practices done!</h2>
+            <p className="wi-optin-text">
+              Brilliant work spreading them out{childName ? `, ${childName}` : ''}. That's exactly
+              how spelling sticks. Would you like a bonus practice, just for fun?
+            </p>
+            <div className="wi-optin-actions">
+              <button type="button" className="wi-optin-yes" onClick={beginPractice}>
+                Yes, let's practise ✏️
+              </button>
+              <button type="button" className="wi-optin-no" onClick={onExit}>
+                Back to the map
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Render: the practice ───────────────────────────────────────────────────
+
+  const elapsedSeconds = ((endTime ?? Date.now()) - (startRef.current ?? Date.now())) / 1000;
+  const headerLabel = isExtra ? 'Bonus practice' : `Practice ${practiceNumber}`;
 
   return (
     <div className={`wi-wrap${dyslexiaMode ? ' wi-wrap--es' : ''}`} style={BG_STYLE}>
@@ -432,14 +342,11 @@ function WriteIt({
             <>
               <RestartButton hasProgress={hasProgress} onRestart={doRestart} />
               <button className="game-header-btn" onClick={() => window.print()} title="Print as worksheet">🖨 Print</button>
-              {baseAllDone && (
-                <button className="game-header-btn" onClick={handleComplete}>✓ Done</button>
-              )}
             </>
           }
         />
-        <GameProgressStrip percent={(Math.min(currentRound, NUM_BASE) / NUM_BASE) * 100}>
-          {Math.min(currentRound, NUM_BASE)} of {NUM_BASE} rounds done
+        <GameProgressStrip percent={total > 0 ? (doneCount / total) * 100 : 0}>
+          {doneCount} of {total} words written
         </GameProgressStrip>
       </div>
 
@@ -462,6 +369,24 @@ function WriteIt({
         ))}
       </div>
 
+      {/* Practice tracker — which of the four practices this is. Completed
+          ones read as locked-in (✓); the current one is highlighted; future
+          ones are quiet dots, not dangled buttons (WRT-01). */}
+      <div className="wi-tracker wi-no-print" aria-label={`This is ${headerLabel}`}>
+        {Array.from({ length: STRUCTURED_TOTAL }, (_, i) => {
+          const n = i + 1;
+          const state = isExtra || n < practiceNumber
+            ? 'done'
+            : n === practiceNumber ? 'current' : 'upcoming';
+          return (
+            <span key={n} className={`wi-track-pill wi-track-pill--${state}`} aria-hidden="true">
+              {state === 'done' ? '✓' : n}
+            </span>
+          );
+        })}
+        {isExtra && <span className="wi-track-bonus" aria-hidden="true">Bonus ✨</span>}
+      </div>
+
       {/* Table */}
       <div className="wi-table-outer">
         <div className="wi-table">
@@ -469,24 +394,24 @@ function WriteIt({
           {/* Column headers */}
           <div className="wi-thead" style={{ gridTemplateColumns: gridTemplate }}>
             <div className="wi-th wi-th--word">Word</div>
-            {Array.from({ length: numPractices }, (_, i) => {
-              if (i < currentRound || currentRound >= numPractices)
-                return <div key={i} className="wi-th wi-th--done">{getCompletedLabel(i)}</div>;
-              if (i === currentRound)
-                return <div key={i} className="wi-th wi-th--active">{getPracticeLabel(i)}</div>;
-              return <div key={i} className="wi-th wi-th--locked">P{i + 1}</div>;
-            })}
+            <div className="wi-th wi-th--active">{headerLabel}</div>
+            {/* Paper worksheet gets two more write columns (the classic
+                look-cover-write-check ×3); hidden on screen. */}
+            <div className="wi-th wi-print-only">2nd write</div>
+            <div className="wi-th wi-print-only">3rd write</div>
           </div>
 
           {/* Word rows */}
-          {rows.map((row, wordIdx) => {
-            const allRowDone = row.practices.every(p => p.done);
-            const wordFaded  = wordsHidden && !allRowDone;
+          {rows.map((row, idx) => {
+            const wordFaded = wordsHidden && !row.done;
+            const stateClass =
+              row.done                  ? ' wi-cell--success' :
+              row.status === 'trying'   ? ' wi-cell--retry' : '';
 
             return (
               <div
                 key={row.word}
-                className={`wi-row${allRowDone ? ' wi-row--done' : ''}${row.celebrated ? ' wi-row--celebrate' : ''}`}
+                className={`wi-row${row.done ? ' wi-row--done' : ''}${row.celebrated ? ' wi-row--celebrate' : ''}`}
                 style={{ gridTemplateColumns: gridTemplate }}
               >
                 {row.celebrated && (
@@ -524,102 +449,73 @@ function WriteIt({
                   </div>
                 </div>
 
-                {/* Practice cells */}
-                {row.practices.map((cell, practiceIdx) => {
-                  // Completed column
-                  if (practiceIdx < currentRound || currentRound >= numPractices) {
-                    return (
-                      <div key={practiceIdx} className="wi-cell wi-cell--tick">
-                        <span className="wi-tick">✓</span>
-                      </div>
-                    );
-                  }
-
-                  // Locked future column
-                  if (practiceIdx > currentRound) {
-                    return (
-                      <div key={practiceIdx} className="wi-cell wi-cell--locked">
-                        <span className="wi-lock-icon">🔒</span>
-                      </div>
-                    );
-                  }
-
-                  // Active column
-                  const isDone      = cell.done;
-                  const stateClass  =
-                    isDone              ? ' wi-cell--success' :
-                    cell.status === 'trying' ? ' wi-cell--retry' : '';
-
-                  return (
-                    <div key={practiceIdx} className={`wi-cell wi-cell--practice${stateClass}`}>
-                      {cell.revealHint && !isDone && (
-                        <div className="wi-helper">
-                          Here it is — give it another go 💪
-                          <strong className="wi-helper-word">{row.word}</strong>
-                        </div>
-                      )}
-
-                      <div className="wi-input-wrap">
-                        <input
-                          ref={(el) => { inputRefs.current[`${wordIdx}-${practiceIdx}`] = el; }}
-                          type="text"
-                          className="wi-input"
-                          value={cell.value}
-                          onChange={(e) => handleChange(wordIdx, practiceIdx, e.target.value)}
-                          onKeyDown={(e) => handleKeyDown(e, wordIdx, practiceIdx)}
-                          onFocus={() => handleInputFocus(wordIdx)}
-                          disabled={isDone}
-                          placeholder="Type here…"
-                          autoComplete="off"
-                          autoCorrect="off"
-                          autoCapitalize="off"
-                          spellCheck="false"
-                        />
-                        {!isDone && (
-                          <button
-                            className="wi-check-btn wi-no-print"
-                            onClick={() => handleSubmit(wordIdx, practiceIdx)}
-                          >
-                            Check
-                          </button>
-                        )}
-                      </div>
-
-                      {isDone && <span className="wi-success-badge wi-no-print">✨</span>}
-                      {cell.status === 'trying' && !isDone && cell.attempts === 1 && (
-                        <p className="wi-feedback wi-feedback--retry">Try again!</p>
-                      )}
+                {/* Practice cell */}
+                <div className={`wi-cell wi-cell--practice${stateClass}`}>
+                  {row.revealHint && !row.done && (
+                    <div className="wi-helper">
+                      Here it is — give it another go 💪
+                      <strong className="wi-helper-word">{row.word}</strong>
                     </div>
-                  );
-                })}
+                  )}
+
+                  <div className="wi-input-wrap">
+                    <input
+                      ref={(el) => { inputRefs.current[idx] = el; }}
+                      type="text"
+                      className="wi-input"
+                      value={row.value}
+                      onChange={(e) => handleChange(idx, e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(e, idx)}
+                      onFocus={() => handleInputFocus(idx)}
+                      disabled={row.done}
+                      placeholder="Type here…"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck="false"
+                    />
+                    {!row.done && (
+                      <button
+                        className="wi-check-btn wi-no-print"
+                        onClick={() => handleSubmit(idx)}
+                      >
+                        Check
+                      </button>
+                    )}
+                  </div>
+
+                  {row.done && <span className="wi-success-badge wi-no-print">✨</span>}
+                  {row.status === 'trying' && !row.done && row.attempts === 1 && (
+                    <p className="wi-feedback wi-feedback--retry">Try again!</p>
+                  )}
+                </div>
+
+                {/* Paper-only blank write columns (hidden on screen). */}
+                <div className="wi-cell wi-print-only" aria-hidden="true">
+                  <div className="wi-input-wrap"><input className="wi-input" disabled tabIndex={-1} /></div>
+                </div>
+                <div className="wi-cell wi-print-only" aria-hidden="true">
+                  <div className="wi-input-wrap"><input className="wi-input" disabled tabIndex={-1} /></div>
+                </div>
               </div>
             );
           })}
         </div>
       </div>
 
-      {/* Extra-practice option removed — child finishes after the base
-          three rounds and lands on the results / Done flow. */}
-
-      {/* Round-complete celebration popup */}
-      {celebrate && (
-        <div className="wi-celebrate-overlay" onClick={dismissCelebration}>
-          <div
-            className={`wi-celebrate-popup${celebrate.hiding ? ' wi-celebrate-popup--hiding' : ''}`}
-            onClick={e => e.stopPropagation()}
-          >
-            <button className="wi-celebrate-close" onClick={dismissCelebration} aria-label="Close">✕</button>
-            <div className="wi-celebrate-emoji">{celebrate.emoji}</div>
-            <p className="wi-celebrate-msg">{celebrate.text}</p>
-          </div>
-        </div>
-      )}
-
-      {/* Brief completion celebration overlay */}
-      {justCompleted && (
-        <div className="wi-complete wi-no-print" role="status">
-          <span className="wi-complete-emoji">⭐</span>
-          <span>You're a spelling star! ⭐</span>
+      {/* End screen — shared RES-01 Variant B results (Completed · Time ·
+          Number of words · Continue → hub), same component as Word Search
+          and Crossword. */}
+      {allDone && (
+        <div className="wi-results-overlay" role="dialog" aria-modal="true" aria-label="Write It practice complete">
+          <GameResults
+            variant="B"
+            stats={[
+              { value: formatDuration(elapsedSeconds), label: 'Time' },
+              { value: total, label: total === 1 ? 'Word' : 'Words' },
+            ]}
+            onContinue={handleContinue}
+          />
         </div>
       )}
 

@@ -672,11 +672,16 @@ export default function ListHub({
     window.dispatchEvent(new CustomEvent('spellify-points-update'));
 
     // ── Existing progress tracking (per-list activity status) ─────────
+    // markComplete persists and returns the authoritative post-increment
+    // list progress. Mirror it ABSOLUTELY rather than doing our own +1: the
+    // resync effect (which reloads getListProgress when the cache changes)
+    // can fire during the await above, so a relative increment here would
+    // double-count the completion (WRT-01 practice number jumping by two).
     if (markComplete) {
-      await markComplete(list.id, activityId, { accuracy, listType });
+      const next = await markComplete(list.id, activityId, { accuracy, listType });
       setProgress(prev => ({
         ...prev,
-        [activityId]: {
+        [activityId]: next?.[activityId] || {
           status: 'completed',
           accuracy,
           completedAt: new Date().toISOString(),
@@ -713,6 +718,12 @@ export default function ListHub({
       ...(session || {}),
       words: activityWords,
       isTestAll: testAllStage === 'running',
+      // Forward per-activity completion counts so spaced-practice games
+      // (Write It — WRT-01) can derive the next practice number from the
+      // list's persisted progress, matching the My Words launch path.
+      activityCompletions: Object.fromEntries(
+        Object.entries(progress || {}).map(([id, p]) => [id, p?.completions || 0]),
+      ),
     };
     // Mid-game snapshot — persisted per list+activity so exit+resume
     // restores the in-progress board (found words, filled cells, etc.).

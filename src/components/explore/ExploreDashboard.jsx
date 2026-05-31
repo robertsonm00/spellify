@@ -920,9 +920,12 @@ export default function ExploreDashboard({
   };
 
   const handleMarkComplete = async (listId, activity, opts) => {
-    await markComplete(listId, activity, opts);
-    const p = await getListProgress(listId, opts.listType);
+    // markComplete returns the absolute post-increment list progress; prefer
+    // it over a re-fetch so callers see the authoritative completion count.
+    const next = await markComplete(listId, activity, opts);
+    const p = next || await getListProgress(listId, opts.listType);
     setProgressCache(prev => ({ ...prev, [listId]: p || {} }));
+    return p;
   };
 
   // Render a Practice Quest banner for the given scope. Pure presentation;
