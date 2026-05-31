@@ -13,6 +13,7 @@
 import React from 'react';
 import { getActivity } from '../../data/activities';
 import { isActivityAvailable } from '../../utils/activityAvailability';
+import GameWordPanel from '../GameWordPanel';
 
 /**
  * Build a pseudo-session from an Explore list. Used by buildProps()
@@ -74,15 +75,20 @@ export function renderExploreActivity(activityId, { list, words, user, session: 
   const Component  = activity.component;
   const extraProps = activity.buildProps ? activity.buildProps(session) : {};
 
+  // R2-04: same in-game word-list panel as the My Words launch path, so
+  // Explore-list games also keep the words a glance away.
   return (
-    <Component
-      words={words}
-      dyslexiaMode={session.dyslexiaMode}
-      savedProgress={savedProgress}
-      onSaveProgress={onSaveProgress}
-      onComplete={(results) => onComplete(activityId, results || [])}
-      onExit={onExit}
-      {...extraProps}
-    />
+    <>
+      <Component
+        words={words}
+        dyslexiaMode={session.dyslexiaMode}
+        savedProgress={savedProgress}
+        onSaveProgress={onSaveProgress}
+        onComplete={(results) => onComplete(activityId, results || [])}
+        onExit={onExit}
+        {...extraProps}
+      />
+      <GameWordPanel words={words} userAge={session.age || 8} listName={list?.name || 'Your words'} />
+    </>
   );
 }

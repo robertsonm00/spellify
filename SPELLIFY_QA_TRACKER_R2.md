@@ -22,7 +22,7 @@ _Created: 31 May 2026_
 | R2-01 | Word Forge | Gate when list lacks prefixes/suffixes; restyle to Memory Spell | Enhancement / UI | Med | ✅ Done |
 | R2-02 | Weak Spot | Restyle to Memory Spell + new background; Variant A end screen | UI | Med | ✅ Done |
 | R2-03 | Word Mastery | Hover text describes mastery wrongly ("play 14 more games") | Bug | High | ✅ Done (removed) |
-| R2-04 | Cross-game | Persistent word-list panel (right side) in all games, collapsible | Feature | High | Open |
+| R2-04 | Cross-game | Persistent word-list panel (right side) in all games, collapsible | Feature | High | ✅ Done |
 | R2-05 | Avatars / Profile | Avatar packs — pick a character, unlock/buy themed packs with lumens | Feature | Med | → Moved to R3-02 |
 | R2-06 | Parent / Auth | Force parent PIN setup at profile creation (not deferred) | Bug / Security | High | Open |
 | R2-07 | Performance | Confetti slow/janky returning to home after mastering a list | Bug | High | ✅ Done |
@@ -88,7 +88,17 @@ Hovering over Word Mastery shows **"play 14 more games to reach Word Mastery."**
 > **Open question (for Claude Code to answer from code, then Martin to confirm):** what is the *actual* coded mastery rule? Martin's recollection (3 games, no hints) vs design notes (2+ game types) need reconciling against the implementation.
 
 ### R2-04 — Persistent word-list panel in all games (collapsible)
-**Type:** Feature · **Priority:** High · **Status:** Open
+**Type:** Feature · **Priority:** High · **Status:** ✅ Done (31 May)
+
+> **Resolved (31 May):** new shared `GameWordPanel` component injected **once at each game-launch point** — `App.jsx` (My Words) and `exploreActivityRunner.jsx` (Explore lists) — so **every game** gets it with zero per-game wiring. It renders a fixed, collapsible word-list panel on the far right, reusing the hub's word chips + the shared `WordDetailModal`.
+>
+> Decisions taken on the open questions:
+> 1. **Mobile pattern** — collapsed-by-default drawer with a right-edge pull-tab; tapping the tab slides it in over a dimming scrim, tap-away or ✕ closes it. The tab sits vertically centred on the right edge (an area games keep clear) and tucks away while the drawer is open, so it never covers the grid / keyboard / tiles.
+> 2. **Default state** — **open on desktop** (room to spare; words always visible per the guiding principle), **closed on mobile** (protect the game surface). Decided at mount via a `matchMedia` check.
+> 3. **Tappable words** — open the **full `WordDetailModal`** (meaning + "Hear it" audio via the shared site voice), identical to the hub.
+> 4. **Spelling visible during play** — yes, always shown. Per the principle, Spellify is a spelling aid, not a memory test; no game hides the target as a "cheat".
+>
+> Layering: panel/tab/scrim at z-index ~630–640 (above the game header ~200, below the word-detail modal at 1200).
 
 Bring the **word list** (the one from the word-list hub) **into every game**, pinned in the **same fixed position on the far right-hand side** across all games. The child can **open and close it** to refresh their memory of the words at any point during play.
 

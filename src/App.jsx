@@ -31,6 +31,7 @@ import { getSession, onAuthStateChange } from './lib/auth';
 import { supabase, isSupabaseEnabled } from './lib/supabase';
 import Settings       from './components/Settings';
 import { GeneratedWords } from './components/OnboardingFlow';
+import GameWordPanel  from './components/GameWordPanel';
 import { useUser }    from './hooks/useUser';
 
 function hasProgress(activityStatuses) {
@@ -1135,10 +1136,14 @@ function App() {
 
     if (Activity) {
       // Activities own their own header via <GameHeader>. Don't wrap in TopNav.
+      // R2-04: the word list rides along in every game via a shared collapsible
+      // panel, so the child can always glance back at the words being learnt.
+      const panelWords = (id === 'review' && reviewQueue.length > 0) ? reviewQueue : words;
       return (
         <main className="app-game-main">
           {Activity}
           {exitToSelectorBtn}
+          <GameWordPanel words={panelWords} userAge={session?.age || 8} />
         </main>
       );
     }
