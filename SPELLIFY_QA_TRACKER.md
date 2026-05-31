@@ -34,7 +34,7 @@ Consequences for the items below:
 | ID | Area | Title | Type | Priority | Status |
 |----|------|-------|------|----------|--------|
 | DESIGN-01 | Design direction | Retire classic hub; commit to card design | Change | High | ✅ Done |
-| SD-01 | Spell Duel | Add distractor letters to keyboard | Bug / Enhancement | High | Open |
+| SD-01 | Spell Duel | Add distractor letters to keyboard | Bug / Enhancement | High | ✅ Already implemented (31 May) |
 | SD-02 | Spell Duel | Stop adding rounds after 3 words wrong (matches SR-01) | Enhancement | Med | Open |
 | SDR-01 | Crossword | Read the Crossword clue aloud (TTS, site voice) | Enhancement | Med | Open |
 | RES-01 | Results | Unified end-of-game results — full 2-variant spec (Memory Spell base) | Enhancement | High | Specced |
@@ -86,13 +86,15 @@ This is a strategic call, so sequence it carefully rather than ripping classic o
 ## Spell Duel
 
 ### SD-01 — Add distractor letters to keyboard
-**Type:** Bug / Enhancement · **Priority:** High · **Status:** Open
+**Type:** Bug / Enhancement · **Priority:** High · **Status:** ✅ Already implemented (31 May)
 
 Right now a player can spell the target word by selecting **every** letter on the keyboard — there's no real fail state because all the needed letters are present and there aren't enough extras to force a wrong choice.
 
 **Interim fix:** add **at least 4 more letters** (decoys/distractors) to the keyboard so the player has to actually choose correctly.
 
 **Future / proper fix:** replace with smarter distractor logic instead of random extras — e.g. pull from the word's `commonMistakes` field or use visually/phonetically similar letters so the wrong options are pedagogically meaningful.
+
+**Diagnosis (31 May):** already in place — no code change needed. `src/utils/generateSpellDuelKeyboard.js` (wired into `SpellDuel.jsx`) guarantees distractors that scale with word length: **min 4** (Y1–2) / **5** (Y3+), and in practice many more (a base keyboard of 12 / 18 / 22 keys, e.g. 9 distractors for "cat", 17 for "rhythm"). The **proper** fix is also done: priority 1 = visual confusables (b/d, p/q, m/n…), priority 2 = phonetic confusables (c/k, s/z, f/v…), random fill last. The fail state is real and reachable in every config (distractors ≥ maxWrong of 8/6/4): once a player makes `maxWrong` wrong taps, `handleGuess` locks out further input and the word is lost — so tapping every key loses rather than wins. *(SD-02's session-level ceiling of 3 is separate and still open — see below.)*
 
 ### SD-02 — Stop adding rounds after the wrong-word ceiling
 **Type:** Enhancement · **Priority:** Med · **Status:** Open
