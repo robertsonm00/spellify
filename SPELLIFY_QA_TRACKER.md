@@ -56,7 +56,7 @@ Consequences for the items below:
 | WL-01 | Word lists | Hide "Take photo" until feature exists (roadmap after QA) | Change | Med | ✅ Done |
 | WL-02 | Word lists | Created lists don't save or appear in My Lists (photo + random) | Bug | **Critical** | ✅ Done (via PROF-04) |
 | PROF-02 | Profiles & persistence | Hide avatar from menu (not deployable yet) | Change | Med | ✅ Done |
-| SYL-01 | Syllable Tap | Hide game when word set lacks syllable variety | Enhancement | Med | Open |
+| SYL-01 | Syllable Tap | Hide game when word set lacks syllable variety | Enhancement | Med | ✅ Done |
 | PROF-03 | Profiles & persistence | Persisted progress not shown until point-status refresh (stale UI) | Bug | Low | Not reproduced |
 | PROF-04 | Profiles & persistence | "Quick Start" wipes all saved data for returning users | Bug | **Critical** | ✅ Done |
 | SR-01 | Spaced repetition | Cap retry rounds for wrong words (currently unbounded → round 22) | Enhancement | High | Open |
@@ -421,7 +421,7 @@ Action for Claude Code:
 ## Syllable Tap
 
 ### SYL-01 — Hide game when word set lacks syllable variety
-**Type:** Enhancement · **Priority:** Med · **Status:** Open
+**Type:** Enhancement · **Priority:** Med · **Status:** ✅ Done (31 May)
 
 Don't offer **Syllable Tap** as an available game when the word set makes it trivial. Don't show it if **either**:
 - **≥ 50% of the words are one syllable (monosyllabic)**, or

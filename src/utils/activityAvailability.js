@@ -1,5 +1,26 @@
 import { hasMorphology } from '../data/morphology';
 import { getClueSync } from './clueResolver';
+import { syllableCount } from './syllableCount';
+
+// Syllable Tap only offers a real challenge when the word set has genuine
+// syllable variety. Hide it (SYL-01) when EITHER condition holds:
+//   • ≥ 50% of the words are one syllable (monosyllabic), or
+//   • every word has the same syllable count.
+// Counts use the same heuristic the game itself scores against
+// (`syllableCount`) so the gate and the game can never disagree.
+const SYLLABLE_TAP_LOCK_MESSAGE =
+  'Add words with a mix of syllable lengths to unlock Syllable Tap.';
+
+function lacksSyllableVariety(words) {
+  const counts = (Array.isArray(words) ? words : [])
+    .map((w) => syllableCount(typeof w === 'string' ? w : w?.word))
+    .filter((n) => n > 0);
+  // No words to judge (e.g. mid-load) → don't hide; other logic handles it.
+  if (counts.length === 0) return false;
+  const monoCount = counts.filter((n) => n === 1).length;
+  if (monoCount / counts.length >= 0.5) return true;   // ≥50% monosyllabic
+  return counts.every((n) => n === counts[0]);          // all the same count
+}
 
 // Crossword needs enough clue-available words to make a meaningful puzzle.
 // Sync check — getClueSync covers DEFINITIONS + word database (no API).
@@ -139,6 +160,18 @@ export function getActivityAvailability(activity, ctx = {}) {
         reason:    'locked',
         message:   CROSSWORD_LOCK_MESSAGE,
       };
+    }
+  }
+
+  // Syllable Tap (SYL-01): hidden entirely when the word set lacks syllable
+  // variety — there's no meaningful challenge if most words are one syllable
+  // or every word has the same count. reason 'unsupported' drops the card
+  // from the grid (rather than showing it locked), matching wordforge.
+  // Applies to curriculum sessions and custom lists alike.
+  if (activity.id === 'syllabletap') {
+    if (lacksSyllableVariety(ctx.session?.words ?? [])) {
+      return { available: false, locked: true, reason: 'unsupported',
+               message: SYLLABLE_TAP_LOCK_MESSAGE };
     }
   }
 
