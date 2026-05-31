@@ -19,7 +19,7 @@ _Created: 31 May 2026_
 
 | ID | Area | Title | Type | Priority | Status |
 |----|------|-------|------|----------|--------|
-| R2-01 | Word Forge | Gate when list lacks prefixes/suffixes; restyle to Memory Spell | Enhancement / UI | Med | Open |
+| R2-01 | Word Forge | Gate when list lacks prefixes/suffixes; restyle to Memory Spell | Enhancement / UI | Med | ✅ Done |
 | R2-02 | Weak Spot | Restyle to Memory Spell + new background; Variant A end screen | UI | Med | Open |
 | R2-03 | Word Mastery | Hover text describes mastery wrongly ("play 14 more games") | Bug | High | ✅ Done (removed) |
 | R2-04 | Cross-game | Persistent word-list panel (right side) in all games, collapsible | Feature | High | Open |
@@ -34,7 +34,13 @@ _Created: 31 May 2026_
 ## Items
 
 ### R2-01 — Word Forge: gate when list lacks prefixes/suffixes; UI update
-**Type:** Enhancement / UI · **Priority:** Med · **Status:** Open
+**Type:** Enhancement / UI · **Priority:** Med · **Status:** ✅ Done (31 May)
+
+> **Resolved (31 May):**
+> - **Gating** was already live in `utils/activityAvailability.js` — Word Forge is dropped from the grid when no word in the set has a prefix/suffix breakdown (`!words.some(hasMorphology)`). Threshold = **zero** qualifying words hides it (it only ever operates on the qualifying subset, so any ≥1 is playable). Shares the same availability predicate pattern as Syllable Tap (SYL-01).
+> - **UI** rebuilt to Memory Spell's look/layout: themed dark glowing card on a backdrop, buddy avatar (now passed via `buildProps`), white Nunito H1, the "Word X / Y" pixel-font pill, and Memory-Spell success/wrong panels.
+> - **End screen** now uses the shared **RES-01 Variant A** `GameResults` (star · X of X words · Correct words · Words to practise · Continue) — identical to Memory Spell, replacing the old bespoke summary list.
+> - Background currently reuses `memory-spell-background.png`; a bespoke Word Forge backdrop is a one-line swap when art is ready.
 
 Word Forge is a **prefix/suffix** game. If the words in a list don't contain prefixes/suffixes, the game has nothing to work with — so it **shouldn't show** for that list.
 

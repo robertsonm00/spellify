@@ -123,7 +123,7 @@ export const ACTIVITIES = [
     timeEstimate: '5 mins', color: '#fbc4a3', dark: '#c25e30',
     phase: 'consolidate', component: WordForge,
     minYear: 2, maxYear: 6,
-    buildProps: () => ({}),
+    buildProps: (s) => ({ childCharacter: s.childCharacter || null }),
   },
 ];
 
