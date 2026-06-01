@@ -13,7 +13,7 @@ import { SESSION_RETRY_CEILING } from '../utils/retryCeiling';
 
 // Themed background — see Crossword.jsx for the rationale.
 const BG_STYLE = {
-  '--bg-image-url': `url("${process.env.PUBLIC_URL || ''}/adventure/backgrounds/memory-spell-background.png")`,
+  '--bg-image-url': `url("${process.env.PUBLIC_URL || ''}/adventure/backgrounds/memory-spell-background.webp")`,
 };
 
 // ── Success fanfare ───────────────────────────────────────────────────────────

@@ -14,10 +14,10 @@ import './WeakSpot.css';
 const FLASH_MS = 1800;
 
 // Themed background — Weak Spot shares Memory Spell's look/layout (R2-02),
-// inheriting the same dark glowing card on a themed backdrop. A bespoke
-// Weak Spot background can be dropped in later by swapping the filename.
+// inheriting the same dark glowing card on a themed backdrop, now over its
+// own bespoke Weak Spot background.
 const BG_STYLE = {
-  '--bg-image-url': `url("${process.env.PUBLIC_URL || ''}/adventure/backgrounds/memory-spell-background.png")`,
+  '--bg-image-url': `url("${process.env.PUBLIC_URL || ''}/adventure/backgrounds/weak-spot-background.webp")`,
 };
 
 function fireConfetti() {

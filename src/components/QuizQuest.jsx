@@ -15,7 +15,7 @@ import { speakWord as speak } from '../utils/speech';
 
 // Themed background — injected via CSS custom property at runtime.
 const BG_STYLE = {
-  '--bg-image-url': `url("${process.env.PUBLIC_URL || ''}/adventure/backgrounds/quiz-quest-background.png")`,
+  '--bg-image-url': `url("${process.env.PUBLIC_URL || ''}/adventure/backgrounds/quiz-quest-background.webp")`,
 };
 
 const QUESTION_H1 = {

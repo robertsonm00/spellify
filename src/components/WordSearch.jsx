@@ -14,8 +14,8 @@ import './WordSearch.css';
 // Themed backgrounds — injected via CSS custom properties at runtime so
 // css-loader doesn't have to resolve public/ paths at build time.
 const BG_STYLE = {
-  '--bg-image-url': `url("${process.env.PUBLIC_URL || ''}/adventure/backgrounds/word-search-forest-background.png")`,
-  '--bg-image-url-wordlist': `url("${process.env.PUBLIC_URL || ''}/adventure/backgrounds/word-list-background.png")`,
+  '--bg-image-url': `url("${process.env.PUBLIC_URL || ''}/adventure/backgrounds/word-search-forest-background.webp")`,
+  '--bg-image-url-wordlist': `url("${process.env.PUBLIC_URL || ''}/adventure/backgrounds/word-list-background.webp")`,
 };
 
 // ── Word-found celebration (same as Crossword / Hangman) ─────────────────────

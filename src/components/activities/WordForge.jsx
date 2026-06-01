@@ -9,10 +9,10 @@ import '../MemorySpell.css';
 import './WordForge.css';
 
 // Themed background — Word Forge reuses Memory Spell's look/layout (R2-01),
-// so it inherits the same dark glowing card on a themed backdrop. A bespoke
-// word-forge background can be dropped in later by swapping the filename.
+// so it inherits the same dark glowing card on a themed backdrop, now over
+// its own bespoke Word Forge background.
 const BG_STYLE = {
-  '--bg-image-url': `url("${process.env.PUBLIC_URL || ''}/adventure/backgrounds/memory-spell-background.png")`,
+  '--bg-image-url': `url("${process.env.PUBLIC_URL || ''}/adventure/backgrounds/word-forge-background.webp")`,
 };
 
 // ── Word-correct celebration (mirrors Hangman / Crossword / WordSearch) ─────

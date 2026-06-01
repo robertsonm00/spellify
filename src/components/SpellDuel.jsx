@@ -14,7 +14,7 @@ import { SESSION_RETRY_CEILING } from '../utils/retryCeiling';
 
 // Themed background — injected via CSS custom property at runtime.
 const BG_STYLE = {
-  '--bg-image-url': `url("${process.env.PUBLIC_URL || ''}/adventure/backgrounds/spell-duel-background.png")`,
+  '--bg-image-url': `url("${process.env.PUBLIC_URL || ''}/adventure/backgrounds/spell-duel-background.webp")`,
 };
 
 // Opponent wizard sprite — three poses swapped by duel outcome.

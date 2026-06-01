@@ -39,7 +39,7 @@ import { chunkWord } from '../utils/wordChunking';
 
 // Themed background — injected via CSS custom property at runtime.
 const BG_STYLE = {
-  '--bg-image-url': `url("${process.env.PUBLIC_URL || ''}/adventure/backgrounds/write-it-background.png")`,
+  '--bg-image-url': `url("${process.env.PUBLIC_URL || ''}/adventure/backgrounds/write-it-background.webp")`,
 };
 
 const FEEDBACK_DELAY_MS = 1400;

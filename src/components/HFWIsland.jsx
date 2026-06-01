@@ -22,7 +22,7 @@ const DEFAULT_CHAPTER_COORDS = [
   { x: 50, y: 19 },
 ];
 
-const HFW_BG = '/adventure/backgrounds/high-frequency-island.png';
+const HFW_BG = '/adventure/backgrounds/high-frequency-island.webp';
 const HFW_RATIO = 1402 / 1122; // actual image dimensions (landscape)
 
 // Per-list coordinate overrides — keyed by list id.

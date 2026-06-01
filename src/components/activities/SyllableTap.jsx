@@ -10,7 +10,7 @@ import './SyllableTap.css';
 
 // Themed background — injected via CSS custom property at runtime.
 const BG_STYLE = {
-  '--bg-image-url': `url("${process.env.PUBLIC_URL || ''}/adventure/backgrounds/syllable-tap-background.png")`,
+  '--bg-image-url': `url("${process.env.PUBLIC_URL || ''}/adventure/backgrounds/syllable-tap-background.webp")`,
 };
 
 // ── Correct-guess celebration (matches Hangman / Crossword feel) ─────────
