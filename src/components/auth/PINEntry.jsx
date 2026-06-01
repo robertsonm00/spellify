@@ -15,6 +15,8 @@
 //   onCancel       () => void               — close the modal (back to selector)
 //   busy           boolean — pause input during async submit
 //   errorMessage   string — surfaced beneath the inputs
+//   noticeTone     'error' | 'success' — red (default) or green styling for
+//                  the message above (e.g. a "reset email sent" confirmation)
 
 import React, { useEffect, useRef, useState } from 'react';
 import './PIN.css';
@@ -29,6 +31,7 @@ export default function PINEntry({
   onCancel,
   busy = false,
   errorMessage,
+  noticeTone = 'error',
 }) {
   const [digits, setDigits] = useState(Array(PIN_LENGTH).fill(''));
   const [shake,  setShake]  = useState(false);
@@ -137,7 +140,12 @@ export default function PINEntry({
         </div>
 
         {errorMessage && (
-          <p className="pin-error" role="alert">{errorMessage}</p>
+          <p
+            className={noticeTone === 'success' ? 'pin-notice' : 'pin-error'}
+            role={noticeTone === 'success' ? 'status' : 'alert'}
+          >
+            {errorMessage}
+          </p>
         )}
 
         {onForgot && (

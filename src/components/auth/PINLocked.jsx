@@ -11,6 +11,8 @@
 //   onClose       () => void  — close the gate (back to the selector)
 //   busy          boolean     — disable the reset button mid-request
 //   notice        string      — confirmation / feedback under the buttons
+//   noticeTone    'error' | 'success' — red (default) or green styling for
+//                 the notice (e.g. a "reset email sent" confirmation)
 
 import React, { useEffect, useState } from 'react';
 import './PIN.css';
@@ -22,7 +24,7 @@ function formatRemaining(ms) {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-export default function PINLocked({ lockedUntil, onExpire, onReset, onClose, busy = false, notice }) {
+export default function PINLocked({ lockedUntil, onExpire, onReset, onClose, busy = false, notice, noticeTone = 'error' }) {
   const [remaining, setRemaining] = useState(() => Math.max(0, lockedUntil - Date.now()));
 
   // Tick once a second; fire onExpire the moment the lock lifts so the
@@ -64,7 +66,11 @@ export default function PINLocked({ lockedUntil, onExpire, onReset, onClose, bus
           Reset PIN by email
         </button>
 
-        {notice && <p className="pin-error" role="status">{notice}</p>}
+        {notice && (
+          <p className={noticeTone === 'success' ? 'pin-notice' : 'pin-error'} role="status">
+            {notice}
+          </p>
+        )}
       </div>
     </div>
   );

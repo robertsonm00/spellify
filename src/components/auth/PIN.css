@@ -116,6 +116,18 @@
   font-size: 0.88rem;
   font-weight: 600;
 }
+/* Success / confirmation message (e.g. "reset email sent") — same shape as
+   .pin-error but a friendly green instead of alarm red. */
+.pin-notice {
+  margin: 4px 0 12px;
+  padding: 8px 12px;
+  background: rgba(80, 220, 140, 0.12);
+  border: 1px solid rgba(100, 230, 160, 0.42);
+  color: #9be9bf;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
 .pin-forgot {
   background: transparent;
   border: 0;

@@ -103,7 +103,16 @@ function App() {
   const [pinSetupMandatory, setPinSetupMandatory] = useState(false);
   const [pinBusy,       setPinBusy]       = useState(false);
   const [pinError,      setPinError]      = useState(null);
+  // Positive/confirmation message (green), kept separate from pinError (red)
+  // so a "reset email sent" success isn't styled like a failure.
+  const [pinNotice,     setPinNotice]     = useState(null);
   const [pinLockUntil,  setPinLockUntil]  = useState(null);
+  // Set when the parent has come back through the email PIN-reset link
+  // (?reset=1 or a Supabase PASSWORD_RECOVERY event). An effect picks it up
+  // once the session is known, wipes the stored PIN hash and drops the
+  // grown-up into mandatory fresh-PIN setup — closing the "it asked me to
+  // ENTER my PIN, never let me reset it" gap.
+  const [pinResetPending, setPinResetPending] = useState(false);
   // Set true right after a child profile is created so a brand-new account
   // is made to set its grown-up PIN straight away (R2-06 — every account
   // must be PIN-protected). An effect picks this up once the profile row
@@ -153,6 +162,18 @@ function App() {
     // through.
     console.info('[auth] SIGNED_IN → routing to ProfileSelector');
   }
+  if (event === 'PASSWORD_RECOVERY' && session?.user) {
+    // The parent followed the "Reset PIN by email" link. Land them on the
+    // selector and flag the reset so the effect below clears the old PIN
+    // and forces a fresh setup, rather than silently asking them to ENTER
+    // a PIN they no longer remember.
+    setShowSignIn(false);
+    setScreen('profileSelector');
+    setSection('home');
+    setActiveActivity(null);
+    setPinResetPending(true);
+    console.info('[auth] PASSWORD_RECOVERY → PIN reset pending');
+  }
   if (event === 'SIGNED_OUT') {
     // Sign-out → return to a clean welcome screen and wipe the
     // in-memory + persisted session/stats so the next user (guest or
@@ -170,6 +191,8 @@ function App() {
     setPinGateMode('closed');
     setPinSetupMandatory(false);
     setPinError(null);
+    setPinNotice(null);
+    setPinResetPending(false);
     try {
       localStorage.removeItem('spellify_session_v2');
       localStorage.removeItem('spellify_session');
@@ -192,6 +215,63 @@ function App() {
   
   return () => { cancelled = true; unsub(); };
 }, []);
+
+  // Catch the PIN-reset return link. The reset email points back at
+  // /?reset=1; Supabase also fires PASSWORD_RECOVERY, but the query flag is
+  // a belt-and-braces signal in case the SDK has already swallowed the
+  // recovery event by the time this mounts. Either way we flag the reset
+  // and strip the param so a refresh doesn't re-trigger it.
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('reset') === '1') {
+        setPinResetPending(true);
+        params.delete('reset');
+        const qs = params.toString();
+        const clean = window.location.pathname + (qs ? `?${qs}` : '') + window.location.hash;
+        window.history.replaceState({}, '', clean);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  // Honour a pending PIN reset: once we know who's signed in, wipe the
+  // stored hash, clear any lockout, and drop the parent into mandatory
+  // fresh-PIN setup. This is what makes the email link actually let them
+  // CHANGE the PIN rather than be asked to enter the forgotten one.
+  useEffect(() => {
+    if (!pinResetPending || !authUser?.id || !isSupabaseEnabled) return;
+    let cancelled = false;
+    (async () => {
+      const { error: err } = await supabase
+        .from('profiles')
+        .update({ parent_pin_hash: null })
+        .eq('id', authUser.id)
+        .select('id');
+      if (cancelled) return;
+      if (err) {
+        console.warn('[pin] reset clear failed', err);
+        setPinNotice(null);
+        setPinError('Could not reset your PIN — please try again.');
+        setPinResetPending(false);
+        return;
+      }
+      clearLockout(authUser.id);
+      setParentProfile((prev) => ({ ...(prev || {}), id: authUser.id, parent_pin_hash: null }));
+      setPinError(null);
+      setPinLockUntil(null);
+      setPinResetPending(false);
+      setPinNotice('PIN reset — choose a new 4-digit PIN.');
+      setPinSetupMandatory(true);
+      setPinGateMode('setup');
+    })();
+    return () => { cancelled = true; };
+  }, [pinResetPending, authUser?.id]);
+
+  // Drop any lingering green notice once the gate is fully closed, so it
+  // doesn't flash back the next time the gate opens.
+  useEffect(() => {
+    if (pinGateMode === 'closed') setPinNotice(null);
+  }, [pinGateMode]);
 
   // When the signed-in parent has no children, prompt for child setup.
   //
@@ -611,7 +691,7 @@ function App() {
 
   const handlePinSubmit = React.useCallback(async (pin) => {
     if (!parentProfile?.parent_pin_hash || !authUser?.id) return false;
-    setPinBusy(true); setPinError(null);
+    setPinBusy(true); setPinError(null); setPinNotice(null);
     const ok = await verifyPin(pin, authUser.id, parentProfile.parent_pin_hash);
     setPinBusy(false);
     if (!ok) {
@@ -688,11 +768,17 @@ function App() {
     try {
       // Re-use Supabase's password-reset email — the spec ties PIN
       // reset to email confirmation (the parent owns the email so
-      // that's the right out-of-band channel).
-      await supabase.auth.resetPasswordForEmail(authUser.email);
-      setPinError('Reset email sent. Open it on this device to clear your PIN.');
+      // that's the right out-of-band channel). redirectTo carries the
+      // ?reset=1 flag back so the link drops them straight into fresh-PIN
+      // setup instead of the (now-forgotten) entry prompt.
+      await supabase.auth.resetPasswordForEmail(authUser.email, {
+        redirectTo: `${window.location.origin}/?reset=1`,
+      });
+      setPinError(null);
+      setPinNotice('Reset email sent. Open it on this device to set a new PIN.');
     } catch (e) {
       console.warn('[pin] reset email failed', e);
+      setPinNotice(null);
       setPinError('Could not send reset email — try again later.');
     }
   }, [authUser?.email]);
@@ -1189,10 +1275,11 @@ function App() {
           title="Enter your PIN"
           subtitle="Tap in the 4-digit PIN to open the grown-up area."
           onSubmit={handlePinSubmit}
-          onCancel={() => { setPinGateMode('closed'); setPinError(null); }}
+          onCancel={() => { setPinGateMode('closed'); setPinError(null); setPinNotice(null); }}
           onForgot={handlePinForgot}
           busy={pinBusy}
-          errorMessage={pinError}
+          errorMessage={pinNotice || pinError}
+          noticeTone={pinNotice ? 'success' : 'error'}
         />
       )}
       {pinGateMode === 'locked' && (
@@ -1200,9 +1287,10 @@ function App() {
           lockedUntil={pinLockUntil}
           onExpire={handlePinLockExpire}
           onReset={handlePinForgot}
-          onClose={() => { setPinGateMode('closed'); setPinError(null); }}
+          onClose={() => { setPinGateMode('closed'); setPinError(null); setPinNotice(null); }}
           busy={pinBusy}
-          notice={pinError}
+          notice={pinNotice || pinError}
+          noticeTone={pinNotice ? 'success' : 'error'}
         />
       )}
       {pinGateMode === 'setup' && (
