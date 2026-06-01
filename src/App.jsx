@@ -25,8 +25,10 @@ import { hasGuestData } from './lib/migrationService';
 import ProfileSelector from './components/ProfileSelector/ProfileSelector';
 import PINEntry from './components/auth/PINEntry';
 import PINSetup from './components/auth/PINSetup';
+import PINLocked from './components/auth/PINLocked';
 import ParentDashboard from './components/ParentDashboard/ParentDashboard';
 import { hashPin, verifyPin } from './lib/pin';
+import { readLockout, recordFailure, clearLockout, isLocked, attemptsLeft } from './lib/pinLockout';
 import { getSession, onAuthStateChange } from './lib/auth';
 import { supabase, isSupabaseEnabled } from './lib/supabase';
 import Settings       from './components/Settings';
@@ -87,18 +89,21 @@ function App() {
   // Grown-up area PIN gate state (Prompt 2):
   //   parentProfile  : profiles row for the signed-in parent (has the
   //                    parent_pin_hash column).
-  //   pinGateMode    : 'closed' | 'entry' | 'setup' | 'change'
+  //   pinGateMode    : 'closed' | 'entry' | 'setup' | 'change' | 'locked'
   //   pinSetupMandatory : true when a PIN-less parent first opens the
   //                    grown-up area — setup then has no skip/cancel so
   //                    the gate can't be left open (R2-06). False for the
   //                    optional "Change PIN" flow inside the dashboard.
   //   pinBusy        : disable inputs while we hash/write
   //   pinError       : surfaced under the PIN inputs
+  //   pinLockUntil   : epoch ms the wrong-attempt lockout lifts at; drives
+  //                    the 'locked' gate (5 wrong tries → 10-min cooldown).
   const [parentProfile, setParentProfile] = useState(null);
   const [pinGateMode,   setPinGateMode]   = useState('closed');
   const [pinSetupMandatory, setPinSetupMandatory] = useState(false);
   const [pinBusy,       setPinBusy]       = useState(false);
   const [pinError,      setPinError]      = useState(null);
+  const [pinLockUntil,  setPinLockUntil]  = useState(null);
 
   // Tracks the user.id we last handled SIGNED_IN for. Supabase fires
   // SIGNED_IN more than once in some flows (initial subscription +
@@ -562,6 +567,15 @@ function App() {
       return;
     }
     if (parentProfile.parent_pin_hash) {
+      // Honour any active wrong-attempt lockout first — a reload during
+      // the cooldown must still land on the locked screen, not a fresh
+      // entry prompt (the count lives in localStorage, keyed per user).
+      const lock = readLockout(authUser?.id);
+      if (isLocked(lock)) {
+        setPinLockUntil(lock.lockedUntil);
+        setPinGateMode('locked');
+        return;
+      }
       setPinGateMode('entry');
       return;
     }
@@ -569,7 +583,7 @@ function App() {
     // to set one before the grown-up area opens. No skip, no back-door.
     setPinSetupMandatory(true);
     setPinGateMode('setup');
-  }, [parentProfile]);
+  }, [parentProfile, authUser?.id]);
 
   const handlePinSubmit = React.useCallback(async (pin) => {
     if (!parentProfile?.parent_pin_hash || !authUser?.id) return false;
@@ -577,9 +591,22 @@ function App() {
     const ok = await verifyPin(pin, authUser.id, parentProfile.parent_pin_hash);
     setPinBusy(false);
     if (!ok) {
-      setPinError('That PIN didn\'t match. Try again or tap "Forgot PIN?"');
+      // Count the miss. After MAX_PIN_ATTEMPTS wrong tries the record locks
+      // for 10 minutes; before that we warn how many tries remain so the
+      // grown-up isn't surprised by a sudden lockout.
+      const record = recordFailure(authUser.id);
+      if (isLocked(record)) {
+        setPinLockUntil(record.lockedUntil);
+        setPinError(null);
+        setPinGateMode('locked');
+        return false;
+      }
+      const left = attemptsLeft(record);
+      setPinError(`That PIN didn't match. ${left} ${left === 1 ? 'try' : 'tries'} left.`);
       return false;
     }
+    // Correct — wipe the failure tally so a future slip starts fresh.
+    clearLockout(authUser.id);
     setPinGateMode('closed');
     setScreen('parentDashboard');
     return true;
@@ -645,6 +672,16 @@ function App() {
       setPinError('Could not send reset email — try again later.');
     }
   }, [authUser?.email]);
+
+  // Fired by PINLocked once the 10-minute cooldown elapses: clear the
+  // failure tally and re-open the normal entry prompt so the grown-up can
+  // try again with a full fresh allowance.
+  const handlePinLockExpire = React.useCallback(() => {
+    if (authUser?.id) clearLockout(authUser.id);
+    setPinLockUntil(null);
+    setPinError(null);
+    setPinGateMode((m) => (m === 'locked' ? 'entry' : m));
+  }, [authUser?.id]);
 
   // ParentDashboard → Remove PIN. Wipes the hash so the gate is open
   // again. No re-verify required because the parent is already
@@ -1132,6 +1169,16 @@ function App() {
           onForgot={handlePinForgot}
           busy={pinBusy}
           errorMessage={pinError}
+        />
+      )}
+      {pinGateMode === 'locked' && (
+        <PINLocked
+          lockedUntil={pinLockUntil}
+          onExpire={handlePinLockExpire}
+          onReset={handlePinForgot}
+          onClose={() => { setPinGateMode('closed'); setPinError(null); }}
+          busy={pinBusy}
+          notice={pinError}
         />
       )}
       {pinGateMode === 'setup' && (
