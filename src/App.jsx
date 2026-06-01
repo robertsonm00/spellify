@@ -451,13 +451,30 @@ function App() {
         total_games:    s.totalGames ?? 0,
         total_mastered: s.totalMastered ?? 0,
       };
-      let { error } = await supabase.from('children').update(full).eq('id', childId);
+      // `.select('id')` lets us see how many rows the UPDATE actually touched.
+      // With RLS enabled but no UPDATE *policy* on `children`, an update
+      // returns NO error yet matches ZERO rows — it silently writes nothing,
+      // which is exactly why progress kept resetting: the sync "succeeded",
+      // the row stayed at 0, and the next login re-seeded localStorage from
+      // those zeros. Detect that case explicitly instead of trusting !error.
+      let { data, error } = await supabase
+        .from('children').update(full).eq('id', childId).select('id');
       if (error) {
         // Older deployments lack the two extra columns — retry with only
         // the always-present set so points/lumens/level/streak still persist.
-        ({ error } = await supabase.from('children').update(safe).eq('id', childId));
+        ({ data, error } = await supabase
+          .from('children').update(safe).eq('id', childId).select('id'));
       }
-      if (error) console.error('[progress] child sync failed', error);
+      if (error) {
+        console.error('[progress] child sync failed', error);
+      } else if (!data || data.length === 0) {
+        console.error(
+          '[progress] child sync wrote 0 rows — the row exists but the UPDATE ' +
+          'matched nothing, which means `children` is missing an RLS UPDATE ' +
+          'policy. Apply supabase/migrations/2026_06_01_children_update_policy.sql.',
+          { childId }
+        );
+      }
     } catch (err) {
       console.error('[progress] child sync threw', err);
     }
