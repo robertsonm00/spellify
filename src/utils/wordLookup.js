@@ -1,40 +1,66 @@
 /**
  * wordLookup — single source of truth for rich per-word DATA.
  *
- * Merges Y1 + Y2 (from ks1WordData_v14) and KS2 (from ks2WordData_v30)
- * into a single case-insensitive Map keyed on word.toLowerCase(). Built once
- * at module load.
+ * CORPUS PROTECTION (2026-06): the full curated corpus (~6,750 entries /
+ * ~4.5 MB) is no longer bundled. The browser ships only the Tier-1 set
+ * (src/data/statutoryTier1.js — every statutory word plus every word the
+ * offline picker `selectWords` can surface, ~327 entries / ~216 KB). The
+ * wider corpus lives server-side behind the get-word-list Edge Function and
+ * is fetched on demand (see docs/CORPUS_PROTECTION_DESIGN.md).
  *
- * Lookups are case-insensitive. Words not found return null / sensible empties.
- * Callers are expected to fall back gracefully (e.g. show the curated short
- * definition from curriculumLists.js when no enriched entry exists).
+ * Lookups are case-insensitive. Words outside Tier-1 (and not yet primed via
+ * `primeWords`) return null / sensible empties — callers MUST fall back
+ * gracefully. In practice they already do:
+ *   - curriculumLists games render the inline short definition.
+ *   - clueResolver checks the bundled definitions.js first, then this lookup,
+ *     then the dictionary API.
+ *   - selectWords only ever draws from the statutory pools, all of which are
+ *     in Tier-1, so its enrichment is unaffected.
+ *
+ * Tier-2 entries fetched at runtime can be merged in via `primeWords` so that
+ * subsequent synchronous lookups for those words succeed (used by the gate
+ * client's cache layer).
  *
  * Used by:
  *   - src/data/curriculumLists.js  (getEnrichedLesson)
  *   - src/utils/wordSelectionEngine.js  (selectWords' wordObjects)
- *   - future game/session UI for hints, tricky parts, common mistakes, etc.
+ *   - src/utils/clueResolver.js  (getDefinition fallback)
  */
 
-import { Y1_WORD_DATA, Y2_WORD_DATA, KS1_GAP_WORDS } from '../data/ks1WordData_v14.js';
-import { ks2WordData } from '../data/ks2WordData_v30.js';
+import { STATUTORY_TIER1 } from '../data/statutoryTier1.js';
 
 const WORD_MAP = (() => {
   const map = new Map();
-  const ingest = (arr) => {
-    for (const entry of arr) {
-      if (!entry || typeof entry.word !== 'string') continue;
-      const key = entry.word.toLowerCase();
-      if (!map.has(key)) map.set(key, entry);
-    }
-  };
-  ingest(Y1_WORD_DATA);
-  ingest(Y2_WORD_DATA);
-  ingest(KS1_GAP_WORDS);
-  ingest(ks2WordData);
+  for (const entry of STATUTORY_TIER1) {
+    if (!entry || typeof entry.word !== 'string') continue;
+    const key = entry.word.toLowerCase();
+    if (!map.has(key)) map.set(key, entry);
+  }
   return map;
 })();
 
+// Words in Tier-1 are protected from being overwritten by primed Tier-2 data.
+const TIER1_KEYS = new Set(WORD_MAP.keys());
+
 const norm = (w) => (typeof w === 'string' ? w.toLowerCase() : '');
+
+/**
+ * Merge runtime-fetched (Tier-2) entries into the lookup map so later
+ * synchronous lookups for those words succeed. Tier-1 entries are never
+ * overwritten. Safe to call repeatedly. Returns the number newly added.
+ */
+export function primeWords(entries) {
+  if (!Array.isArray(entries)) return 0;
+  let added = 0;
+  for (const entry of entries) {
+    if (!entry || typeof entry.word !== 'string') continue;
+    const key = entry.word.toLowerCase();
+    if (TIER1_KEYS.has(key)) continue; // never shadow Tier-1
+    WORD_MAP.set(key, entry);
+    added += 1;
+  }
+  return added;
+}
 
 /** Return the full entry, or null. */
 export function getWordData(word) {
