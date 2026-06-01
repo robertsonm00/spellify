@@ -104,6 +104,12 @@ function App() {
   const [pinBusy,       setPinBusy]       = useState(false);
   const [pinError,      setPinError]      = useState(null);
   const [pinLockUntil,  setPinLockUntil]  = useState(null);
+  // Set true right after a child profile is created so a brand-new account
+  // is made to set its grown-up PIN straight away (R2-06 — every account
+  // must be PIN-protected). An effect picks this up once the profile row
+  // has loaded; it self-cancels if a PIN already exists, so adding a second
+  // child to an already-protected account never re-prompts.
+  const [pinSetupAfterSignup, setPinSetupAfterSignup] = useState(false);
 
   // Tracks the user.id we last handled SIGNED_IN for. Supabase fires
   // SIGNED_IN more than once in some flows (initial subscription +
@@ -392,6 +398,10 @@ function App() {
       // Nothing to save — safe to wipe leftover guest keys now.
       finaliseGuestWipe();
     }
+    // Require a grown-up PIN now that the account has a child profile. The
+    // effect above waits for the profile fetch (and any migrate prompt) and
+    // bails if a PIN already exists, so this is safe to set unconditionally.
+    setPinSetupAfterSignup(true);
   };
 
   // ── ProfileSelector → Game (Prompt 3) ───────────────────────────
@@ -555,6 +565,20 @@ function App() {
     })();
     return () => { cancelled = true; };
   }, [authUser?.id]);
+
+  // Force grown-up PIN setup straight after sign-up (R2-06). Waits for the
+  // profile row to load and for any guest-migration prompt to clear first,
+  // so we don't stack two modals. Self-cancels if a PIN already exists —
+  // adding a second child to a protected account won't re-prompt.
+  useEffect(() => {
+    if (!pinSetupAfterSignup || migrateChild) return;
+    if (!parentProfile) return;            // wait for the profile fetch
+    setPinSetupAfterSignup(false);
+    if (!parentProfile.parent_pin_hash) {
+      setPinSetupMandatory(true);
+      setPinGateMode('setup');
+    }
+  }, [pinSetupAfterSignup, migrateChild, parentProfile]);
 
   const handleParentCardTap = React.useCallback(() => {
     setPinError(null);
