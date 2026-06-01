@@ -266,6 +266,101 @@
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
 }
 
+/* ── Customize — per-character colour pickers (pilot) ───────────────── */
+.avx-axes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px;
+}
+.avx-axis {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: linear-gradient(160deg, rgba(46, 16, 101, 0.5), rgba(15, 6, 32, 0.66));
+  border: 2px solid rgba(255, 255, 255, 0.1);
+}
+.avx-axis__label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #c4b5fd;
+}
+.avx-axis__opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.avx-swatch {
+  --avx-swatch: #888;
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--avx-swatch);
+  border: 3px solid rgba(255, 255, 255, 0.18);
+  cursor: pointer;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.45);
+  transition: transform 0.16s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.avx-swatch:hover { transform: translateY(-2px) scale(1.06); }
+.avx-swatch:focus-visible { outline: 2px solid #ffd93d; outline-offset: 3px; }
+.avx-swatch.is-selected {
+  border-color: #fff;
+  box-shadow:
+    0 0 0 2px rgba(125, 211, 252, 0.7),
+    0 4px 12px rgba(0, 0, 0, 0.5),
+    0 0 16px rgba(125, 211, 252, 0.5);
+  transform: translateY(-2px) scale(1.08);
+}
+.avx-swatch__check {
+  font-size: 0.85rem;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+}
+
+/* Outfit "looks" — numbered chips, not colours (each is a whole garment). */
+.avx-chip {
+  min-width: 44px;
+  height: 44px;
+  padding: 0 12px;
+  border-radius: 12px;
+  background: linear-gradient(160deg, rgba(46, 16, 101, 0.6), rgba(15, 6, 32, 0.78));
+  border: 2px solid rgba(255, 255, 255, 0.16);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.45);
+  transition: transform 0.16s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.avx-chip__num {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.78rem;
+  line-height: 1;
+  color: #ece6ff;
+}
+.avx-chip:hover {
+  transform: translateY(-2px) scale(1.05);
+  border-color: rgba(165, 243, 252, 0.6);
+}
+.avx-chip:focus-visible { outline: 2px solid #ffd93d; outline-offset: 3px; }
+.avx-chip.is-selected {
+  border-color: #7dd3fc;
+  background: linear-gradient(160deg, rgba(34, 102, 168, 0.65), rgba(15, 6, 32, 0.78));
+  box-shadow:
+    0 0 0 2px rgba(125, 211, 252, 0.6),
+    0 4px 12px rgba(0, 0, 0, 0.5),
+    0 0 16px rgba(125, 211, 252, 0.45);
+  transform: translateY(-2px) scale(1.06);
+}
+.avx-chip.is-selected .avx-chip__num { color: #fff; }
+
 /* ── Locked-set grid ────────────────────────────────────────────────── */
 .avx-sets-grid {
   display: grid;
