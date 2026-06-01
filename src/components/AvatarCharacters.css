@@ -101,6 +101,7 @@
 .avx-hero {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: clamp(16px, 4vw, 32px);
   padding: clamp(18px, 3vw, 26px);
   margin-bottom: 26px;
@@ -163,6 +164,70 @@
   color: #c4b5fd;
   font-weight: 700;
   font-size: 0.95rem;
+}
+
+/* ── Hero actions — Save & Exit / Cancel ────────────────────────────── */
+/* Pushed to the far right of the hero row (aligned with the name) on roomy
+   screens; the hero wraps and these stack full-width underneath when narrow. */
+.avx-hero__actions {
+  margin-left: auto;
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 190px;
+}
+.avx-save-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 24px;
+  border: none;
+  border-radius: 16px;
+  cursor: pointer;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+  color: #06283d;
+  background: linear-gradient(135deg, #7dd3fc, #86efac);
+  box-shadow:
+    0 8px 22px rgba(0, 0, 0, 0.45),
+    0 0 24px rgba(125, 211, 252, 0.45);
+  transition: transform 0.16s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+.avx-save-btn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.06);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5), 0 0 32px rgba(134, 239, 172, 0.6);
+}
+.avx-save-btn:active { transform: translateY(0); }
+.avx-save-btn:focus-visible { outline: 2px solid #ffd93d; outline-offset: 3px; }
+
+.avx-cancel-btn {
+  padding: 11px 20px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-family: 'Nunito', 'Segoe UI', sans-serif;
+  font-weight: 800;
+  font-size: 0.86rem;
+  letter-spacing: 0.02em;
+  color: #d8cffe;
+  background: rgba(255, 255, 255, 0.06);
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  transition: transform 0.16s ease, border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+.avx-cancel-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  color: #fff;
+  border-color: rgba(252, 165, 165, 0.7);
+  background: rgba(252, 165, 165, 0.12);
+}
+.avx-cancel-btn:focus-visible { outline: 2px solid #ffd93d; outline-offset: 3px; }
+.avx-cancel-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+@media (max-width: 600px) {
+  .avx-hero__actions { margin-left: 0; width: 100%; min-width: 0; }
 }
 
 /* ── Section heads ──────────────────────────────────────────────────── */
@@ -476,6 +541,88 @@
   color: #c4b5fd;
   font-weight: 600;
   opacity: 0.9;
+}
+
+/* ── Cancel-confirm modal ───────────────────────────────────────────── */
+.avx-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+.avx-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(7, 3, 15, 0.72);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.avx-modal__card {
+  position: relative;
+  z-index: 1;
+  width: min(420px, 100%);
+  text-align: center;
+  padding: 28px 24px 22px;
+  border-radius: 22px;
+  background: linear-gradient(160deg, rgba(46, 16, 101, 0.95), rgba(15, 6, 32, 0.96));
+  border: 2px solid rgba(125, 211, 252, 0.5);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 36px rgba(125, 211, 252, 0.25);
+  animation: avx-modal-pop 0.22s ease;
+}
+@keyframes avx-modal-pop {
+  from { transform: translateY(10px) scale(0.96); opacity: 0; }
+  to   { transform: translateY(0) scale(1); opacity: 1; }
+}
+.avx-modal__emoji { font-size: 2.4rem; }
+.avx-modal__title {
+  margin: 10px 0 8px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.95rem;
+  color: #fff;
+  text-shadow: 0 0 10px rgba(125, 211, 252, 0.5);
+}
+.avx-modal__text {
+  margin: 0 0 20px;
+  font-size: 0.95rem;
+  color: #d8cffe;
+  font-weight: 600;
+  line-height: 1.45;
+}
+.avx-modal__text strong { color: #fff; }
+.avx-modal__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.avx-modal__btn {
+  padding: 14px 20px;
+  border-radius: 14px;
+  cursor: pointer;
+  font-family: 'Nunito', 'Segoe UI', sans-serif;
+  font-weight: 800;
+  font-size: 0.95rem;
+  border: 2px solid transparent;
+  transition: transform 0.16s ease, filter 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+.avx-modal__btn:focus-visible { outline: 2px solid #ffd93d; outline-offset: 3px; }
+.avx-modal__btn--keep {
+  color: #06283d;
+  background: linear-gradient(135deg, #7dd3fc, #86efac);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+.avx-modal__btn--keep:hover { transform: translateY(-2px); filter: brightness(1.06); }
+.avx-modal__btn--discard {
+  color: #fecaca;
+  background: rgba(252, 165, 165, 0.1);
+  border-color: rgba(252, 165, 165, 0.5);
+}
+.avx-modal__btn--discard:hover {
+  transform: translateY(-1px);
+  color: #fff;
+  background: rgba(252, 165, 165, 0.18);
+  border-color: rgba(252, 165, 165, 0.8);
 }
 
 @media (max-width: 540px) {

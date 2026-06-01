@@ -65,6 +65,29 @@ function App() {
   // Increments on every top-nav tab click so ExploreDashboard can clear its
   // internal selectedList even when the user clicks the tab they're already on.
   const [navTick,        setNavTick]        = useState(0);
+
+  // ── Avatar "unsaved changes" navigation guard ───────────────────────
+  // The Avatar customisation page edits a draft that isn't persisted until
+  // Save & Exit. While it has unsaved changes, intercept *any* attempt to
+  // leave the page (logo / footer / bottom-nav, or its own Cancel button) and
+  // confirm first, so a stray tap can't silently discard a child's work.
+  // `avatarDirty` is reported up from AvatarCharacters; `pendingNav` holds the
+  // destination we're parking until the child confirms.
+  const [avatarDirty, setAvatarDirty] = useState(false);
+  const [pendingNav,  setPendingNav]  = useState(null);
+  const go = (next) => { setSection(next); setNavTick(t => t + 1); };
+  const requestSection = (next) => {
+    if (section === 'avatarCharacters' && avatarDirty) setPendingNav(next);
+    else go(next);
+  };
+  const confirmLeaveAvatar = () => {
+    const target = pendingNav ?? 'home';
+    setPendingNav(null);
+    setAvatarDirty(false);
+    go(target);
+  };
+  const cancelLeaveAvatar = () => setPendingNav(null);
+
   const [hfwFromIsleId,  setHfwFromIsleId]  = useState(null);
   const [showSignIn,     setShowSignIn]     = useState(false);
   const [signInView,     setSignInView]     = useState('signin'); // 'signin' | 'signup'
@@ -1551,7 +1574,7 @@ function App() {
       return (
         <>
           <SpellifyLogo
-            onHomeClick={() => { setSection('home'); setNavTick(t => t + 1); }}
+            onHomeClick={() => requestSection('home')}
             variant={(section === 'home' || section === 'hfwIsland') ? 'adventure' : undefined}
           />
           {section === 'hfwIsland' ? (
@@ -1564,7 +1587,7 @@ function App() {
           ) : section === 'home' ? (
             <AdventureMap
               session={session}
-              onSectionChange={(s) => { setSection(s); setNavTick(t => t + 1); }}
+              onSectionChange={requestSection}
               onOpenList={handleAdventureOpenList}
               onGoToHFW={(isleId) => { setHfwFromIsleId(isleId); setSection('hfwIsland'); setNavTick(t => t + 1); }}
               initialIsleId={hfwFromIsleId}
@@ -1573,12 +1596,21 @@ function App() {
             <SpellShop
               session={session}
               lumens={liveLumens}
-              onSectionChange={(s) => { setSection(s); setNavTick(t => t + 1); }}
+              onSectionChange={requestSection}
             />
           ) : section === 'avatar' ? (
             <AvatarBuilder lumens={liveLumens} />
           ) : section === 'avatarCharacters' ? (
-            <AvatarCharacters lumens={liveLumens} onSelect={(a) => setChosenAvatarId(a.id)} />
+            <AvatarCharacters
+              lumens={liveLumens}
+              onSelect={(a) => setChosenAvatarId(a.id)}
+              onSaveExit={() => { setAvatarDirty(false); go('home'); }}
+              onDirtyChange={setAvatarDirty}
+              onRequestLeave={(target) => setPendingNav(target ?? 'home')}
+              leaveRequested={pendingNav != null}
+              onConfirmLeave={confirmLeaveAvatar}
+              onCancelLeave={cancelLeaveAvatar}
+            />
           ) : (
             <ExploreDashboard
               page={dashboardPage}
@@ -1610,12 +1642,12 @@ function App() {
         avatarSrc={chosenAvatarSrc}
             avatarSrc={chosenAvatarSrc}
             section={section}
-            onSectionChange={(s) => { setSection(s); setNavTick(t => t + 1); }}
+            onSectionChange={requestSection}
             onSettings={() => setSettingsOpen(true)}
           />
           <MobileBottomNav
             section={section}
-            onSectionChange={(s) => { setSection(s); setNavTick(t => t + 1); }}
+            onSectionChange={requestSection}
             points={livePoints}
             lumens={liveLumens}
             level={liveLevel}
@@ -1649,7 +1681,7 @@ function App() {
     <>
       {/* ── Top navigation (minimal — logo only, clicks → Home) ── */}
       <SpellifyLogo
-        onHomeClick={() => { setSection('home'); setNavTick(t => t + 1); }}
+        onHomeClick={() => requestSection('home')}
         variant={(section === 'home' || section === 'hfwIsland') ? 'adventure' : undefined}
       />
 
@@ -1667,7 +1699,7 @@ function App() {
       ) : section === 'home' ? (
         <AdventureMap
           session={session}
-          onSectionChange={(s) => { setSection(s); setNavTick(t => t + 1); }}
+          onSectionChange={requestSection}
           onOpenList={handleAdventureOpenList}
           onGoToHFW={(isleId) => { setHfwFromIsleId(isleId); setSection('hfwIsland'); setNavTick(t => t + 1); }}
           initialIsleId={hfwFromIsleId}
@@ -1676,12 +1708,21 @@ function App() {
         <SpellShop
           session={session}
           lumens={liveLumens}
-          onSectionChange={(s) => { setSection(s); setNavTick(t => t + 1); }}
+          onSectionChange={requestSection}
         />
       ) : section === 'avatar' ? (
         <AvatarBuilder lumens={liveLumens} />
       ) : section === 'avatarCharacters' ? (
-        <AvatarCharacters lumens={liveLumens} onSelect={(a) => setChosenAvatarId(a.id)} />
+        <AvatarCharacters
+          lumens={liveLumens}
+          onSelect={(a) => setChosenAvatarId(a.id)}
+          onSaveExit={() => { setAvatarDirty(false); go('home'); }}
+          onDirtyChange={setAvatarDirty}
+          onRequestLeave={(target) => setPendingNav(target ?? 'home')}
+          leaveRequested={pendingNav != null}
+          onConfirmLeave={confirmLeaveAvatar}
+          onCancelLeave={cancelLeaveAvatar}
+        />
       ) : (
         <ExploreDashboard
           page={section === 'exploreDashboard' ? 'explore' : section}
@@ -1740,12 +1781,12 @@ function App() {
         buddyFallback={session?.childCharacter?.emoji || '🦝'}
         avatarSrc={chosenAvatarSrc}
         section={section}
-        onSectionChange={(s) => { setSection(s); setNavTick(t => t + 1); }}
+        onSectionChange={requestSection}
         onSettings={() => setSettingsOpen(true)}
       />
       <MobileBottomNav
         section={section}
-        onSectionChange={(s) => { setSection(s); setNavTick(t => t + 1); }}
+        onSectionChange={requestSection}
         points={livePoints}
         lumens={liveLumens}
         level={liveLevel}

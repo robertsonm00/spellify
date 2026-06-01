@@ -6,8 +6,26 @@
 // (Royals, Explorers, Mythical, …) are shown as locked cards the child can
 // unlock with lumens once their art is illustrated.
 //
-// ── Asset paths ─────────────────────────────────────────────────────
-// Character webps live under public/adventure/avatars/<set>/. Paths are
+// ── Customization ────────────────────────────────────────────────────
+// Customization (skin/hair/outfit colour variants) is a property of the
+// SET, not a global. Each set can define its own palette + axes — a Mythical
+// set might offer green "Body" tones; a plain set can omit `customization`
+// entirely and be pick-only. Within a customizable set, a character opts in
+// by carrying a `slug` (its variant-art folder) + `base` (the recipe that
+// matches how it's already drawn). Characters without a `slug` are pick-only
+// even inside a customizable set, so you can customize select characters.
+//
+// Variants are pre-rendered per-combination images (not layered overlays),
+// chosen by a filename recipe built from the set's own axes:
+//   <set.dir>/<slug>/<slug>-<code><idx>-….webp
+//   e.g. starter-set/sprout/sprout-s0-h2-o0.webp
+// File growth is MULTIPLICATIVE (skin × hair × outfit), so keep axes capped
+// (~3 axes, ~5 options) and dial depth per set. Real variant art doesn't
+// exist yet, so resolveAvatarSrc() falls back to the base image until the
+// matching webp is dropped in (so the combo equal to `base` can be omitted).
+//
+// ── Asset paths ──────────────────────────────────────────────────────
+// Character webps live under public/adventure/avatars/<set.dir>/. Paths are
 // resolved against process.env.PUBLIC_URL, matching avatarAssets.js.
 
 const PUBLIC = process.env.PUBLIC_URL || '';
@@ -21,22 +39,41 @@ const STARTER_NAMES = [
   'Scout', 'Pixel', 'Maple', 'Echo', 'Nova',
 ];
 
+// Per-character variant opt-in for the Starter set. Only listed characters
+// are customizable; `slug` is their variant-art folder and `base` is the
+// recipe matching their as-drawn art (so the picker opens on the right
+// swatches and the base combo can be skipped from the art set). Pilot: Sprout.
+const STARTER_VARIANTS = {
+  'starter-01': { slug: 'sprout', base: { skin: 0, hair: 2, outfit: 0 } }, // light skin, blonde hair, look 1
+};
+
 const STARTER_AVATARS = STARTER_NAMES.map((name, i) => {
   const n = String(i + 1).padStart(2, '0');
+  const id = `starter-${n}`;
   return {
-    id: `starter-${n}`,
+    id,
     name,
     src: asset(`adventure/avatars/starter-set/avatar-starter-${n}.webp`),
+    ...(STARTER_VARIANTS[id] || {}),   // adds slug + base for customizable chars
   };
 });
 
-// The free, always-unlocked set the child starts with.
+// The free, always-unlocked set the child starts with. `customization` holds
+// the set's shared axes/palette; `dir` is the asset subfolder.
 export const STARTER_SET = {
   id: 'starter',
   name: 'Starter Squad',
   blurb: 'Your first crew — pick whoever feels like you.',
   emoji: '🌟',
   accent: '#a5f3fc',
+  dir: 'starter-set',
+  customization: {
+    axes: [
+      { key: 'skin',   label: 'Skin',   type: 'swatch', options: ['#f3d2b6', '#d49a6a', '#8d5524', '#4a2c17'] },
+      { key: 'hair',   label: 'Hair',   type: 'swatch', options: ['#3a2a1d', '#c8732e', '#ecd27a', '#141414'] },
+      { key: 'outfit', label: 'Outfit', type: 'choice', options: ['1', '2', '3', '4'] },
+    ],
+  },
   avatars: STARTER_AVATARS,
 };
 
@@ -44,6 +81,8 @@ export const STARTER_SET = {
 // each is represented by its emoji + accent and a lumens price. Unlocking
 // is "Coming soon"; the price/`size` data is here so wiring real purchases
 // later is a small change. `size` is the planned number of characters.
+// A set becomes customizable the day it's given a `customization` block +
+// avatars with `slug`/`base`; until then it's pick-only.
 export const LOCKED_SETS = [
   { id: 'royal',     name: 'Royals',      emoji: '👑', accent: '#fbbf24', price: 250, size: 10, blurb: 'Kings, queens and palace guards.' },
   { id: 'explorers', name: 'Explorers',   emoji: '🧭', accent: '#86efac', price: 200, size: 10, blurb: 'Adventurers ready for any quest.' },
@@ -58,74 +97,68 @@ export const LOCKED_SETS = [
 export const SELECTION_KEY     = 'spellify_avatar_character';
 export const UNLOCKED_SETS_KEY = 'spellify_avatar_sets_unlocked';
 
-// First-visit default — Sprout, shown in their as-drawn look (light skin,
-// blonde hair, look 1). Mirrors VARIANT_CHARACTERS['starter-01'].base so the
-// picker's pre-selected swatches match the base art.
+// First-visit default — Sprout in their as-drawn look (light skin, blonde
+// hair, look 1). Mirrors STARTER_VARIANTS['starter-01'].base so the picker's
+// pre-selected swatches match the base art.
 export const DEFAULT_SELECTION = { setId: 'starter', avatarId: 'starter-01', skin: 0, hair: 2, outfit: 0 };
 
-export const findAvatar = (avatarId) =>
-  STARTER_SET.avatars.find((a) => a.id === avatarId) || STARTER_SET.avatars[0];
+// Sets that have real characters today (locked sets have no art yet). Lookups
+// search this list, so adding a playable themed set is a one-line append.
+const PLAYABLE_SETS = [STARTER_SET];
 
-// ── Per-character variant customization (PILOT: Sprout / starter-01) ───
-// Each customizable character has a small grid of pre-rendered combination
-// images selected by a filename recipe. We picked pre-rendered combos over
-// layered overlays because flat per-image colour variants are far easier to
-// produce than pixel-registered layers.
-//
-// File growth is MULTIPLICATIVE (skin × hair × outfit), so the axes are
-// capped hard: 3 axes, 4 options each = 64 files per character. Resist
-// adding a 4th axis or widening past ~5 options, and only opt select
-// characters into customization — not the whole squad.
-//
-// Axis render types:
-//   'swatch' — a single flat colour (skin, hair) shown as a colour dot.
-//   'choice' — a whole different look that isn't one colour (outfits can be
-//              recoloured OR wholly different garments), shown as a numbered
-//              chip rather than a misleading colour dot.
-//
-// Filename recipe:  <slug>/<slug>-s{skin}-h{hair}-o{outfit}.webp
-//   e.g. starter-set/sprout/sprout-s0-h2-o1.webp
-// Real variant art doesn't exist yet, so resolveAvatarSrc() falls back to
-// the character's base image until the matching webp is dropped in.
+export function findSet(setId) {
+  return PLAYABLE_SETS.find((s) => s.id === setId) || STARTER_SET;
+}
 
-export const VARIANT_AXES = [
-  { key: 'skin',   label: 'Skin',   type: 'swatch', options: ['#f3d2b6', '#d49a6a', '#8d5524', '#4a2c17'] },
-  { key: 'hair',   label: 'Hair',   type: 'swatch', options: ['#3a2a1d', '#c8732e', '#ecd27a', '#141414'] },
-  { key: 'outfit', label: 'Outfit', type: 'choice', options: ['1', '2', '3', '4'] },
-];
-
-// Which avatars expose customization → the folder slug their variant files
-// live under, plus the `base` recipe: the index on each axis that matches
-// how the character is *already drawn* in their base art. The picker starts
-// on `base` so the selected swatches mirror reality, and the combo equal to
-// `base` can be omitted from the art set — it falls back to the existing
-// base image automatically (so `base` ≠ all-zeros is fine and not redundant).
-// Pilot ships Sprout only.
-export const VARIANT_CHARACTERS = {
-  'starter-01': { slug: 'sprout', base: { skin: 0, hair: 2, outfit: 0 } }, // light skin, blonde hair, look 1
+export const findAvatar = (avatarId) => {
+  for (const set of PLAYABLE_SETS) {
+    const a = set.avatars.find((x) => x.id === avatarId);
+    if (a) return a;
+  }
+  return STARTER_SET.avatars[0];
 };
 
-export const isCustomizable = (avatarId) => Boolean(VARIANT_CHARACTERS[avatarId]);
+// The set an avatar belongs to.
+export function findAvatarSet(avatarId) {
+  return PLAYABLE_SETS.find((s) => s.avatars.some((x) => x.id === avatarId)) || STARTER_SET;
+}
 
-// The as-drawn recipe for a character (neutral all-zeros for anything that
-// doesn't declare one). Used as the starting point when a character is
-// chosen, so switching avatars always shows that avatar's own default look.
+// The customization axes for an avatar — null when the avatar's set has no
+// customization or the avatar hasn't opted in (no slug). Drives both whether
+// the picker shows and what swatches/looks it offers.
+export function customizationAxes(avatarId) {
+  const set = findAvatarSet(avatarId);
+  const avatar = findAvatar(avatarId);
+  if (!set.customization || !avatar.slug) return null;
+  return set.customization.axes;
+}
+
+export const isCustomizable = (avatarId) => customizationAxes(avatarId) != null;
+
+// The as-drawn recipe for a character (neutral all-zeros if it doesn't
+// declare one). Used as the starting point when a character is chosen, so
+// switching avatars always shows that avatar's own default look.
 export function baseRecipe(avatarId) {
-  return VARIANT_CHARACTERS[avatarId]?.base ?? { skin: 0, hair: 0, outfit: 0 };
+  return findAvatar(avatarId)?.base ?? { skin: 0, hair: 0, outfit: 0 };
 }
 
-// Build the strict variant path for a recipe. Returns null for avatars
-// that aren't customizable.
+// Build the variant image path for a recipe from the SET's own axes, so the
+// filename adapts if a set ever defines different axes (each axis can carry
+// an explicit one-letter `code`, defaulting to the key's first letter).
+// Returns null when the avatar isn't customizable.
 export function variantSrc(avatarId, variant = {}) {
-  const cfg = VARIANT_CHARACTERS[avatarId];
-  if (!cfg) return null;
-  const { skin = 0, hair = 0, outfit = 0 } = variant;
-  return asset(`adventure/avatars/starter-set/${cfg.slug}/${cfg.slug}-s${skin}-h${hair}-o${outfit}.webp`);
+  const avatar = findAvatar(avatarId);
+  const set = findAvatarSet(avatarId);
+  if (!avatar.slug || !set.customization) return null;
+  const parts = set.customization.axes
+    .map((ax) => `${ax.code || ax.key[0]}${variant[ax.key] ?? 0}`)
+    .join('-');
+  return asset(`adventure/avatars/${set.dir}/${avatar.slug}/${avatar.slug}-${parts}.webp`);
 }
 
-// Resolve the image sources for a full selection. `variant` is the recipe
-// src to try first (null when not customizable); `base` is the always-safe
-// fallback the <img> drops to onError until real variant art exists.
+// Resolve image sources for a full selection: the variant src to try first
+// (null when not customizable) and the always-safe base fallback the <img>
+// drops to onError until real variant art exists.
 export function resolveAvatarSrc(selection = {}) {
   const base = findAvatar(selection.avatarId);
   return { variant: variantSrc(selection.avatarId, selection), base: base.src, name: base.name };
