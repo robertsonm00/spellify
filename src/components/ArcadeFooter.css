@@ -84,6 +84,39 @@
   50%      { transform: translateY(-3px); }
 }
 
+/* Duo slot — chosen character + a smaller buddy standing to its right.
+   Wider than the buddy-alone case and anchored left so the pair sits
+   together without colliding with the divider. */
+.arcade-footer__raccoon-slot--duo {
+  width: 148px;
+  justify-content: flex-start;
+}
+
+/* Chosen avatar in the footer — stands on the bar and bursts up, the
+   same way the buddy sprite does. Lives in the flex row beside the buddy. */
+.arcade-footer__avatar-img {
+  position: relative;
+  bottom: -2px;            /* feet sit on the bar */
+  height: 124px;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 9px rgba(0, 0, 0, 0.55));
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+/* Buddy beside the chosen character — half the avatar's height, tucked in
+   a couple of pixels so the two overlap, and layered in front. */
+.arcade-footer__buddy-mini {
+  position: relative;
+  bottom: -2px;            /* same baseline as the avatar */
+  margin-left: -14px;      /* overlap so the pair reads as a duo */
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
 /* ── Vertical divider ─────────────────────────────────────────────────── */
 .arcade-footer__vdiv {
   width: 1px;

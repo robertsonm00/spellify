@@ -102,6 +102,15 @@
     font-size: 3.6rem;
     line-height: 0.9;
   }
+  /* Chosen avatar — feet on the band line, body bursts up above the bar. */
+  .mbn__buddy-slot .mbn__avatar-img {
+    height: 88px;
+    width: auto;
+    object-fit: contain;
+    display: block;
+    filter: drop-shadow(0 3px 7px rgba(0, 0, 0, 0.55));
+    pointer-events: none;
+  }
 
   .mbn__points-num {
     font-size: 1.1rem;

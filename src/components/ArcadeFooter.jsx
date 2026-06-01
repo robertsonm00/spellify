@@ -13,6 +13,7 @@ const NAV_TABS = [
   { key: 'assignments',      label: 'ASSIGN' },
   { key: 'mylists',          label: 'MY LISTS' },
   { key: 'exploreDashboard', label: 'EXPLORE' },
+  { key: 'avatarCharacters', label: 'AVATAR' },
   { key: 'spellShop',        label: 'SHOP' },
   // PROF-02: Avatar Builder hidden for now — it needs more work before
   // it's deployable. Hidden (not removed) so it can be switched back on:
@@ -31,6 +32,7 @@ export default function ArcadeFooter({
   xpMax = 1,
   buddyId = 'raccoon',
   buddyFallback = '🦝',
+  avatarSrc = null,   // chosen character — replaces the buddy in the footer
   // New props for footer-as-nav
   section = '',
   onSectionChange,
@@ -54,9 +56,26 @@ export default function ArcadeFooter({
 
   return (
     <footer className="arcade-footer" role="contentinfo">
-      {/* Buddy (pokes up above the bar) */}
-      <div className="arcade-footer__raccoon-slot">
-        <BuddyAvatar id={buddyId} size={114} fallback={buddyFallback} interactive />
+      {/* Chosen avatar (pokes up above the bar). Falls back to the buddy
+          sprite when no avatar has been picked. */}
+      <div className={`arcade-footer__raccoon-slot${avatarSrc ? ' arcade-footer__raccoon-slot--duo' : ''}`}>
+        {avatarSrc ? (
+          <>
+            <img
+              className="arcade-footer__avatar-img"
+              src={avatarSrc}
+              alt="Your avatar"
+              draggable={false}
+            />
+            {/* Buddy stands just to the right of the chosen character,
+                overlapping by a hair — half the avatar's height. */}
+            <div className="arcade-footer__buddy-mini">
+              <BuddyAvatar id={buddyId} size={62} fallback={buddyFallback} interactive />
+            </div>
+          </>
+        ) : (
+          <BuddyAvatar id={buddyId} size={114} fallback={buddyFallback} interactive />
+        )}
       </div>
 
       <div className="arcade-footer__vdiv" />

@@ -89,6 +89,7 @@ const TABS = [
 const DRAWER_ITEMS = [
   { key: 'signin',         label: 'Sign In / Sign Up', type: 'action' },
   { key: 'settings',       label: '⚙️ Settings',       type: 'action' },
+  { key: 'avatarCharacters', label: '🧑 Avatar',       type: 'nav'    },
   { key: 'spellShop',      label: '🪄 Shop',           type: 'nav'    },
   { key: 'profile',        label: 'Profile',           type: 'soon'   },
   { key: 'favourites',     label: '❤ Favourites',      type: 'nav'    },
@@ -107,6 +108,7 @@ export default function MobileBottomNav({
   xpMax = 1,
   buddyId = 'raccoon',
   buddyFallback = '🦝',
+  avatarSrc = null,   // chosen character — replaces the buddy in the nav
   onSignInClick,
   onSignUpClick,
   onSettingsClick,
@@ -142,7 +144,16 @@ export default function MobileBottomNav({
         {/* Status row — buddy + score + level title with xp bar. */}
         <div className="mbn__status">
           <div className="mbn__buddy-slot">
-            <BuddyAvatar id={buddyId} size={92} fallback={buddyFallback} interactive />
+            {avatarSrc ? (
+              <img
+                className="mbn__avatar-img"
+                src={avatarSrc}
+                alt="Your avatar"
+                draggable={false}
+              />
+            ) : (
+              <BuddyAvatar id={buddyId} size={92} fallback={buddyFallback} interactive />
+            )}
           </div>
           <span className="mbn__points-num">{points.toLocaleString()}</span>
           <span className="mbn__lumens" aria-label={`${lumens} lumens`}>

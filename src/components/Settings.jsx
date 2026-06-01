@@ -12,6 +12,9 @@ function Settings({
   childCharacter,
   year: yearProp,
   adaptiveLearning = true,
+  avatarSrc = null,
+  avatarName = '',
+  onChangeAvatar,
   onUpdate,
   onClose,
   onExit,
@@ -54,6 +57,40 @@ function Settings({
         <button className="settings-close" onClick={onClose} aria-label="Close settings">✕</button>
 
         <h2 className="settings-title">Profile</h2>
+
+        {/* ── Chosen avatar — tap the hero or "Change" to open the Avatar page ── */}
+        {onChangeAvatar && (
+          <div className="settings-avatar-row">
+            <button
+              type="button"
+              className="settings-avatar-hero"
+              onClick={onChangeAvatar}
+              aria-label="Change your avatar"
+            >
+              {avatarSrc ? (
+                <img
+                  className="settings-avatar-hero__img"
+                  src={avatarSrc}
+                  alt={avatarName || 'Your avatar'}
+                  draggable={false}
+                />
+              ) : (
+                <span className="settings-avatar-hero__placeholder" aria-hidden="true">🧑</span>
+              )}
+            </button>
+            <div className="settings-avatar-meta">
+              <span className="settings-avatar-label">Your hero</span>
+              <span className="settings-avatar-name">{avatarName || 'Pick a character'}</span>
+              <button
+                type="button"
+                className="settings-avatar-change"
+                onClick={onChangeAvatar}
+              >
+                Change →
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* ── Name ── */}
         <div className="settings-field-row">

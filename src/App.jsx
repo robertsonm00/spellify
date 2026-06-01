@@ -15,6 +15,8 @@ import AdventureMap from './components/AdventureMap';
 import HFWIsland from './components/HFWIsland';
 import SpellShop from './components/SpellShop';
 import AvatarBuilder from './components/AvatarBuilder';
+import AvatarCharacters from './components/AvatarCharacters';
+import { loadSelection as loadAvatarSelection, findAvatar as findChosenAvatar } from './data/avatarSets';
 import ArcadeFooter from './components/ArcadeFooter';
 import MobileBottomNav from './components/MobileBottomNav';
 // MobileTopBar removed — SpellifyLogo is the single floating wordmark.
@@ -870,6 +872,14 @@ function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const liveGames  = React.useMemo(() => getPlayerStats().totalGames || 0, [pointsTick]);
   const liveLevel  = React.useMemo(() => getLevelFromGames(liveGames), [liveGames]);
+
+  // Chosen avatar (set-based selector). Initialised from localStorage and
+  // updated live when the child picks on the Avatar screen, so the footer
+  // character mirrors their choice. The in-game buddy is unaffected.
+  const [chosenAvatarId, setChosenAvatarId] = useState(() => loadAvatarSelection().avatarId);
+  const chosenAvatar    = React.useMemo(() => findChosenAvatar(chosenAvatarId), [chosenAvatarId]);
+  const chosenAvatarSrc = chosenAvatar.src;
+  const chosenAvatarName = chosenAvatar.name;
   const levelXp    = React.useMemo(() => {
     const p = getLevelProgress(liveGames);
     // Max level reached → show a full bar rather than "/ 0".
@@ -1002,7 +1012,9 @@ function App() {
     setScreen('onboarding');
   };
 
-  const handleOnboardingComplete = ({ name, character, year, age, words, wordObjects = [], dyslexiaMode = false, sourceMode = 'generated', ruleKey = null, ruleLabel = null, difficulty, spellingConfidence = 'tricky', senProfile = [], wantAddList = false }) => {
+  const handleOnboardingComplete = ({ name, character, year, age, avatarId = null, words, wordObjects = [], dyslexiaMode = false, sourceMode = 'generated', ruleKey = null, ruleLabel = null, difficulty, spellingConfidence = 'tricky', senProfile = [], wantAddList = false }) => {
+    // Mirror the hero picked during onboarding into the live footer avatar.
+    if (avatarId) setChosenAvatarId(avatarId);
     setSession({
       ...createSession({
         year, age, words, wordObjects, sourceMode, dyslexiaMode,
@@ -1357,6 +1369,9 @@ function App() {
           adaptiveLearning={session?.adaptiveLearning !== false}
           childName={session?.childName || ''}
           childCharacter={session?.childCharacter || null}
+          avatarSrc={chosenAvatarSrc}
+          avatarName={chosenAvatarName}
+          onChangeAvatar={() => { setSettingsOpen(false); setSection('avatarCharacters'); }}
           onUpdate={handleSettingsUpdate}
           onChangeWords={() => { setSettingsOpen(false); setSection('mylists'); setChangeWordsOpen(true); }}
           onClearProgress={handleClearProgress}
@@ -1530,7 +1545,7 @@ function App() {
   if (!session || !session.words || session.words.length === 0) {
     // No session: render the dashboard so guests can browse Home / Explore /
     // Favourites etc. Onboarding is launched from inside those flows.
-    const dashboardSections = ['home', 'hfwIsland', 'assignments', 'mylists', 'exploreDashboard', 'spellShop', 'favourites', 'recent', 'alerts', 'avatar'];
+    const dashboardSections = ['home', 'hfwIsland', 'assignments', 'mylists', 'exploreDashboard', 'spellShop', 'favourites', 'recent', 'alerts', 'avatar', 'avatarCharacters'];
     if (dashboardSections.includes(section)) {
       const dashboardPage = section === 'exploreDashboard' ? 'explore' : section;
       return (
@@ -1562,6 +1577,8 @@ function App() {
             />
           ) : section === 'avatar' ? (
             <AvatarBuilder lumens={liveLumens} />
+          ) : section === 'avatarCharacters' ? (
+            <AvatarCharacters lumens={liveLumens} onSelect={(a) => setChosenAvatarId(a.id)} />
           ) : (
             <ExploreDashboard
               page={dashboardPage}
@@ -1590,6 +1607,8 @@ function App() {
             xpMax={levelXp.max}
             buddyId={session?.childCharacter?.id || 'raccoon'}
             buddyFallback={session?.childCharacter?.emoji || '🦝'}
+        avatarSrc={chosenAvatarSrc}
+            avatarSrc={chosenAvatarSrc}
             section={section}
             onSectionChange={(s) => { setSection(s); setNavTick(t => t + 1); }}
             onSettings={() => setSettingsOpen(true)}
@@ -1605,6 +1624,8 @@ function App() {
             xpMax={levelXp.max}
             buddyId={session?.childCharacter?.id || 'raccoon'}
             buddyFallback={session?.childCharacter?.emoji || '🦝'}
+        avatarSrc={chosenAvatarSrc}
+            avatarSrc={chosenAvatarSrc}
             onSignInClick={() => setShowSignIn(true)}
             onSignUpClick={() => setShowSignIn(true)}
             onSettingsClick={() => setSettingsOpen(true)}
@@ -1659,6 +1680,8 @@ function App() {
         />
       ) : section === 'avatar' ? (
         <AvatarBuilder lumens={liveLumens} />
+      ) : section === 'avatarCharacters' ? (
+        <AvatarCharacters lumens={liveLumens} onSelect={(a) => setChosenAvatarId(a.id)} />
       ) : (
         <ExploreDashboard
           page={section === 'exploreDashboard' ? 'explore' : section}
@@ -1715,6 +1738,7 @@ function App() {
         xpMax={levelXp.max}
         buddyId={session?.childCharacter?.id || 'raccoon'}
         buddyFallback={session?.childCharacter?.emoji || '🦝'}
+        avatarSrc={chosenAvatarSrc}
         section={section}
         onSectionChange={(s) => { setSection(s); setNavTick(t => t + 1); }}
         onSettings={() => setSettingsOpen(true)}
@@ -1730,6 +1754,7 @@ function App() {
         xpMax={levelXp.max}
         buddyId={session?.childCharacter?.id || 'raccoon'}
         buddyFallback={session?.childCharacter?.emoji || '🦝'}
+        avatarSrc={chosenAvatarSrc}
       />
       {exitToSelectorBtn}
     </>

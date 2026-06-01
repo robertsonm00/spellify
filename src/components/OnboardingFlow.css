@@ -871,6 +871,110 @@
   }
 }
 
+/* ── Avatar hero step ───────────────────────────────────────────────────
+   Full-body Starter-Squad picker. A large hero card sits above a
+   horizontally-scrolling row of character tiles you highlight through.
+   Images are portrait webps — contained + bottom-anchored so heads never
+   clip and feet sit on the tile base. Purple accent distinguishes it from
+   the buddy picker's gold. */
+.ob-avatar-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0.25rem 0 0.2rem;
+}
+.ob-avatar-hero--picked {
+  animation: ob-buddy-pulse 0.9s ease-in-out infinite;
+}
+.ob-avatar-hero__frame {
+  height: 200px;
+  width: 152px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  border-radius: 18px;
+  background: radial-gradient(circle at 50% 28%, #fdf6ff 0%, #f3e9ff 68%, #e7d6ff 100%);
+  border: 3px solid #c77dff;
+  box-shadow: 0 8px 18px rgba(199, 125, 255, 0.25);
+  overflow: hidden;
+}
+.ob-avatar-hero__img {
+  height: 97%;
+  width: auto;
+  object-fit: contain;
+  object-position: center bottom;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.18));
+}
+.ob-avatar-hero__name {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.72rem;
+  color: #6b21a8;
+  letter-spacing: 0.02em;
+}
+
+.ob-avatar-row {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+  overflow-x: auto;
+  padding: 0.4rem 0.25rem 0.6rem;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+  scrollbar-color: #d0d0d0 transparent;
+}
+.ob-avatar-row::-webkit-scrollbar { height: 6px; }
+.ob-avatar-row::-webkit-scrollbar-track { background: transparent; }
+.ob-avatar-row::-webkit-scrollbar-thumb { background: #d0d0d0; border-radius: 3px; }
+
+.ob-avatar-pick {
+  position: relative;
+  flex: 0 0 auto;
+  width: 58px;
+  height: 80px;
+  padding: 4px 4px 0;
+  border: 2.5px solid #e0e0e0;
+  border-radius: 10px;
+  background: #f7f4ff;
+  cursor: pointer;
+  scroll-snap-align: center;
+  overflow: hidden;
+  transition: transform 0.1s, border-color 0.1s, background 0.1s, box-shadow 0.1s;
+}
+.ob-avatar-pick:hover {
+  transform: translateY(-3px);
+  border-color: #c77dff;
+}
+.ob-avatar-pick.is-selected {
+  border-color: #c77dff;
+  background: #f0e2ff;
+  box-shadow: 0 4px 10px rgba(199, 125, 255, 0.35);
+  transform: translateY(-3px) scale(1.04);
+}
+.ob-avatar-pick__img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+  display: block;
+}
+.ob-avatar-pick__check {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  font-weight: 800;
+  color: #fff;
+  background: #c77dff;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
 /* ── Step 5: Own lists? ──────────────────────────────────────────
    Lives inside the white .ob-card panel like every other onboarding
    step, so colours mirror .ob-confidence-card (the closest peer). */

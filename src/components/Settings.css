@@ -76,6 +76,87 @@
   margin-bottom: 1rem;
 }
 
+/* ── Chosen avatar hero (top of Profile) ──────────────────────────────
+   Tappable portrait + a "Change" CTA that jumps to the Avatar page. */
+.settings-avatar-row {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-bottom: 1.1rem;
+  padding: 0.7rem 0.8rem;
+  border: 2px solid #efe7ff;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #faf6ff 0%, #f3ecff 100%);
+}
+.settings-avatar-hero {
+  flex-shrink: 0;
+  width: 64px;
+  height: 76px;
+  padding: 0;
+  border: 2.5px solid #c77dff;
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  transition: transform 0.1s, box-shadow 0.1s, border-color 0.1s;
+}
+.settings-avatar-hero:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 12px rgba(199, 125, 255, 0.35);
+}
+.settings-avatar-hero__img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+  display: block;
+}
+.settings-avatar-hero__placeholder {
+  font-size: 2rem;
+  line-height: 1;
+  padding-bottom: 0.4rem;
+}
+.settings-avatar-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+.settings-avatar-label {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #9b7bc7;
+}
+.settings-avatar-name {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #4a1d96;
+  line-height: 1.15;
+}
+.settings-avatar-change {
+  align-self: flex-start;
+  margin-top: 0.15rem;
+  padding: 0.3rem 0.7rem;
+  border: none;
+  border-radius: 8px;
+  background: #c77dff;
+  color: #fff;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.12s, transform 0.1s;
+}
+.settings-avatar-change:hover {
+  background: #b25ff0;
+  transform: translateY(-1px);
+}
+
 /* ── Editable field rows ── */
 
 .settings-field-row {

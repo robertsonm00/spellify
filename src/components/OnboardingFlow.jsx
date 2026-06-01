@@ -4,6 +4,7 @@ import './OnboardingFlow.css';
 import { YEAR_GROUPS, selectWords, getRuleGroups } from '../utils/wordSelectionEngine';
 import { confidenceToDefaults } from '../data/spelling/sessionSchema';
 import BuddyAvatar, { hasBuddyAvatar } from './BuddyAvatar';
+import { STARTER_SET, saveSelection } from '../data/avatarSets';
 
 // ── Buddy-pick celebration ──────────────────────────────────────────────
 // Triumphant ascending fanfare (C5 → E5 → G5 → C6) — kid-friendly "ta-da!"
@@ -297,7 +298,92 @@ function CharacterPicker({ name, onSelect }) {
   );
 }
 
-// ── Step 3: Year group picker ──────────────────────────────────────────────
+// ── Step 3: Avatar hero picker ─────────────────────────────────────────────
+//
+// Pick a full-body hero from the Starter Squad (the set-based avatar model,
+// distinct from the emoji learning buddy chosen one step earlier). The big
+// hero card updates as you highlight through the row; Continue fires the
+// celebration and persists the pick so it shows in the footer afterwards.
+
+function AvatarHeroStep({ name, initialAvatarId, onContinue }) {
+  const [selectedId, setSelectedId] = useState(
+    initialAvatarId || STARTER_SET.avatars[0].id,
+  );
+  const [advancing, setAdvancing] = useState(false);
+  const selected =
+    STARTER_SET.avatars.find((a) => a.id === selectedId) || STARTER_SET.avatars[0];
+
+  const handleContinue = () => {
+    if (advancing) return;
+    setAdvancing(true);
+    playBuddyFanfare();
+    fireBuddyConfetti();
+    setTimeout(() => onContinue(selected), 750);
+  };
+
+  return (
+    <div className="ob-step ob-avatar">
+      <div className="ob-step-header">
+        <h2 className="ob-step-title">
+          Pick your hero, <span style={{ whiteSpace: 'nowrap' }}>{name}</span>!
+        </h2>
+        <p className="ob-step-sub">This is how you'll show up in Spellify.</p>
+      </div>
+
+      {/* Hero — the currently highlighted character, shown large. */}
+      <div className={`ob-avatar-hero${advancing ? ' ob-avatar-hero--picked' : ''}`}>
+        <div className="ob-avatar-hero__frame">
+          <img
+            className="ob-avatar-hero__img"
+            src={selected.src}
+            alt={selected.name}
+            draggable={false}
+          />
+        </div>
+        <span className="ob-avatar-hero__name">{selected.name}</span>
+      </div>
+
+      {/* Starter squad — highlight through the row to pick. */}
+      <div
+        className="ob-avatar-row"
+        role="radiogroup"
+        aria-label={`${STARTER_SET.name} characters`}
+      >
+        {STARTER_SET.avatars.map((avatar) => {
+          const isSel = avatar.id === selectedId;
+          return (
+            <button
+              key={avatar.id}
+              type="button"
+              role="radio"
+              aria-checked={isSel}
+              aria-label={avatar.name}
+              title={avatar.name}
+              className={`ob-avatar-pick${isSel ? ' is-selected' : ''}`}
+              onClick={() => setSelectedId(avatar.id)}
+            >
+              <img
+                className="ob-avatar-pick__img"
+                src={avatar.src}
+                alt=""
+                draggable={false}
+              />
+              {isSel && <span className="ob-avatar-pick__check" aria-hidden="true">✓</span>}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="ob-confidence-actions">
+        <button type="button" className="ob-play-btn" onClick={handleContinue}>
+          Continue →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Step 4: Year group picker ──────────────────────────────────────────────
 
 function YearPicker({ name, onSelect }) {
   return (
@@ -604,11 +690,19 @@ function OnboardingFlow({ onComplete, initialName = '', initialCharacter = null,
   const [step,       setStep]       = useState(startStep);
   const [name,       setName]       = useState(initialName);
   const [character,  setCharacter]  = useState(initialCharacter);
+  const [avatarId,   setAvatarId]   = useState(null);
   const [year,       setYear]       = useState(initialYear);
   const [confidence, setConfidence] = useState(null);
 
   const handleName      = (n) => { setName(n);      setStep('character');  };
-  const handleCharacter = (c) => { setCharacter(c); setStep('year');       };
+  const handleCharacter = (c) => { setCharacter(c); setStep('avatar');     };
+  const handleAvatar    = (a) => {
+    setAvatarId(a.id);
+    // Persist immediately so the chosen hero is already saved when the
+    // session is created and the footer first renders it.
+    saveSelection({ setId: STARTER_SET.id, avatarId: a.id });
+    setStep('year');
+  };
   const handleYear      = (y) => { setYear(y);      setStep('confidence'); };
   const handleConfidence = ({ spellingConfidence }) => {
     setConfidence(spellingConfidence);
@@ -631,6 +725,7 @@ function OnboardingFlow({ onComplete, initialName = '', initialCharacter = null,
     });
     onComplete({
       name, character, year, age,
+      avatarId,                   // ← chosen Starter-Squad hero (footer avatar)
       words:       result.words,
       wordObjects: result.wordObjects,
       dyslexiaMode,
@@ -646,7 +741,8 @@ function OnboardingFlow({ onComplete, initialName = '', initialCharacter = null,
 
   const back = () => {
     if      (step === 'character')  setStep('name');
-    else if (step === 'year')       setStep('character');
+    else if (step === 'avatar')     setStep('character');
+    else if (step === 'year')       setStep('avatar');
     else if (step === 'confidence') setStep('year');
     else if (step === 'ownLists')   setStep('confidence');
   };
@@ -670,6 +766,7 @@ function OnboardingFlow({ onComplete, initialName = '', initialCharacter = null,
       <div className="ob-card">
         {step === 'name'       && <NameInput      onSubmit={handleName}      />}
         {step === 'character'  && <CharacterPicker name={name} onSelect={handleCharacter} />}
+        {step === 'avatar'     && <AvatarHeroStep  name={name} initialAvatarId={avatarId} onContinue={handleAvatar} />}
         {step === 'year'       && <YearPicker     name={name} onSelect={handleYear} />}
         {step === 'confidence' && <ConfidencePicker name={name} onSubmit={handleConfidence} />}
         {step === 'ownLists'   && <OwnListsStep    name={name} character={character} onChoose={finishOnboarding} />}
