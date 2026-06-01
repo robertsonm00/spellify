@@ -162,6 +162,18 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+/* "Show more" reveal card — dashed accent so it reads as an action,
+   not a buddy. */
+.ccp-buddy-card--more {
+  border-style: dashed;
+  border-color: rgba(199, 125, 255, 0.5);
+  background: rgba(40, 22, 70, 0.35);
+  color: #cdb4ff;
+}
+.ccp-buddy-card--more:hover {
+  border-color: #ffd93d;
+  color: #ffd93d;
+}
 .ccp-buddy-card__face {
   display: flex;
   align-items: center;

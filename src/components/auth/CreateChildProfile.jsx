@@ -80,6 +80,11 @@ export default function CreateChildProfile({ authUser, prefill = null, onCreated
   const [adaptive,    setAdaptive]    = useState(prefill?.adaptiveLearning !== false);
   const [busy,        setBusy]        = useState(false);
   const [error,       setError]       = useState(null);
+  // Buddy picker is long (50+ animals). Mirror onboarding: show the first
+  // seven, then a "Show more" card reveals the rest. Raccoon (the only free
+  // buddy) sits within the first seven, so the default view is still usable.
+  const [showAllBuddies, setShowAllBuddies] = useState(false);
+  const visibleCharacters = showAllBuddies ? CHARACTERS : CHARACTERS.slice(0, 7);
 
   const canSubmit =
     nickname.trim().length >= 1 &&
@@ -191,7 +196,7 @@ export default function CreateChildProfile({ authUser, prefill = null, onCreated
           <fieldset className="ccp-field">
             <legend className="ccp-field__label">Learning buddy</legend>
             <div className="ccp-buddy-grid">
-              {CHARACTERS.map((c) => {
+              {visibleCharacters.map((c) => {
                 const isRaccoon = c.id === 'raccoon';
                 const picked   = characterId === c.id;
                 return (
@@ -214,6 +219,19 @@ export default function CreateChildProfile({ authUser, prefill = null, onCreated
                   </button>
                 );
               })}
+              {!showAllBuddies && (
+                <button
+                  type="button"
+                  className="ccp-buddy-card ccp-buddy-card--more"
+                  onClick={() => setShowAllBuddies(true)}
+                  aria-label="Show more buddies"
+                >
+                  <span className="ccp-buddy-card__face" aria-hidden="true">
+                    <span className="ccp-buddy-card__emoji">➕</span>
+                  </span>
+                  <span className="ccp-buddy-card__name">Show more</span>
+                </button>
+              )}
             </div>
           </fieldset>
 
