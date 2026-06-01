@@ -532,7 +532,12 @@ function App() {
     (async () => {
       const { data, error: err } = await supabase
         .from('profiles')
-        .select('id, display_name, parent_pin_hash')
+        // NB: do NOT select `display_name` — that column does not exist on
+        // public.profiles. Selecting it made this fetch error every time, so
+        // parentProfile fell back to null and the grown-up gate re-prompted
+        // for PIN *setup* on every entry (even with a PIN already saved) —
+        // a security hole, since "set a new PIN" replaced "enter your PIN".
+        .select('id, parent_pin_hash')
         .eq('id', authUser.id)
         .maybeSingle();
       if (cancelled) return;

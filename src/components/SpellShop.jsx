@@ -56,7 +56,7 @@ const SHOP_CATEGORIES = [
 // Public-path image URL — set as a CSS custom property at runtime so the
 // CSS file doesn't have to reference a public/ path (which css-loader would
 // try to resolve at build time and fail).
-const BG_URL = `url("${process.env.PUBLIC_URL || ''}/adventure/backgrounds/spell-shop-background.png")`;
+const BG_URL = `url("${process.env.PUBLIC_URL || ''}/adventure/backgrounds/spell-shop-background.webp")`;
 
 export default function SpellShop({ session, lumens = 0, onSectionChange }) {
   return (
