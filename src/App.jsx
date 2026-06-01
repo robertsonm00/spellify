@@ -591,13 +591,24 @@ function App() {
     try {
       const hash = await hashPin(pin, authUser.id);
       // upsert so a brand-new account with no profiles row still
-      // gets one written here.
-      const { error: err } = await supabase
+      // gets one written here. `.select('id')` makes the write echo back
+      // the affected row: if profiles RLS lacks an insert/update policy
+      // scoped to auth.uid(), the upsert returns NO error but matches ZERO
+      // rows — a silent failure that would close the gate yet persist
+      // nothing, so the PIN would re-prompt on the next login. Treat an
+      // empty result as a hard error rather than a false success.
+      const { data, error: err } = await supabase
         .from('profiles')
-        .upsert({ id: authUser.id, parent_pin_hash: hash }, { onConflict: 'id' });
+        .upsert({ id: authUser.id, parent_pin_hash: hash }, { onConflict: 'id' })
+        .select('id');
       if (err) {
         console.error('[pin] save failed', err);
         setPinError(err.message || 'Could not save PIN. Please try again.');
+        return;
+      }
+      if (!data || data.length === 0) {
+        console.error('[pin] save wrote 0 rows — profiles RLS likely blocks this write', { id: authUser.id });
+        setPinError('Could not save PIN (permission issue). Please try again.');
         return;
       }
       setParentProfile((prev) => ({ ...(prev || {}), id: authUser.id, parent_pin_hash: hash }));
