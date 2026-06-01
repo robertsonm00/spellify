@@ -11,11 +11,11 @@ import './GameWordPanel.css';
 // (App.jsx for My Words, exploreActivityRunner for Explore lists), so every
 // game gets it without per-game wiring.
 //
-//   - Desktop: a fixed panel on the far right, open by default, toggled by a
-//     pull-tab on the right edge.
-//   - Mobile: closed by default so it never covers the grid / keyboard /
-//     tiles; a right-edge pull-tab slides it in over a dimming scrim, and it
-//     closes on tap-away or the ✕.
+//   - Closed by default on every viewport, so first loading a game shows
+//     only the game / main word-list page — the word list never slides in
+//     over the surface uninvited.
+//   - A right-edge pull-tab opens it on demand (over a dimming scrim on
+//     mobile); it closes on tap-away or the ✕.
 //
 // Tapping a word opens the shared WordDetailModal (meaning + audio), the same
 // modal used on the hub.
@@ -31,16 +31,10 @@ const CHIP_COLORS = [
   { bg: '#fff0f8', border: '#ff6b9d' },
 ];
 
-function isDesktopViewport() {
-  return typeof window !== 'undefined'
-    && typeof window.matchMedia === 'function'
-    && window.matchMedia('(min-width: 769px)').matches;
-}
-
 export default function GameWordPanel({ words = [], userAge = 8, listName = 'Your words' }) {
-  // Open by default on desktop (room to spare), closed on mobile (protect the
-  // game surface). The child toggles from there via the tab / ✕.
-  const [open, setOpen] = useState(isDesktopViewport);
+  // Closed by default on every viewport so first load shows only the game /
+  // main word-list page. The child opens it on demand via the pull-tab / ✕.
+  const [open, setOpen] = useState(false);
   const [activeWord, setActiveWord] = useState(null);
 
   // Nothing to show — don't mount the tab either.
