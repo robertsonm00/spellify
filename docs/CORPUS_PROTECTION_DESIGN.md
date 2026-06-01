@@ -1,7 +1,67 @@
-# Corpus Protection — Design Document (v1, draft)
+# Corpus Protection — Design Document (v1)
 
-**Status:** Draft for review · **Date:** 2026-06-01 · **Owner:** TBC
-**Decision pending:** approve architecture before any code is written.
+**Status:** In build · **Date:** 2026-06-01 · **Owner:** TBC
+**Decisions taken:** rich-corpus-first; tightest-feasible offline boundary
+(statutory ∪ selectWords pools); definitions gating deferred as a fast-follow.
+
+---
+
+## 0. Build status & corrected findings (2026-06-01)
+
+Code investigation since the draft changed three of its assumptions. Recording
+them here so the doc matches reality.
+
+**Corrected sizes (de-duplicated runtime corpus, not raw rows).** The draft's
+"7,135 entries / 324 statutory" were the *raw* source-array counts
+(771 + 598 + 368 + 5,398 = 7,135). `wordLookup` de-dupes on lower-cased word
+(first-wins), so the **actual runtime corpus is 6,750 unique entries, of which
+309 are statutory** (~4.46 MB / ~203 KB). All boundary maths below uses the
+real numbers.
+
+**The rich enrichment has no live runtime consumers.** The 18-field "moat"
+(sentence, trickyPart, commonMistakes, phonics, syllables, relatedWords, …) is
+read by **no game**. The one path that computed it — `getEnrichedLesson`'s
+`enriched` field — is dead (nothing reads `.enriched`). The only live consumers
+of the corpus are `selectWords` (statutory pools only) and `clueResolver`'s
+`getDefinition` *fallback*. ⇒ The rich corpus can leave the bundle with
+essentially **zero offline impact**.
+
+**The real second moat is `definitions.js`.** Gameplay clues come from a
+separate, already-bundled file — `src/data/definitions.js` (4,753 plain
+definitions, ~281 KB) — which covers 99.9 % of built-in lesson words and all
+309 statutory. `wordLookup` is only its fallback. Definitions are explicitly
+part of the moat (§1), so protecting it is a *second* job, deferred here.
+
+### Decision
+
+- **Offline (Tier-1) boundary** = **statutory ∪ all `selectWords` pool words**
+  = **327 entries / ~216 KB**, generated + integrity-guarded by
+  `scripts/buildStatutoryTier1.mjs` → `src/data/statutoryTier1.js`. (Not
+  statutory-only: 18 pool words — circle, february, through, question … — are
+  statutory in KS2 but the first-wins merge returns their non-statutory KS1
+  copy; a statutory-only set would regress `selectWords`.)
+- **Rich corpus first.** Ship the unbundling now; gate definitions later.
+- **Definitions gating** (move `definitions.js` server-side, bundle only the
+  statutory subset ~11 KB, lean on `curriculumLists` inline defs offline) is a
+  scheduled fast-follow. It is the change that adds async loading states to
+  Crossword / Quiz Quest.
+
+### Done
+
+- ✅ **Unbundled the wider corpus** (commit `1ce80eb`). `wordLookup` now imports
+  only `statutoryTier1.js`. Main JS **−784 KB gzipped** (1.37 MB → 590 KB).
+  Compiles clean; no runtime regression.
+
+### Note on the Edge Function (revised necessity)
+
+Because nothing in the client currently *reads* the wider rich corpus, the
+protection is already achieved by **simply not shipping it** — the gate
+(table + Edge Function) is no longer required to keep the rich-corpus phase
+working. It becomes necessary only when a feature needs to *serve* wider words:
+(a) the deferred **definitions** phase, or (b) runtime **custom-list
+enrichment**. The backend below is therefore *forward infrastructure*, to be
+built when one of those consumers is scheduled — not a prerequisite for the
+win already shipped.
 
 ---
 
