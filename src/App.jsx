@@ -1639,7 +1639,6 @@ function App() {
             xpMax={levelXp.max}
             buddyId={session?.childCharacter?.id || 'raccoon'}
             buddyFallback={session?.childCharacter?.emoji || '🦝'}
-        avatarSrc={chosenAvatarSrc}
             avatarSrc={chosenAvatarSrc}
             section={section}
             onSectionChange={requestSection}
@@ -1656,7 +1655,6 @@ function App() {
             xpMax={levelXp.max}
             buddyId={session?.childCharacter?.id || 'raccoon'}
             buddyFallback={session?.childCharacter?.emoji || '🦝'}
-        avatarSrc={chosenAvatarSrc}
             avatarSrc={chosenAvatarSrc}
             onSignInClick={() => setShowSignIn(true)}
             onSignUpClick={() => setShowSignIn(true)}
