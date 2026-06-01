@@ -60,10 +60,12 @@ function fireBuddyConfetti() {
 // ── Buddy renderers ──────────────────────────────────────────────────────
 
 function RaccoonSprite({ size, cheering }) {
-  // The still frame is a large SVG; until it has decoded we show a
-  // lightweight emoji placeholder so the slot is never blank (ONB-01),
-  // then fade the real sprite in over it. Both frames are kept mounted so
-  // the browser also caches raccoon-cheer.svg — no blank flash on first cheer.
+  // The still frame is a large SVG. We deliberately show NOTHING until it has
+  // decoded (no emoji placeholder) and fade the real sprite in once it's ready
+  // — an emoji stand-in flashing before the buddy looked worse than a brief
+  // blank. The SVGs are pre-fetched at module load (above), so on a warm cache
+  // `loaded` flips true almost immediately. Both frames stay mounted so the
+  // browser also caches raccoon-cheer.svg — no blank flash on first cheer.
   const [loaded, setLoaded] = useState(false);
   const stillRef = useRef(null);
   useEffect(() => {
@@ -74,15 +76,6 @@ function RaccoonSprite({ size, cheering }) {
   const imgStyle = { maxWidth: size, maxHeight: size, width: 'auto', height: 'auto' };
   return (
     <span className="buddy-sprite-stack">
-      {!loaded && (
-        <span
-          className="buddy-sprite-ph"
-          aria-hidden="true"
-          style={{ fontSize: Math.round(size * 0.78), lineHeight: 1 }}
-        >
-          🦝
-        </span>
-      )}
       <img
         ref={stillRef}
         className={`buddy-sprite buddy-sprite--fade${loaded ? ' buddy-sprite--loaded' : ''}`}

@@ -7,9 +7,8 @@
   image-rendering: crisp-edges;
 }
 
-/* Sprite stack: holds the still + cheer frames and (while loading) the
-   emoji placeholder. Inline-flex so it occupies the same slot the bare
-   <img> used to — keeps existing layouts unchanged. */
+/* Sprite stack: holds the still + cheer frames. Inline-flex so it occupies
+   the same slot the bare <img> used to — keeps existing layouts unchanged. */
 .buddy-sprite-stack {
   display: inline-flex;
   align-items: center;
@@ -17,16 +16,8 @@
   line-height: 0;
 }
 
-/* Lightweight placeholder shown until the large still SVG has decoded,
-   so the buddy slot never flashes blank (ONB-01). */
-.buddy-sprite-ph {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-}
-
-/* Fade the real sprite in over the placeholder once it has loaded. */
+/* Fade the real sprite in once it has decoded (no emoji placeholder — a brief
+   blank reads better than an emoji flashing before the buddy). */
 .buddy-sprite--fade {
   opacity: 0;
   transition: opacity 300ms ease-out;
